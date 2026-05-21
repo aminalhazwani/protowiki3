@@ -1,6 +1,8 @@
 import { computed, readonly, ref, watch, type ComputedRef, type DeepReadonly, type Ref } from 'vue'
 
 import {
+  configUserDisplayName,
+  configUserPageTitle,
   loadConfig,
   resetUserPageListField,
   saveConfig,
@@ -25,6 +27,9 @@ export function useConfig(): {
   config: DeepReadonly<Ref<Config>>
   theme: Ref<ConfigTheme>
   user: Ref<ConfigUser>
+  realUsername: Ref<string>
+  displayName: ComputedRef<string>
+  pageTitle: ComputedRef<string>
   currentUserPageLists: ComputedRef<UserPageLists>
   setCurrentUserPageList: (field: PageListKey, pages: string[]) => void
   resetCurrentUserPageListField: (field: PageListKey) => void
@@ -42,6 +47,21 @@ export function useConfig(): {
       config.value = { ...config.value, user: value }
     },
   })
+
+  const realUsername = computed({
+    get: () => config.value.realUsername,
+    set: (value: string) => {
+      config.value = { ...config.value, realUsername: value }
+    },
+  })
+
+  const displayName = computed(() =>
+    configUserDisplayName(config.value.user, config.value.realUsername),
+  )
+
+  const pageTitle = computed(() =>
+    configUserPageTitle(config.value.user, config.value.realUsername),
+  )
 
   const currentUserPageLists = computed(() => config.value.userPageLists[user.value])
 
@@ -78,6 +98,9 @@ export function useConfig(): {
     config: readonly(config),
     theme,
     user,
+    realUsername,
+    displayName,
+    pageTitle,
     currentUserPageLists,
     setCurrentUserPageList,
     resetCurrentUserPageListField,

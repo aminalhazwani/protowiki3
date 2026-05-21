@@ -1,5 +1,5 @@
 export type ConfigTheme = 'light' | 'dark' | 'system'
-export type ConfigUser = 'logged-out' | 'new' | 'experienced'
+export type ConfigUser = 'logged-out' | 'new' | 'experienced' | 'real'
 
 export type PageListKey = 'watchlist' | 'readingList' | 'editedPages'
 
@@ -12,6 +12,8 @@ export interface UserPageLists {
 export interface Config {
   theme: ConfigTheme
   user: ConfigUser
+  /** Wikipedia username when `user` is `'real'`. */
+  realUsername: string
   userPageLists: Record<ConfigUser, UserPageLists>
 }
 
@@ -47,11 +49,17 @@ export const DEFAULT_USER_PAGE_LISTS: Record<ConfigUser, UserPageLists> = {
     ],
     editedPages: ['Wet Leg', 'Jade Thirlwall', 'Confidence Man (band)', 'Gorillaz'],
   },
+  real: {
+    watchlist: [],
+    readingList: [],
+    editedPages: [],
+  },
 }
 
 export const DEFAULT_CONFIG: Config = {
   theme: 'system',
   user: 'new',
+  realUsername: '',
   userPageLists: cloneUserPageListsMap(DEFAULT_USER_PAGE_LISTS),
 }
 
@@ -65,16 +73,28 @@ export const CONFIG_USER_MENU_ITEMS: { value: ConfigUser; label: string }[] = [
   { value: 'logged-out', label: 'Logged out' },
   { value: 'new', label: 'New editor' },
   { value: 'experienced', label: 'Experienced editor' },
+  { value: 'real', label: 'Real user' },
 ]
 
-export function configUserDisplayName(user: ConfigUser): string {
+/** Normalize a Wikipedia username for API calls and cache keys. */
+export function normalizeWikiUsername(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed.length) return ''
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+}
+
+export function configUserDisplayName(user: ConfigUser, realUsername = ''): string {
+  if (user === 'real') {
+    const name = normalizeWikiUsername(realUsername)
+    return name.length > 0 ? name : 'Real user'
+  }
   return CONFIG_USER_DISPLAY_NAMES[user]
 }
 
 /** Greeting on newcomer homepage / dashboard special pages. */
-export function configUserPageTitle(user: ConfigUser): string {
+export function configUserPageTitle(user: ConfigUser, realUsername = ''): string {
   if (user === 'logged-out') return 'Hello!'
-  return `Hello, ${configUserDisplayName(user)}!`
+  return `Hello, ${configUserDisplayName(user, realUsername)}!`
 }
 
 export function parsePageList(text: string): string[] {
@@ -102,7 +122,7 @@ export function resetUserPageListField(
 const STORAGE_KEY = 'protowiki-prototype-user-config'
 
 const VALID_THEMES: ConfigTheme[] = ['light', 'dark', 'system']
-const VALID_USERS: ConfigUser[] = ['logged-out', 'new', 'experienced']
+const VALID_USERS: ConfigUser[] = ['logged-out', 'new', 'experienced', 'real']
 const PAGE_LIST_KEYS: PageListKey[] = ['watchlist', 'readingList', 'editedPages']
 
 function isConfigTheme(value: unknown): value is ConfigTheme {
@@ -128,6 +148,7 @@ function cloneUserPageListsMap(
     'logged-out': cloneUserPageLists(map['logged-out']),
     new: cloneUserPageLists(map.new),
     experienced: cloneUserPageLists(map.experienced),
+    real: cloneUserPageLists(map.real),
   }
 }
 
@@ -184,9 +205,13 @@ export function loadConfig(): Config {
     }
 
     const record = parsed as Record<string, unknown>
+    const realUsername =
+      typeof record.realUsername === 'string' ? record.realUsername : DEFAULT_CONFIG.realUsername
+
     return {
       theme: isConfigTheme(record.theme) ? record.theme : DEFAULT_CONFIG.theme,
       user: isConfigUser(record.user) ? record.user : DEFAULT_CONFIG.user,
+      realUsername,
       userPageLists: mergeUserPageListsMap(record.userPageLists),
     }
   } catch {
@@ -198,6 +223,7 @@ function cloneConfig(config: Config): Config {
   return {
     theme: config.theme,
     user: config.user,
+    realUsername: config.realUsername,
     userPageLists: cloneUserPageListsMap(config.userPageLists),
   }
 }
