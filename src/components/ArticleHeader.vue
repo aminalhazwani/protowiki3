@@ -3,12 +3,14 @@ import { computed, inject, ref, watch } from 'vue'
 import { CdxButton, CdxIcon, CdxPopover, CdxTextInput } from '@wikimedia/codex'
 import {
   cdxIconDownTriangle,
+  cdxIconDownload,
   cdxIconEdit,
   cdxIconEllipsis,
   cdxIconHistory,
   cdxIconLanguage,
   cdxIconSearch,
   cdxIconSettings,
+  cdxIconStar,
   cdxIconUnStar,
 } from '@wikimedia/codex-icons'
 
@@ -16,6 +18,7 @@ import {
   DEFAULT_ARTICLE_LANGUAGE_LINKS,
   type ArticleLanguageLink,
 } from '@/lib/articleLanguageLinks'
+import { useConfig } from '@/composables/useConfig'
 import { globalSkin, PROTOWIKI_CHROME_SKIN } from '@/lib/theming'
 import type { Skin } from '@/lib/theming'
 
@@ -44,6 +47,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const inheritedSkin = inject(PROTOWIKI_CHROME_SKIN)
 const effectiveSkin = computed<Skin>(() => props.skin ?? inheritedSkin?.value ?? globalSkin.value)
+const { user } = useConfig()
+const isLoggedOut = computed(() => user.value === 'logged-out')
 
 const languagesButtonLabel = computed(() => {
   const n = props.languagesCount ?? 18
@@ -57,6 +62,7 @@ const emit = defineEmits<{
   editClick: []
   historyClick: []
   bookmarkClick: []
+  downloadClick: []
   moreClick: []
   languageSelect: [link: ArticleLanguageLink]
   languageSettingsClick: []
@@ -153,6 +159,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
     <div
       v-if="effectiveSkin === 'mobile'"
       class="article-header__icon-toolbar"
+      :class="{ 'article-header__icon-toolbar--logged-out': isLoggedOut }"
       aria-label="Page actions"
     >
       <button
@@ -167,38 +174,66 @@ function onLanguagePick(row: ArticleLanguageLink) {
       >
         <CdxIcon :icon="cdxIconLanguage" />
       </button>
-      <button
-        type="button"
-        class="article-header__icon-tool"
-        aria-label="Watch"
-        @click="$emit('bookmarkClick')"
-      >
-        <CdxIcon :icon="cdxIconUnStar" />
-      </button>
-      <button
-        type="button"
-        class="article-header__icon-tool"
-        aria-label="View history"
-        @click="$emit('historyClick')"
-      >
-        <CdxIcon :icon="cdxIconHistory" />
-      </button>
-      <button
-        type="button"
-        class="article-header__icon-tool"
-        aria-label="Edit"
-        @click="$emit('editClick')"
-      >
-        <CdxIcon :icon="cdxIconEdit" />
-      </button>
-      <button
-        type="button"
-        class="article-header__icon-tool article-header__icon-tool--more"
-        aria-label="More options"
-        @click="$emit('moreClick')"
-      >
-        <CdxIcon :icon="cdxIconEllipsis" />
-      </button>
+      <div v-if="isLoggedOut" class="article-header__icon-toolbar-group article-header__icon-toolbar-group--end">
+        <button
+          type="button"
+          class="article-header__icon-tool"
+          aria-label="Download"
+          @click="$emit('downloadClick')"
+        >
+          <CdxIcon :icon="cdxIconDownload" />
+        </button>
+        <button
+          type="button"
+          class="article-header__icon-tool"
+          aria-label="Watch"
+          @click="$emit('bookmarkClick')"
+        >
+          <CdxIcon :icon="cdxIconStar" />
+        </button>
+        <button
+          type="button"
+          class="article-header__icon-tool"
+          aria-label="Edit"
+          @click="$emit('editClick')"
+        >
+          <CdxIcon :icon="cdxIconEdit" />
+        </button>
+      </div>
+      <template v-else>
+        <button
+          type="button"
+          class="article-header__icon-tool"
+          aria-label="Watch"
+          @click="$emit('bookmarkClick')"
+        >
+          <CdxIcon :icon="cdxIconUnStar" />
+        </button>
+        <button
+          type="button"
+          class="article-header__icon-tool"
+          aria-label="View history"
+          @click="$emit('historyClick')"
+        >
+          <CdxIcon :icon="cdxIconHistory" />
+        </button>
+        <button
+          type="button"
+          class="article-header__icon-tool"
+          aria-label="Edit"
+          @click="$emit('editClick')"
+        >
+          <CdxIcon :icon="cdxIconEdit" />
+        </button>
+        <button
+          type="button"
+          class="article-header__icon-tool article-header__icon-tool--more"
+          aria-label="More options"
+          @click="$emit('moreClick')"
+        >
+          <CdxIcon :icon="cdxIconEllipsis" />
+        </button>
+      </template>
     </div>
 
     <CdxPopover
@@ -425,6 +460,20 @@ function onLanguagePick(row: ArticleLanguageLink) {
   padding: var(--spacing-50, 8px) 0;
   border-bottom: 1px solid var(--border-color-subtle);
   margin-bottom: 0;
+}
+
+.article-header__icon-toolbar--logged-out {
+  justify-content: flex-start;
+}
+
+.article-header__icon-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-25, 4px);
+}
+
+.article-header__icon-toolbar-group--end {
+  margin-inline-start: auto;
 }
 
 .article-header__icon-tool {
