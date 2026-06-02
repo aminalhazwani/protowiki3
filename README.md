@@ -43,7 +43,7 @@ Lists of APIs you can use within prototypes.
 
 _Either follow these instructions, or ask an AI agent to follow them for you!_
 
-To run ProtoWiki locally, use this repo as a template (or make your own copy), then clone your repo.
+To run ProtoWiki locally, click "Use as template" on this repo, then clone your copy.
 
 Then install dependencies and run the dev server:
 
