@@ -59,14 +59,6 @@ const editedPagesText = computed({
       <span class="prototype-user-settings-panel__label">Username</span>
       <CdxTextInput v-model="realUsername" class="prototype-user-settings-panel__input" />
     </label>
-    <label class="prototype-user-settings-panel__field">
-      <span class="prototype-user-settings-panel__label">API contact</span>
-      <CdxTextInput
-        v-model="apiContact"
-        class="prototype-user-settings-panel__input"
-        placeholder="Email or URL for Wikimedia API contact"
-      />
-    </label>
     <template v-if="user !== 'real'">
       <label class="prototype-user-settings-panel__field">
         <span class="prototype-user-settings-panel__label">Watchlist</span>
@@ -96,6 +88,17 @@ const editedPagesText = computed({
         </div>
       </label>
     </template>
+
+    <hr class="prototype-user-settings-panel__divider" />
+
+    <label class="prototype-user-settings-panel__field">
+      <span class="prototype-user-settings-panel__label">API contact</span>
+      <CdxTextInput
+        v-model="apiContact"
+        class="prototype-user-settings-panel__input"
+        placeholder="Email or URL for Wikimedia API contact"
+      />
+    </label>
   </div>
 </template>
 
@@ -128,5 +131,11 @@ const editedPagesText = computed({
   font-size: var(--font-size-small);
   font-weight: var(--font-weight-bold);
   color: var(--color-subtle);
+}
+
+.prototype-user-settings-panel__divider {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--border-color-subtle, #c8ccd1);
 }
 </style>

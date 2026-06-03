@@ -74,7 +74,7 @@ export const DEFAULT_CONFIG: Config = {
 
 export const PROTOWIKI_API_USER_AGENT = 'ProtoWiki/0.1'
 export const PROTOWIKI_API_PROJECT_URL = 'https://github.com/wikimedia/ProtoWiki'
-export const DEFAULT_API_CONTACT = 'protowiki@wikimedia.org'
+export const DEFAULT_API_CONTACT = 'lwilson-ctr@wikimedia.org'
 
 export const CONFIG_USER_DISPLAY_NAMES: Partial<Record<ConfigUser, string>> = {
   'logged-out': 'LoggedOut',
