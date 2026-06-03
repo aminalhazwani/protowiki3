@@ -2,10 +2,10 @@
 import { computed, ref, watch } from 'vue'
 import { CdxMessage, CdxProgressBar } from '@wikimedia/codex'
 
-import ArticleRenderer from '@/components/ArticleRenderer.vue'
-import ArticleWrapper from '@/components/ArticleWrapper.vue'
-import type { Skin, Theme } from '@/lib/theming'
-
+import ArticleRenderer from './ArticleRenderer.vue'
+import ArticleWrapper from './ArticleWrapper.vue'
+import { wikimediaApiFetchHeaders } from '@/config'
+import type { Skin, Theme } from '@/theme'
 /** Cache of successfully fetched live article HTML (key: host + title). */
 type CachedArticleBody = { html: string; liveTitle: string }
 const articleBodyCache = new Map<string, CachedArticleBody>()
@@ -21,14 +21,41 @@ function getLocalStorage(): Storage | null {
   }
 }
 
+function normalizeArticleBody(value: unknown): CachedArticleBody | null {
+  if (typeof value !== 'object' || value === null) return null
+  const record = value as Record<string, unknown>
+  if (typeof record.html !== 'string' || typeof record.liveTitle !== 'string') return null
+  return { html: record.html, liveTitle: record.liveTitle }
+}
+
+function storageKeyForArticle(key: string): string {
+  return STORAGE_PREFIX + key
+}
+
+function removeFromStorage(key: string): void {
+  const store = getLocalStorage()
+  if (!store) return
+  try {
+    store.removeItem(storageKeyForArticle(key))
+  } catch {
+    // Private mode or blocked storage — ignore.
+  }
+}
+
 function loadFromStorage(key: string): CachedArticleBody | null {
   const store = getLocalStorage()
   if (!store) return null
   try {
-    const raw = store.getItem(STORAGE_PREFIX + key)
+    const raw = store.getItem(storageKeyForArticle(key))
     if (!raw) return null
-    return JSON.parse(raw) as CachedArticleBody
+    const normalized = normalizeArticleBody(JSON.parse(raw))
+    if (!normalized) {
+      removeFromStorage(key)
+      return null
+    }
+    return normalized
   } catch {
+    removeFromStorage(key)
     return null
   }
 }
@@ -36,8 +63,10 @@ function loadFromStorage(key: string): CachedArticleBody | null {
 function saveToStorage(key: string, body: CachedArticleBody) {
   const store = getLocalStorage()
   if (!store) return
+  const normalized = normalizeArticleBody(body)
+  if (!normalized) return
   try {
-    store.setItem(STORAGE_PREFIX + key, JSON.stringify(body))
+    store.setItem(storageKeyForArticle(key), JSON.stringify(normalized))
   } catch {
     // Most likely a QuotaExceededError. The in-memory cache still works.
   }
@@ -129,12 +158,12 @@ async function fetchArticle(title: string) {
         title: title.trim(),
         url,
       })
-      const headers: Record<string, string> = {
-        Accept: 'text/html; charset=utf-8',
-        'Api-User-Agent':
-          'ProtoWiki/0.1 (https://github.com/wikimedia-research/protowiki) prototype',
-      }
-      const response = await fetch(url, { headers })
+      const response = await fetch(url, {
+        headers: {
+          Accept: 'text/html; charset=utf-8',
+          ...wikimediaApiFetchHeaders('page-html'),
+        },
+      })
       if (!response.ok) {
         throw new Error(`HTTP ${response.status} ${response.statusText}`)
       }

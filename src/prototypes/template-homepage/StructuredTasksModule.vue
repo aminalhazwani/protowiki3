@@ -70,7 +70,7 @@ const props = withDefaults(defineProps<Props>(), {
 </template>
 
 <style scoped>
-/* Follow ancestor data-skin — parity with Dashboard.vue and src/lib/theming.ts */
+/* Follow ancestor data-skin — parity with Dashboard.vue and src/theme.ts */
 .structured-tasks-module__variant--mobile {
   display: none;
 }
@@ -109,6 +109,7 @@ const props = withDefaults(defineProps<Props>(), {
   width: 48px;
   height: 48px;
   object-fit: cover;
+  object-position: top;
   border-radius: 2px;
 }
 

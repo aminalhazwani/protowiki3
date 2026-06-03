@@ -106,7 +106,7 @@ Live fetch via **`page/html`** (in-memory cache + **`localStorage`**). Single im
 
 ## `ArticleSnapshot`
 
-Loads **`public/snapshots/{slug}.html`** where **`slug`** comes from **`articleSnapshotSlug(article)`** (see **`src/lib/articleSnapshotSlug.ts`**). **`404`** shows **`CdxMessage`** pull instructions — no REST round-trip.
+Loads **`public/snapshots/{slug}.html`** where **`slug`** comes from **`articleSnapshotSlug(article)`** (see **`src/components/article/shared/articleSnapshotSlug.ts`**). **`404`** shows **`CdxMessage`** pull instructions — no REST round-trip.
 
 ### Example
 

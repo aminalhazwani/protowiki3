@@ -17,10 +17,10 @@ import {
 import {
   DEFAULT_ARTICLE_LANGUAGE_LINKS,
   type ArticleLanguageLink,
-} from '@/lib/articleLanguageLinks'
+} from './shared/articleLanguageLinks'
 import { useConfig } from '@/composables/useConfig'
-import { globalSkin, PROTOWIKI_CHROME_SKIN } from '@/lib/theming'
-import type { Skin } from '@/lib/theming'
+import { globalSkin, PROTOWIKI_CHROME_SKIN } from '@/theme'
+import type { Skin } from '@/theme'
 
 const LANG_SEARCH_PLACEHOLDER = 'Search languages'
 const DEFAULT_TAGLINE = 'From Wikipedia, the free encyclopedia'

@@ -4,11 +4,14 @@ import { computed } from 'vue'
 import { CdxButton, CdxSelect, CdxTextInput } from '@wikimedia/codex'
 
 import { useConfig } from '@/composables/useConfig'
-import { CONFIG_USER_MENU_ITEMS, formatPageList, parsePageList } from '@/lib/config'
+import { CONFIG_THEME_MENU_ITEMS, CONFIG_USER_MENU_ITEMS, formatPageList, parsePageList } from '@/config'
 
 const {
+  theme,
   user,
   realUsername,
+  apiContact,
+  lang,
   currentUserPageLists,
   setCurrentUserPageList,
   resetCurrentUserPageListField,
@@ -33,6 +36,14 @@ const editedPagesText = computed({
 <template>
   <div class="prototype-user-settings-panel">
     <label class="prototype-user-settings-panel__field">
+      <span class="prototype-user-settings-panel__label">Theme</span>
+      <CdxSelect
+        v-model:selected="theme"
+        :menu-items="CONFIG_THEME_MENU_ITEMS"
+        default-label="Light"
+      />
+    </label>
+    <label class="prototype-user-settings-panel__field">
       <span class="prototype-user-settings-panel__label">User</span>
       <CdxSelect
         v-model:selected="user"
@@ -40,12 +51,20 @@ const editedPagesText = computed({
         default-label="New editor"
       />
     </label>
+    <label class="prototype-user-settings-panel__field">
+      <span class="prototype-user-settings-panel__label">Lang</span>
+      <CdxTextInput v-model="lang" class="prototype-user-settings-panel__input" />
+    </label>
     <label v-if="user === 'real'" class="prototype-user-settings-panel__field">
       <span class="prototype-user-settings-panel__label">Username</span>
+      <CdxTextInput v-model="realUsername" class="prototype-user-settings-panel__input" />
+    </label>
+    <label class="prototype-user-settings-panel__field">
+      <span class="prototype-user-settings-panel__label">API contact</span>
       <CdxTextInput
-        v-model="realUsername"
+        v-model="apiContact"
         class="prototype-user-settings-panel__input"
-        placeholder="e.g. Jimbo Wales"
+        placeholder="Email or URL for Wikimedia API contact"
       />
     </label>
     <template v-if="user !== 'real'">

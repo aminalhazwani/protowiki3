@@ -1,5 +1,5 @@
 import { readonly, type Ref } from 'vue'
-import { globalTheme, type Theme } from '@/lib/theming'
+import { globalTheme, type Theme } from '@/theme'
 
 /**
  * Read-only access to the GLOBAL theme (the value on <html>, set at boot from

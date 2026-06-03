@@ -14,7 +14,7 @@ Reference prototypes:
 Do not confuse:
 
 - **`SpecialPageWrapper` `help`** — desktop title-row **Help** link (Codex docs URL)
-- **`dashpage/HelpModule.vue`** — prototype-local **"Get help with editing"** sidebar/mobile card (wraps **`DashboardModule`**)
+- **`template-homepage/HelpModule.vue`** — prototype-local **"Get help with editing"** sidebar/mobile card (wraps **`DashboardModule`**)
 
 ## `Dashboard`
 
@@ -35,7 +35,7 @@ With **`data-skin="desktop"`**, the two-column grid (`primary` ~66% + `sidebar` 
 Utility classes from the component stylesheet:
 
 - **`dashboard-slot`** — min-height baseline on module roots
-- **`dashboard-slot--desktop-primary`**, **`dashboard-slot--mobile-primary`**, etc. — prototype hooks for per-slot sizing (see **`template-dashboard`** / **`dashpage`**)
+- **`dashboard-slot--desktop-primary`**, **`dashboard-slot--mobile-primary`**, etc. — prototype hooks for per-slot sizing (see **`template-dashboard`** / **`template-homepage`**)
 
 ### Props
 
@@ -88,7 +88,7 @@ co-located `*Module.vue` files in the prototype folder that wrap
 
 ```vue
 <script setup lang="ts">
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import Dashboard from '@/components/Dashboard.vue'
 import DashboardModule from '@/components/DashboardModule.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'

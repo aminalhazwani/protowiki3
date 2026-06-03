@@ -35,7 +35,7 @@ Current state on disk:
 - `src/styles/wiki-content/{vector-2022,minerva}.{css,rl.css}` — already
   committed and imported globally in `src/main.ts`.
 - `public/snapshots/` — HTML fixtures referenced by **`article`** on **`ArticleSnapshot`**
-  (filename stem must match **`articleSnapshotSlug()`** in `src/lib/articleSnapshotSlug.ts`):
+  (filename stem must match **`articleSnapshotSlug()`** in `src/components/article/shared/articleSnapshotSlug.ts`):
   - `wet-leg.html`
   - `corsica-studios.html`
   - `confidence-man-band.html`

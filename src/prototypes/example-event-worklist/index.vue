@@ -12,7 +12,7 @@ import {
 } from '@wikimedia/codex'
 import { cdxIconAdd, cdxIconClock, cdxIconTrash } from '@wikimedia/codex-icons'
 
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 
 definePage({

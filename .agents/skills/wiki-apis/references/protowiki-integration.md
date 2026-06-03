@@ -21,14 +21,14 @@ work (UA, cancellation, error handling).
 
 ## User-Agent
 
-When a request originates server-side (snapshotter scripts, scheduled
-jobs), use:
+Canonical value: **`src/lib/api-user-agent.txt`** (imported in the app via
+`src/lib/apiUserAgent.ts` as `PROTOWIKI_API_USER_AGENT` /
+`wikimediaApiFetchHeaders()`). Bash scripts
+`source scripts/api-user-agent.sh` and set `UA="$PROTOWIKI_API_USER_AGENT"`.
 
-```
-ProtoWiki/0.1 (https://github.com/<org>/protowiki; <contact-email-or-tag>)
-```
-
-In-browser, the browser sets its own UA — you don't need to override it.
+For cross-origin `fetch` from ProtoWiki, pass
+`wikimediaApiFetchHeaders('<purpose>')` (e.g. `opensearch`, `page-html`,
+`user-impact`) so Wikimedia can identify the client via `Api-User-Agent`.
 
 ## Never hit `action=edit` from a prototype
 

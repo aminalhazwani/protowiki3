@@ -3,7 +3,7 @@
  * ------------------------------------------
  *
  * The Codex token re-keying ([data-theme="light|dark"] selectors) is
- * applied at runtime in src/lib/theming.ts. That gives us the right
+ * applied at runtime in src/theme.ts. That gives us the right
  * --color-*, --background-color-*, --border-color-* values automatically.
  *
  * This file is for the few cases where our own styles need to vary by

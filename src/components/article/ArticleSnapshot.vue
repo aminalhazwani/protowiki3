@@ -2,13 +2,13 @@
 import { computed, ref, watch } from 'vue'
 import { CdxMessage, CdxProgressBar } from '@wikimedia/codex'
 
-import ArticleRenderer from '@/components/ArticleRenderer.vue'
-import ArticleWrapper from '@/components/ArticleWrapper.vue'
-import { articleSnapshotSlug, snapshotPullCommandLines } from '@/lib/articleSnapshotSlug'
-import type { Skin, Theme } from '@/lib/theming'
+import ArticleRenderer from './ArticleRenderer.vue'
+import ArticleWrapper from './ArticleWrapper.vue'
+import { articleSnapshotSlug, snapshotPullCommandLines } from './shared/articleSnapshotSlug'
+import type { Skin, Theme } from '@/theme'
 
 interface Props {
-  /** Which committed snapshot HTML file to load (see **`articleSnapshotSlug`** in `src/lib/articleSnapshotSlug.ts`). */
+  /** Which committed snapshot HTML file to load (see **`articleSnapshotSlug`** in `./shared/articleSnapshotSlug.ts`). */
   article: string
   lang?: string
   dir?: 'ltr' | 'rtl'

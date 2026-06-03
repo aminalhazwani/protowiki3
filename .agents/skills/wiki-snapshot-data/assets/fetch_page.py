@@ -13,7 +13,7 @@ ProtoWiki via:
     <ArticleSnapshot article="Corsica Studios" />
 
 The filename stem (e.g. corsica-studios) should match `articleSnapshotSlug()`
-in `src/lib/articleSnapshotSlug.ts` and `-o public/snapshots/<stem>.html`.
+in `src/components/article/shared/articleSnapshotSlug.ts` and `-o public/snapshots/<stem>.html`.
 """
 import argparse
 import re

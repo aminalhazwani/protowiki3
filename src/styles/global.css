@@ -3,7 +3,7 @@
  * -----------------------
  *
  * Codex design tokens (light + dark) are injected at boot by
- * src/lib/theming.ts, scoped to [data-theme="light"] / [data-theme="dark"]
+ * src/theme.ts, scoped to [data-theme="light"] / [data-theme="dark"]
  * so per-subtree overrides cascade naturally.
  *
  * This file holds **site-wide** defaults only: a tiny reset, semantic HTML
@@ -95,7 +95,7 @@ img {
  *
  * Maps Heading 1–4, Body (via `body` + prose wrappers), Small, Figure caption,
  * Cite, block quote, and related elements to Codex tokens. Theme colours cascade
- * via [data-theme] from src/lib/theming.ts.
+ * via [data-theme] from src/theme.ts.
  */
 h1 {
   margin-block: 0 var(--spacing-100, 16px);

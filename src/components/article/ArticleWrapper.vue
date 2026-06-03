@@ -1,14 +1,9 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
 
-import ArticleHeader from '@/components/ArticleHeader.vue'
-import {
-  globalSkin,
-  globalTheme,
-  PROTOWIKI_CHROME_SKIN,
-  PROTOWIKI_CHROME_THEME,
-} from '@/lib/theming'
-import type { Skin, Theme } from '@/lib/theming'
+import ArticleHeader from './ArticleHeader.vue'
+import { globalSkin, globalTheme, PROTOWIKI_CHROME_SKIN, PROTOWIKI_CHROME_THEME } from '@/theme'
+import type { Skin, Theme } from '@/theme'
 
 interface Props {
   lang?: string

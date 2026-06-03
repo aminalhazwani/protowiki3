@@ -2,7 +2,7 @@
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconEllipsis } from '@wikimedia/codex-icons'
 
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import MentorModule from '../MentorModule.vue'
 import MobileSubpageHeader from '../MobileSubpageHeader.vue'

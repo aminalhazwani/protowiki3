@@ -3,16 +3,20 @@ import { computed, watch } from 'vue'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconReload } from '@wikimedia/codex-icons'
 
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
-import { useRealUserImpact } from '@/composables/useRealUserImpact'
+import { useRealUserImpact } from './data/useRealUserImpact'
 import ImpactModule from '../ImpactModule.vue'
 import MobileSubpageHeader from '../MobileSubpageHeader.vue'
 import { HOMEPAGE, IMPACT_DESKTOP } from '../dashpage-fixtures'
 
-const { user, realUsername, setCurrentUserPageList } = useConfig()
-const realImpact = useRealUserImpact(realUsername)
+const { user, realUsername, realLang, setCurrentUserPageList } = useConfig()
+const realImpact = useRealUserImpact(realUsername, realLang)
+
+function shouldShowLoadPrompt(hasStarted: boolean, hasRenderableData: boolean): boolean {
+  return !hasStarted && !hasRenderableData
+}
 
 watch(
   [() => user.value, realImpact.editedPageTitles],
@@ -29,7 +33,7 @@ const impactProps = computed(() => {
     return { ...IMPACT_DESKTOP }
   }
   if (user.value === 'real') {
-    if (!realImpact.hasCache.value) {
+    if (shouldShowLoadPrompt(realImpact.hasStarted.value, realImpact.hasRenderableData.value)) {
       return {
         loadPending: true,
         refreshing: realImpact.loading.value,
@@ -47,7 +51,10 @@ const impactProps = computed(() => {
 })
 
 const showRealRefresh = computed(
-  () => user.value === 'real' && realImpact.hasCache.value,
+  () =>
+    user.value === 'real' &&
+    realImpact.hasRenderableData.value &&
+    !shouldShowLoadPrompt(realImpact.hasStarted.value, realImpact.hasRenderableData.value),
 )
 
 function onRefreshClick(): void {
@@ -78,11 +85,7 @@ definePage({
           </CdxButton>
         </template>
       </MobileSubpageHeader>
-      <ImpactModule
-        standalone
-        v-bind="impactProps"
-        @refresh="onRefreshClick"
-      />
+      <ImpactModule standalone v-bind="impactProps" @refresh="onRefreshClick" />
     </SpecialPageWrapper>
   </ChromeWrapper>
 </template>

@@ -2,14 +2,9 @@
 import { computed, provide } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
-import type { ChromeNavTool } from '@/lib/chromeHeader'
-import {
-  globalSkin,
-  globalTheme,
-  PROTOWIKI_CHROME_SKIN,
-  PROTOWIKI_CHROME_THEME,
-} from '@/lib/theming'
-import type { Skin, Theme } from '@/lib/theming'
+import type { ChromeNavTool } from './headerNavTools'
+import { globalSkin, globalTheme, PROTOWIKI_CHROME_SKIN, PROTOWIKI_CHROME_THEME } from '@/theme'
+import type { Skin, Theme } from '@/theme'
 import ChromeHeader from './ChromeHeader.vue'
 import ChromeFooter from './ChromeFooter.vue'
 
@@ -37,6 +32,8 @@ interface Props {
    * Forwarded to **`ChromeFooter`** when using the default **`#footer`** slot.
    */
   lastEditedNotice?: boolean
+  /** When **`false`**, omit the default **`ChromeFooter`** (header-only chrome). */
+  showFooter?: boolean
   /** Forwarded to **`ChromeHeader`** / **`ChromeFooter`** (Meta label; mobile footer line). */
   username?: string
   /** Forwarded to **`ChromeHeader`**. */
@@ -55,6 +52,7 @@ const props = withDefaults(defineProps<Props>(), {
   skin: undefined,
   theme: undefined,
   lastEditedNotice: true,
+  showFooter: true,
   username: undefined,
   wordmarkSrc: undefined,
   taglineSrc: undefined,
@@ -89,7 +87,11 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :tagline-src="props.taglineSrc"
         :mobile-wordmark-src="props.mobileWordmarkSrc"
         :nav-tools="props.navTools"
-      />
+      >
+        <template v-if="$slots.menu" #menu>
+          <slot name="menu" />
+        </template>
+      </ChromeHeader>
     </slot>
 
     <main class="chrome-wrapper__content">
@@ -98,6 +100,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
 
     <slot name="footer">
       <ChromeFooter
+        v-if="props.showFooter"
         :skin="effectiveSkin"
         :theme="effectiveTheme"
         :last-edited-notice="props.lastEditedNotice"

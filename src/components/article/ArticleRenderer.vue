@@ -1,14 +1,9 @@
 <script setup lang="ts">
 import { computed, inject, nextTick, onUpdated, ref, watch } from 'vue'
 
-import {
-  globalSkin,
-  globalTheme,
-  PROTOWIKI_CHROME_SKIN,
-  PROTOWIKI_CHROME_THEME,
-} from '@/lib/theming'
-import type { Skin, Theme } from '@/lib/theming'
-import { mobileH2ChevronSvg, mobileH2EditIconSvg } from '@/lib/mobileH2CodexIcons'
+import { globalSkin, globalTheme, PROTOWIKI_CHROME_SKIN, PROTOWIKI_CHROME_THEME } from '@/theme'
+import type { Skin, Theme } from '@/theme'
+import { mobileH2ChevronSvg, mobileH2EditIconSvg } from './shared/mobileH2CodexIcons'
 
 interface Props {
   lang?: string

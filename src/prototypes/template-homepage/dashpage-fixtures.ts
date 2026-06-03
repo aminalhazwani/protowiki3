@@ -15,6 +15,9 @@ export const HELP_PAGE = '/template-homepage/help'
 /** Full-page mobile drill-down for the Your mentor module. */
 export const MENTOR_PAGE = '/template-homepage/mentor'
 
+/** Full-page mobile drill-down for the Suggested edits module. */
+export const SUGGESTED_EDITS_PAGE = '/template-homepage/suggested-edits'
+
 /** Mobile link-card preview copy (title is also the full-page header). */
 export const HELP_MODULE = {
   title: 'Get help with editing',

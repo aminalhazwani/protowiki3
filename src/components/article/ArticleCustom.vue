@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import ArticleRenderer from '@/components/ArticleRenderer.vue'
-import ArticleWrapper from '@/components/ArticleWrapper.vue'
-import type { Skin, Theme } from '@/lib/theming'
+import ArticleRenderer from './ArticleRenderer.vue'
+import ArticleWrapper from './ArticleWrapper.vue'
+import type { Skin, Theme } from '@/theme'
 
 interface Props {
   lang?: string

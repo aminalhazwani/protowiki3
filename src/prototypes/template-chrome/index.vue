@@ -6,7 +6,7 @@ definePage({
   },
 })
 
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 </script>
 
 <template>

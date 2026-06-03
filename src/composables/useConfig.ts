@@ -3,6 +3,7 @@ import { computed, readonly, ref, watch, type ComputedRef, type DeepReadonly, ty
 import {
   configUserDisplayName,
   configUserPageTitle,
+  langForUser,
   loadConfig,
   resetUserPageListField,
   saveConfig,
@@ -11,7 +12,8 @@ import {
   type ConfigUser,
   type PageListKey,
   type UserPageLists,
-} from '@/lib/config'
+} from '@/config'
+import { applyThemePreference } from '@/theme'
 
 const config = ref<Config>(loadConfig())
 
@@ -23,11 +25,21 @@ watch(
   { deep: true },
 )
 
+watch(
+  () => config.value.theme,
+  (preference) => {
+    applyThemePreference(preference)
+  },
+)
+
 export function useConfig(): {
   config: DeepReadonly<Ref<Config>>
   theme: Ref<ConfigTheme>
   user: Ref<ConfigUser>
   realUsername: Ref<string>
+  apiContact: Ref<string>
+  lang: Ref<string>
+  realLang: ComputedRef<string>
   displayName: ComputedRef<string>
   pageTitle: ComputedRef<string>
   currentUserPageLists: ComputedRef<UserPageLists>
@@ -54,6 +66,32 @@ export function useConfig(): {
       config.value = { ...config.value, realUsername: value }
     },
   })
+
+  const apiContact = computed({
+    get: () => config.value.apiContact,
+    set: (value: string) => {
+      config.value = { ...config.value, apiContact: value }
+    },
+  })
+
+  const lang = computed({
+    get: () => config.value.userPageLists[user.value].lang,
+    set: (value: string) => {
+      const activeUser = user.value
+      config.value = {
+        ...config.value,
+        userPageLists: {
+          ...config.value.userPageLists,
+          [activeUser]: {
+            ...config.value.userPageLists[activeUser],
+            lang: value,
+          },
+        },
+      }
+    },
+  })
+
+  const realLang = computed(() => langForUser('real', config.value.userPageLists))
 
   const displayName = computed(() =>
     configUserDisplayName(config.value.user, config.value.realUsername),
@@ -99,6 +137,9 @@ export function useConfig(): {
     theme,
     user,
     realUsername,
+    apiContact,
+    lang,
+    realLang,
     displayName,
     pageTitle,
     currentUserPageLists,

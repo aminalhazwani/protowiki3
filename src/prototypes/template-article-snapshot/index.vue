@@ -6,8 +6,8 @@ definePage({
   },
 })
 
-import ArticleSnapshot from '@/components/ArticleSnapshot.vue'
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ArticleSnapshot from '@/components/article/ArticleSnapshot.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 </script>
 
 <template>

@@ -39,7 +39,7 @@ That notice is chrome **fiction** for prototypes — not wired to revisions. The
 | `wordmarkSrc` | `string` | EN CDN SVG | Desktop wordmark **`#logo`** (+ mobile fallback when **`mobileWordmarkSrc`** omitted) |
 | `taglineSrc` | `string` | EN CDN SVG | Desktop tagline **`#logo`** stack |
 | `mobileWordmarkSrc` | `string` | **`wordmarkSrc`** then EN CDN | Mobile bar wordmark when **`#logo`** default |
-| `navTools` | `ChromeNavTool[]` | full set (`src/lib/chromeHeader.ts`) | Which desktop tool icons render; **`#nav`** replaces cluster |
+| `navTools` | `ChromeNavTool[]` | full set (`src/components/chrome/headerNavTools.ts`) | Which desktop tool icons render; **`#nav`** replaces cluster |
 
 `lang` / `dir` are deliberately not props on the primitives. Set them once
 on the surrounding wrapper (or on `<html>`) and the chrome inherits them
@@ -101,8 +101,8 @@ Use them directly when:
 
 ```vue
 <script setup lang="ts">
-import ChromeHeader from '@/components/ChromeHeader.vue'
-import ChromeFooter from '@/components/ChromeFooter.vue'
+import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
+import ChromeFooter from '@/components/chrome/ChromeFooter.vue'
 </script>
 
 <template>

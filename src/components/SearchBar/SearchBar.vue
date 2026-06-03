@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { CdxTypeaheadSearch, SearchResult } from '@wikimedia/codex'
+import { CdxTypeaheadSearch, type SearchResult } from '@wikimedia/codex'
 
-import type { Skin, Theme } from '@/lib/theming'
+import { wikimediaApiFetchHeaders, wikiHostFromLang } from '@/config'
+import type { Skin, Theme } from '@/theme'
 
 interface Props {
   /** Wiki host for opensearch (no protocol). Defaults to en.wikipedia.org. */
@@ -43,7 +44,63 @@ const lastQuery = ref('')
 
 const formAction = computed(() => `https://${props.host}/w/index.php`)
 
+const lang = computed(() => props.host.split('.')[0] ?? 'en')
+
 let abortController: AbortController | null = null
+
+class OpenSearchFetchError extends Error {
+  constructor(
+    message: string,
+    public readonly code: 'aborted' | 'http',
+  ) {
+    super(message)
+    this.name = 'OpenSearchFetchError'
+  }
+}
+
+/** Title suggestions from Action API `opensearch` (CirrusSearch completion). */
+async function fetchOpenSearchSuggestions(
+  query: string,
+  options: { signal?: AbortSignal; lang?: string; limit?: number },
+): Promise<SearchResult[]> {
+  const trimmed = query.trim()
+  if (!trimmed.length) return []
+
+  if (options.signal?.aborted) {
+    throw new OpenSearchFetchError('Request aborted', 'aborted')
+  }
+
+  const wikiHost = wikiHostFromLang(options.lang ?? 'en')
+  const limit = options.limit ?? 10
+
+  const params = new URLSearchParams({
+    action: 'opensearch',
+    search: trimmed,
+    limit: String(limit),
+    namespace: '0',
+    format: 'json',
+    origin: '*',
+  })
+
+  const response = await fetch(`https://${wikiHost}/w/api.php?${params.toString()}`, {
+    signal: options.signal,
+    headers: wikimediaApiFetchHeaders('opensearch'),
+  })
+
+  if (!response.ok) {
+    throw new OpenSearchFetchError(`HTTP ${response.status}`, 'http')
+  }
+
+  const data = (await response.json()) as [string, string[], string[], string[]]
+  const [, titles, descriptions, urls] = data
+
+  return titles.map((title, i) => ({
+    value: title,
+    label: title,
+    description: descriptions[i]?.trim() || undefined,
+    url: urls[i],
+  }))
+}
 
 async function onInput(value: string) {
   const trimmed = (value ?? '').trim()
@@ -59,29 +116,20 @@ async function onInput(value: string) {
 
   isSearching.value = true
   try {
-    const params = new URLSearchParams({
-      action: 'opensearch',
-      search: trimmed,
-      limit: String(props.limit),
-      namespace: '0',
-      format: 'json',
-      origin: '*',
+    const items = await fetchOpenSearchSuggestions(trimmed, {
+      lang: lang.value,
+      limit: props.limit,
+      signal: abortController.signal,
     })
-    const url = `https://${props.host}/w/api.php?${params.toString()}`
-    const response = await fetch(url, { signal: abortController.signal })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    // opensearch returns: [query, titles[], descriptions[], urls[]]
-    const data = (await response.json()) as [string, string[], string[], string[]]
     if (lastQuery.value !== trimmed) return
-    const [, titles, descriptions, urls] = data
-    suggestions.value = titles.map((title, i) => ({
-      value: title,
-      label: title,
-      description: descriptions[i] || undefined,
-      url: urls[i],
-    }))
+    suggestions.value = items
   } catch (err) {
-    if ((err as Error).name === 'AbortError') return
+    if (
+      (err as Error).name === 'AbortError' ||
+      (err instanceof OpenSearchFetchError && err.code === 'aborted')
+    ) {
+      return
+    }
     suggestions.value = []
   } finally {
     isSearching.value = false

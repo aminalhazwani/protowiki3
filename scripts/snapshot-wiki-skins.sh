@@ -7,7 +7,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_DIR="${1:-$ROOT/src/styles/wiki-content}"
 mkdir -p "$OUT_DIR"
 
-UA='ProtoWiki-snapshot/0.1 (https://github.com/wikimedia-research/protowiki)'
+# shellcheck source=api-user-agent.sh
+source "$(dirname "$0")/api-user-agent.sh"
+UA="$PROTOWIKI_API_USER_AGENT"
 
 VECTOR_MODULES='site.styles|skins.vector.styles|ext.cite.styles|mediawiki.skinning.content.parsoid|mediawiki.hlist|mediawiki.ui.button|mediawiki.skinning.interface'
 MINERVA_MODULES='site.styles|skins.minerva.base.styles|skins.minerva.styles|ext.cite.styles|mediawiki.skinning.content.parsoid|mediawiki.hlist|mediawiki.skinning.interface'

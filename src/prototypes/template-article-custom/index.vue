@@ -9,8 +9,8 @@ definePage({
 
 import { RouterLink } from 'vue-router'
 
-import ArticleCustom from '@/components/ArticleCustom.vue'
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ArticleCustom from '@/components/article/ArticleCustom.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
 const leadPhotoUrl = `${import.meta.env.BASE_URL}images/wet-leg-o2-infobox.jpg`
 </script>

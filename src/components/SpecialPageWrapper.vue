@@ -3,13 +3,8 @@ import { computed, inject, useSlots } from 'vue'
 import { CdxIcon } from '@wikimedia/codex'
 import { cdxIconHelpNotice } from '@wikimedia/codex-icons'
 
-import {
-  globalSkin,
-  globalTheme,
-  PROTOWIKI_CHROME_SKIN,
-  PROTOWIKI_CHROME_THEME,
-} from '@/lib/theming'
-import type { Skin, Theme } from '@/lib/theming'
+import { globalSkin, globalTheme, PROTOWIKI_CHROME_SKIN, PROTOWIKI_CHROME_THEME } from '@/theme'
+import type { Skin, Theme } from '@/theme'
 
 /** Codex docs — fixed target for the built-in Help link (not a public prop). */
 const HELP_LINK_HREF = 'https://doc.wikimedia.org/codex/latest/'

@@ -13,11 +13,11 @@ import {
 } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
-import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from '@/lib/chromeHeader'
-import { globalSkin, globalTheme } from '@/lib/theming'
-import type { Skin, Theme } from '@/lib/theming'
-import PrototypeUserSettingsPopover from './PrototypeUserSettingsPopover.vue'
-import SearchBar from './SearchBar.vue'
+import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
+import { globalSkin, globalTheme } from '@/theme'
+import type { Skin, Theme } from '@/theme'
+import PrototypeUserSettingsPopover from '../PrototypeUserSettingsPopover.vue'
+import SearchBar from '../SearchBar/SearchBar.vue'
 
 const { user } = useConfig()
 
@@ -96,10 +96,12 @@ function navHas(tool: ChromeNavTool): boolean {
     <!-- Vector 2022–style chrome (desktop skin) -->
     <nav v-if="isDesktop" class="chrome-header__nav-desktop" aria-label="Site">
       <div class="chrome-header__desktop-start">
-        <!-- Mock only — not interactive (FakeMediaWiki uses bare chrome / icon affordances). -->
-        <span class="chrome-header__menu-icon" aria-hidden="true">
-          <CdxIcon :icon="cdxIconMenu" />
-        </span>
+        <slot name="menu">
+          <!-- Mock only — not interactive (FakeMediaWiki uses bare chrome / icon affordances). -->
+          <span class="chrome-header__menu-icon" aria-hidden="true">
+            <CdxIcon :icon="cdxIconMenu" />
+          </span>
+        </slot>
 
         <RouterLink class="chrome-header__brand-link" to="/" aria-label="Visit the main page">
           <slot name="logo">
@@ -223,9 +225,11 @@ function navHas(tool: ChromeNavTool): boolean {
 
     <!-- Minerva-style chrome (mobile skin) -->
     <nav v-else class="chrome-header__nav-mobile" aria-label="Site">
-      <CdxButton weight="quiet" size="large" aria-label="Main menu">
-        <CdxIcon :icon="cdxIconMenu" />
-      </CdxButton>
+      <slot name="menu">
+        <CdxButton weight="quiet" size="large" aria-label="Main menu">
+          <CdxIcon :icon="cdxIconMenu" />
+        </CdxButton>
+      </slot>
 
       <RouterLink class="chrome-header__mobile-brand" to="/" aria-label="Visit the main page">
         <slot name="logo">
@@ -297,7 +301,7 @@ function navHas(tool: ChromeNavTool): boolean {
  * Breakpoint parity with FakeMediaWiki `src/views/SpecialView/style.css`:
  * - max-width 1120px — collapse inline search → icon (nav-item-search / nav-button-search).
  * - max-width 768px — hide desktop-only tools (nav-button-desktop, e.g. watchlist).
- * Skin swap (nav-desktop vs nav-mobile) stays at 640px via src/lib/theming.ts.
+ * Skin swap (nav-desktop vs nav-mobile) stays at 640px via src/theme.ts.
  */
 
 .chrome-header[data-skin='desktop'] .chrome-header__nav-desktop {
@@ -331,6 +335,15 @@ function navHas(tool: ChromeNavTool): boolean {
   line-height: 0;
   cursor: default;
   pointer-events: none;
+}
+
+.chrome-header[data-skin='desktop'] :slotted(.chrome-header__menu-btn) {
+  flex-shrink: 0;
+  min-width: var(--size-icon-medium, 32px);
+  height: var(--size-icon-medium, 32px);
+  margin: 0;
+  padding: var(--spacing-25, 4px);
+  padding-inline-start: var(--spacing-50, 8px);
 }
 
 .chrome-header[data-skin='desktop'] .chrome-header__menu-icon :deep(svg) {
@@ -497,7 +510,11 @@ function navHas(tool: ChromeNavTool): boolean {
   box-shadow: inset 0 -1px 3px 0 rgba(0, 0, 0, 0.08);
 }
 
-.chrome-header[data-skin='mobile'] .chrome-header__nav-mobile > .cdx-button:first-of-type {
+.chrome-header[data-skin='mobile'] .chrome-header__nav-mobile > :first-child {
+  flex-shrink: 0;
+}
+
+.chrome-header[data-skin='mobile'] .prototype-chrome-menu-popover {
   flex-shrink: 0;
 }
 

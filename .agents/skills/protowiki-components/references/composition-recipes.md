@@ -17,9 +17,9 @@ Use when the prototype needs **Vue-authored** article markup (infobox + sections
 
 ```vue
 <script setup lang="ts">
-import ArticleRenderer from '@/components/ArticleRenderer.vue'
-import ArticleWrapper from '@/components/ArticleWrapper.vue'
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ArticleRenderer from '@/components/article/ArticleRenderer.vue'
+import ArticleWrapper from '@/components/article/ArticleWrapper.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
 definePage({
   meta: { title: 'My hand-authored article', description: '…' },
@@ -187,7 +187,7 @@ responsive grid and **`DashboardModule`** for each box.
 - **Full example:** **`src/prototypes/template-homepage/`** — co-located `HelpModule.vue`, `ImpactModule.vue`, `MentorModule.vue`, `StructuredTasksModule.vue`, plus **`dashpage-fixtures.ts`**
 - **Mobile drill-downs:** tap a homepage card (`to: IMPACT_PAGE` / `HELP_PAGE` / `MENTOR_PAGE`) → nested **`impact/`**, **`help/`**, or **`mentor/index.vue`** with **`MobileSubpageHeader`** (optional **`#actions`** menu) + module **`standalone`** body (full layout, bleeds to top/sides).
 
-See [`dashboard.md`](dashboard.md) for slot/prop detail. **`SpecialPageWrapper` `help`** is the title-row Help link — not the same as dashpage's **`HelpModule`** card.
+See [`dashboard.md`](dashboard.md) for slot/prop detail. **`SpecialPageWrapper` `help`** is the title-row Help link — not the same as `template-homepage`'s **`HelpModule`** card.
 
 ## Article embedded in a dashboard module (no extra chrome)
 
@@ -203,9 +203,9 @@ See also the **Newcomer homepage / dashboard** recipe above for the full page st
 
 ```vue
 <script setup lang="ts">
-import ChromeHeader from '@/components/ChromeHeader.vue'
-import ChromeFooter from '@/components/ChromeFooter.vue'
-import ArticleLive from '@/components/ArticleLive.vue'
+import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
+import ChromeFooter from '@/components/chrome/ChromeFooter.vue'
+import ArticleLive from '@/components/article/ArticleLive.vue'
 </script>
 
 <template>

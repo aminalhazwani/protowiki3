@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import ChromeWrapper from '@/components/ChromeWrapper.vue'
+import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import Dashboard from '@/components/Dashboard.vue'
 import DashboardModule from '@/components/DashboardModule.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
@@ -18,6 +18,7 @@ import {
   HELP_PAGE,
   MENTOR,
   MENTOR_PAGE,
+  SUGGESTED_EDITS_PAGE,
   STRUCTURED_TASKS,
 } from './dashpage-fixtures'
 import { useHomepageImpact } from './useHomepageImpact'
@@ -49,7 +50,7 @@ definePage({
           <template #mobile>
             <StructuredTasksModule
               class="dashboard-slot--mobile-primary"
-              :to="APP_HOME"
+              :to="SUGGESTED_EDITS_PAGE"
               v-bind="STRUCTURED_TASKS"
             />
 

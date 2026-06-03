@@ -8,8 +8,8 @@ import {
   cdxIconLogoWikimedia,
 } from '@wikimedia/codex-icons'
 
-import { globalSkin, globalTheme } from '@/lib/theming'
-import type { Skin, Theme } from '@/lib/theming'
+import { globalSkin, globalTheme } from '@/theme'
+import type { Skin, Theme } from '@/theme'
 
 /** EN mobile wordmark — matches ChromeHeader mobile logo slot default. */
 const WIKIPEDIA_WORDMARK_EN =

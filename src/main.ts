@@ -11,8 +11,34 @@ import './styles/wiki-content/minerva.css'
 import './styles/wiki-content/mobile-wiki-overrides.css'
 import './styles/dark.css'
 
-import { syncGithubPagesPreviewRoute } from './lib/githubPagesPreviewRoute'
-import { initTheming } from './lib/theming'
+import { initTheming } from './theme'
+
+import '@/composables/useConfig'
+
+/** Path under `import.meta.env.BASE_URL` (e.g. `/template-chrome`). */
+function githubPagesSubpathAfterBase(baseUrl: string): string | null {
+  const basePrefix = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+  let subPath = window.location.pathname
+  if (basePrefix && subPath.startsWith(basePrefix)) {
+    subPath = subPath.slice(basePrefix.length)
+  }
+  if (!subPath || subPath === '/') {
+    return null
+  }
+  return subPath.startsWith('/') ? subPath : `/${subPath}`
+}
+
+/**
+ * After gh-pages-restore.js updates the URL, ensure Vue Router matches the deep
+ * path (replaceState alone is not always enough on first paint).
+ */
+function syncGithubPagesPreviewRoute(router: ReturnType<typeof createRouter>): void {
+  const subPath = githubPagesSubpathAfterBase(import.meta.env.BASE_URL)
+  if (!subPath) {
+    return
+  }
+  void router.replace(subPath)
+}
 
 initTheming()
 

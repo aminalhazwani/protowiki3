@@ -21,7 +21,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UA='ProtoWiki-snapshot/0.1 (https://github.com/wikimedia-research/protowiki; protowiki@wikimedia.org)'
+# shellcheck source=../../../../scripts/api-user-agent.sh
+source "${SCRIPT_DIR}/../../../../scripts/api-user-agent.sh"
+UA="$PROTOWIKI_API_USER_AGENT"
 
 pretty_json() {
   python3 -c 'import sys, json; json.dump(json.load(sys.stdin), sys.stdout, indent=2, sort_keys=True)'

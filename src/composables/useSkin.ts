@@ -1,5 +1,5 @@
 import { readonly, type Ref } from 'vue'
-import { globalSkin, type Skin } from '@/lib/theming'
+import { globalSkin, type Skin } from '@/theme'
 
 /**
  * Read-only access to the GLOBAL skin (the value on <html>, set at boot from
