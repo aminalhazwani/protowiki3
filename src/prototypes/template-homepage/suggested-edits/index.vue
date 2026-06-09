@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import InterestsSettingsPage from '../InterestsSettingsPage.vue'
+
 import TaskFullscreenShell from '../TaskFullscreenShell.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import MobileWrapper from '@/components/MobileWrapper.vue'
@@ -62,6 +64,7 @@ const placeholders: StructuredTaskPlaceholder[] = [
 ]
 
 const currentIndex = ref(0)
+const showInterests = ref(false)
 const current = computed(() => placeholders[currentIndex.value] ?? placeholders[0])
 
 const viewProps = computed(() => ({
@@ -90,6 +93,14 @@ function onSuggestionNavigate(delta: number): void {
   currentIndex.value = next
 }
 
+function onOpenInterests(): void {
+  showInterests.value = true
+}
+
+function onCloseInterests(): void {
+  showInterests.value = false
+}
+
 definePage({
   meta: {
     title: 'Template: Homepage — Suggested edits',
@@ -112,8 +123,14 @@ definePage({
         </div>
 
         <SpecialPageWrapper :title="null" class="suggested-edits-page">
-          <SuggestedEditsView v-bind="viewProps" @navigate="onSuggestionNavigate" />
+          <SuggestedEditsView
+            v-bind="viewProps"
+            @navigate="onSuggestionNavigate"
+            @open-interests="onOpenInterests"
+          />
         </SpecialPageWrapper>
+
+        <InterestsSettingsPage v-if="showInterests" @close="onCloseInterests" />
       </div>
     </TaskFullscreenShell>
   </MobileWrapper>
@@ -121,6 +138,7 @@ definePage({
 
 <style scoped>
 .suggested-edits-layout {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;

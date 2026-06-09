@@ -52,7 +52,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   showFilterBar: false,
-  topicFilter: 'Music',
+  topicFilter: 'Interests',
   difficultyFilter: 'Easy, Medium',
   currentIndex: 0,
   totalCount: 1,
@@ -82,9 +82,9 @@ const emit = defineEmits<{
   load: []
   refresh: []
   navigate: [delta: number]
+  'open-interests': []
 }>()
 
-const topicMenuItems = computed(() => [{ value: 'music', label: props.topicFilter }])
 const difficultyMenuItems = computed(() => [{ value: 'mixed', label: props.difficultyFilter }])
 
 const displayIndex = computed(() => (props.currentIndex ?? 0) + 1)
@@ -122,6 +122,10 @@ function onRefreshClick(): void {
 function onNavigate(delta: number): void {
   emit('navigate', delta)
 }
+
+function onOpenInterests(): void {
+  emit('open-interests')
+}
 </script>
 
 <template>
@@ -134,12 +138,15 @@ function onNavigate(delta: number): void {
       >
         <div class="suggested-edits-view__filter">
           <CdxIcon :icon="cdxIconFunnel" size="small" class="suggested-edits-view__filter-icon" />
-          <CdxSelect
-            :selected="'music'"
-            :menu-items="topicMenuItems"
-            :default-label="topicFilter"
-            disabled
-          />
+          <button
+            type="button"
+            class="suggested-edits-view__filter-trigger"
+            :aria-label="`Topic filter: ${topicFilter}. Open interests settings.`"
+            @click="onOpenInterests"
+          >
+            <span class="suggested-edits-view__filter-trigger-label">{{ topicFilter }}</span>
+            <span class="suggested-edits-view__filter-trigger-indicator" aria-hidden="true" />
+          </button>
         </div>
         <div class="suggested-edits-view__filter">
           <CdxIcon :icon="cdxIconChart" size="small" class="suggested-edits-view__filter-icon" />
@@ -357,6 +364,45 @@ function onNavigate(delta: number): void {
 .suggested-edits-view__filter-icon {
   flex-shrink: 0;
   color: var(--color-subtle, #72777d);
+}
+
+.suggested-edits-view__filter-trigger {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 3rem;
+  padding: 0 var(--spacing-150, 24px) 0 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--color-base--subtle, #54595d);
+  font-family: inherit;
+  font-size: var(--font-size-medium, 1rem);
+  font-weight: var(--font-weight-normal, 400);
+  text-align: start;
+  cursor: pointer;
+}
+
+.suggested-edits-view__filter-trigger-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggested-edits-view__filter-trigger-indicator {
+  position: absolute;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 5px solid var(--color-subtle, #72777d);
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
 }
 
 .suggested-edits-view__filter :deep(.cdx-select-vue) {
