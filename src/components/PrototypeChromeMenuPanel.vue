@@ -31,7 +31,7 @@ function onClearInterests(): void {
       <CdxSelect
         v-model:selected="morelikeStrategy"
         :menu-items="MORELIKE_STRATEGY_MENU_ITEMS"
-        default-label="Minimal (wiki default)"
+        default-label="Serial multi-call"
       />
     </label>
 
@@ -40,7 +40,7 @@ function onClearInterests(): void {
       <CdxSelect
         v-model:selected="microtaskSource"
         :menu-items="MICROTASK_SOURCE_MENU_ITEMS"
-        default-label="Random from catalog"
+        default-label="Microtask Generator API"
       />
     </label>
 

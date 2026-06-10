@@ -10,8 +10,8 @@ export interface PrototypeDevSettings {
 }
 
 export const DEFAULT_PROTOTYPE_DEV_SETTINGS: PrototypeDevSettings = {
-  morelikeStrategy: 'minimal',
-  microtaskSource: 'random',
+  morelikeStrategy: 'serial',
+  microtaskSource: 'quality-check',
 }
 
 export const MORELIKE_STRATEGY_MENU_ITEMS: { value: MorelikeStrategy; label: string }[] = [
