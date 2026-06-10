@@ -31,8 +31,7 @@ export interface InterestsCatalogCategory {
   label: string
 }
 
-export const ACCOUNT_CREATION_PAGE = 'Wikipedia'
-export const MAX_INTEREST_CHIPS = 8
+export const MAX_INTEREST_CHIPS = 10
 
 export const TOPIC_CATEGORY_DEFINITIONS: InterestsCatalogCategory[] = [
   { id: 'culture', label: 'Culture' },
@@ -129,8 +128,8 @@ export function buildTopicCatalog(): InterestsCatalogTopic[] {
 
 export const INTERESTS_TOPIC_CATALOG = buildTopicCatalog()
 
-function pageChip(id: string, label: string, selected: boolean, pinned = false): InterestsChipEntry {
-  return { id, label, selected, kind: 'page', pinned }
+function pageChip(id: string, label: string, selected: boolean): InterestsChipEntry {
+  return { id, label, selected, kind: 'page' }
 }
 
 function topicChipFromCatalog(entry: InterestsCatalogTopic, selected = false): InterestsChipEntry {
@@ -156,7 +155,6 @@ function buildDefaultTopicChips(): InterestsChipEntry[] {
 
 function buildDefaultChips(): InterestsChipEntry[] {
   return [
-    pageChip('wikipedia', ACCOUNT_CREATION_PAGE, true, true),
     pageChip('gorillaz', 'Gorillaz', true),
     pageChip('dsei', 'DSEI', true),
     pageChip('wet-leg', 'Wet Leg', false),

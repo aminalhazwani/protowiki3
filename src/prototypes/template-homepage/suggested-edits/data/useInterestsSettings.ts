@@ -1,7 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
 
 import {
-  ACCOUNT_CREATION_PAGE,
   DEFAULT_INTERESTS_SETTINGS,
   MAX_INTEREST_CHIPS,
   chipKey,
@@ -54,30 +53,12 @@ function labelsMatch(a: string, b: string): boolean {
   return a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0
 }
 
-function ensurePinnedAccountPage(chips: InterestsChipEntry[]): InterestsChipEntry[] {
-  const pinnedIndex = chips.findIndex((chip) => chip.kind === 'page' && (chip.pinned || chip.id === 'wikipedia'))
-  const pinned: InterestsChipEntry =
-    pinnedIndex >= 0
-      ? {
-          ...chips[pinnedIndex],
-          kind: 'page',
-          pinned: true,
-          label: chips[pinnedIndex].label || ACCOUNT_CREATION_PAGE,
-        }
-      : {
-          id: 'wikipedia',
-          label: ACCOUNT_CREATION_PAGE,
-          selected: true,
-          kind: 'page',
-          pinned: true,
-        }
-
-  const rest = chips.filter((_, index) => index !== pinnedIndex)
-  return [pinned, ...rest]
+function withoutLegacyAccountPageChip(chips: InterestsChipEntry[]): InterestsChipEntry[] {
+  return chips.filter((chip) => !(chip.kind === 'page' && chip.id === 'wikipedia'))
 }
 
 export function pruneInterestChips(chips: InterestsChipEntry[]): InterestsChipEntry[] {
-  let pruned = ensurePinnedAccountPage(chips)
+  let pruned = withoutLegacyAccountPageChip(chips)
 
   while (pruned.length > MAX_INTEREST_CHIPS) {
     let removed = false
@@ -95,44 +76,49 @@ export function pruneInterestChips(chips: InterestsChipEntry[]): InterestsChipEn
   return pruned
 }
 
-function insertIndexForNewChip(chips: InterestsChipEntry[]): number {
-  const pinnedIndex = chips.findIndex((chip) => chip.pinned)
-  return pinnedIndex >= 0 ? pinnedIndex + 1 : 0
-}
-
 function moveChipToTop(chips: InterestsChipEntry[], key: string): InterestsChipEntry[] {
   const index = chips.findIndex((chip) => chipKey(chip.kind, chip.id) === key)
   if (index < 0) return chips
 
   const [chip] = chips.splice(index, 1)
-  const insertAt = chip.pinned ? 0 : insertIndexForNewChip(chips)
-  chips.splice(insertAt, 0, chip)
+  chips.splice(0, 0, chip)
   return chips
 }
 
+function mergeChipWithDefaults(storedChip: InterestsChipEntry): InterestsChipEntry {
+  const defaultChip = DEFAULT_INTERESTS_SETTINGS.chips.find(
+    (entry) => entry.kind === storedChip.kind && entry.id === storedChip.id,
+  )
+  if (!defaultChip) return { ...storedChip }
+
+  return {
+    ...defaultChip,
+    ...storedChip,
+    kind: defaultChip.kind,
+  }
+}
+
+/** Preserve stored chip order (most-recent-first); only append missing fixture defaults at the end. */
 function mergeChips(stored: unknown): InterestsChipEntry[] {
   if (!Array.isArray(stored)) return [...DEFAULT_INTERESTS_SETTINGS.chips]
+
+  // Empty array is intentional (user cleared all interests).
+  if (stored.length === 0) return []
 
   const validStored = stored.filter(isChipEntry)
   if (validStored.length === 0) return [...DEFAULT_INTERESTS_SETTINGS.chips]
 
-  const defaultKeys = new Set(DEFAULT_INTERESTS_SETTINGS.chips.map((chip) => chipKey(chip.kind, chip.id)))
-  const mergedDefaults = DEFAULT_INTERESTS_SETTINGS.chips.map((defaultChip) => {
-    const storedChip = validStored.find(
-      (chip) => chip.kind === defaultChip.kind && chip.id === defaultChip.id,
-    )
-    return storedChip
-      ? {
-          ...defaultChip,
-          ...storedChip,
-          kind: defaultChip.kind,
-          pinned: defaultChip.pinned ?? storedChip.pinned,
-        }
-      : defaultChip
-  })
+  const storedKeys = new Set(validStored.map((chip) => chipKey(chip.kind, chip.id)))
+  const ordered = validStored.map(mergeChipWithDefaults)
 
-  const customChips = validStored.filter((chip) => !defaultKeys.has(chipKey(chip.kind, chip.id)))
-  return pruneInterestChips([...mergedDefaults, ...customChips])
+  for (const defaultChip of DEFAULT_INTERESTS_SETTINGS.chips) {
+    const key = chipKey(defaultChip.kind, defaultChip.id)
+    if (!storedKeys.has(key)) {
+      ordered.push({ ...defaultChip })
+    }
+  }
+
+  return pruneInterestChips(ordered)
 }
 
 function chipsFromLegacyV2(raw: Record<string, unknown>): InterestsChipEntry[] {
@@ -376,8 +362,7 @@ function upsertChip(
     return
   }
 
-  const insertAt = chip.pinned ? 0 : insertIndexForNewChip(settings.chips)
-  settings.chips.splice(insertAt, 0, { ...chip, selected })
+  settings.chips.splice(0, 0, { ...chip, selected })
   settings.chips = pruneInterestChips(settings.chips)
 }
 
