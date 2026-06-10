@@ -174,12 +174,12 @@ function onOpenInterests(): void {
         </CdxButton>
       </div>
 
-      <template v-else-if="emptyMessage">
+      <div v-else-if="emptyMessage" class="suggested-edits-view__empty-state">
         <p class="suggested-edits-view__empty">{{ emptyMessage }}</p>
         <CdxButton v-if="showRefresh" weight="quiet" :disabled="refreshing" @click="onRefreshClick">
-          {{ refreshing ? 'Loading…' : 'Try another page' }}
+          {{ refreshing ? 'Loading…' : 'Refresh' }}
         </CdxButton>
-      </template>
+      </div>
 
       <template v-else-if="hasPreview">
         <p class="suggested-edits-view__counter">
@@ -189,7 +189,24 @@ function onOpenInterests(): void {
           suggestions
         </p>
 
-        <article class="suggested-edits-view__card">
+        <component
+          :is="editHref ? 'a' : 'article'"
+          class="suggested-edits-view__card"
+          :class="{ 'suggested-edits-view__card--link': !!editHref }"
+          v-bind="
+            editHref
+              ? {
+                  href: editHref,
+                  target: '_blank',
+                  rel: 'noreferrer noopener',
+                  'aria-label': `Edit ${articleTitle}`,
+                  'aria-disabled': refreshing ? 'true' : undefined,
+                  tabindex: refreshing ? -1 : undefined,
+                }
+              : {}
+          "
+          @click="editHref && refreshing ? $event.preventDefault() : undefined"
+        >
           <div v-if="thumbnailSrc" class="suggested-edits-view__card-image-wrap">
             <img class="suggested-edits-view__card-image" :src="thumbnailSrc" alt="" />
           </div>
@@ -211,7 +228,7 @@ function onOpenInterests(): void {
               {{ pageviewsLabel }}
             </p>
           </div>
-        </article>
+        </component>
 
         <section v-if="taskTitle" class="suggested-edits-view__task">
           <p class="suggested-edits-view__task-heading">
@@ -458,6 +475,19 @@ function onOpenInterests(): void {
   min-height: 40vh;
 }
 
+.suggested-edits-view__empty-state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-100, 16px);
+  min-height: 40vh;
+  padding: var(--spacing-200, 32px) var(--spacing-150, 24px);
+  box-sizing: border-box;
+  text-align: center;
+}
+
 .suggested-edits-view__error {
   margin: 0;
   font-size: var(--font-size-small);
@@ -466,8 +496,9 @@ function onOpenInterests(): void {
 
 .suggested-edits-view__empty {
   margin: 0;
-  font-size: var(--font-size-small);
-  line-height: var(--line-height-small);
+  max-width: 20rem;
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-medium, 1.375);
   color: var(--color-base--subtle, #54595d);
 }
 
@@ -486,6 +517,7 @@ function onOpenInterests(): void {
 
 .suggested-edits-view__card {
   box-sizing: border-box;
+  display: block;
   width: 100%;
   max-width: var(--suggested-edits-card-width, 17.5rem);
   margin-inline: auto;
@@ -494,6 +526,16 @@ function onOpenInterests(): void {
   border-radius: var(--border-radius-base, 2px);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+}
+
+.suggested-edits-view__card--link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.suggested-edits-view__card--link:focus-visible {
+  outline: 2px solid var(--border-color-progressive--focus, #36c);
+  outline-offset: 2px;
 }
 
 .suggested-edits-view__card-image-wrap {

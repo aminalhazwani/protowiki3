@@ -40,13 +40,20 @@ function isChipEntry(value: unknown): value is InterestsChipEntry {
   )
 }
 
-function isPersonalization(value: unknown): value is InterestsPersonalization {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    isBoolean((value as InterestsPersonalization).editingHistory) &&
-    isBoolean((value as InterestsPersonalization).watchlist)
-  )
+function mergePersonalization(stored: unknown): InterestsPersonalization {
+  const defaults = DEFAULT_INTERESTS_SETTINGS.personalization
+  if (typeof stored !== 'object' || stored === null) {
+    return { ...defaults }
+  }
+
+  const record = stored as Record<string, unknown>
+  return {
+    editingHistory: isBoolean(record.editingHistory)
+      ? record.editingHistory
+      : defaults.editingHistory,
+    watchlist: isBoolean(record.watchlist) ? record.watchlist : defaults.watchlist,
+    readingList: isBoolean(record.readingList) ? record.readingList : defaults.readingList,
+  }
 }
 
 function labelsMatch(a: string, b: string): boolean {
@@ -167,9 +174,7 @@ export function normalizeInterestsSettings(raw: unknown): InterestsSettings {
     : chipsFromLegacyV2(candidate)
 
   return {
-    personalization: isPersonalization(candidate.personalization)
-      ? candidate.personalization
-      : { ...defaults.personalization },
+    personalization: mergePersonalization(candidate.personalization),
     chips,
   }
 }
@@ -441,16 +446,26 @@ export function applyInterestsSuggestion(
   }
 }
 
+/** Remove all interest chips; personalization toggles are unchanged. */
+export function clearAllInterests(settings: InterestsSettings): void {
+  settings.chips = []
+}
+
+/** Module-level singleton so homepage, drill-down, and overlay share interests state. */
+let sharedInterestsSettings: Ref<InterestsSettings> | null = null
+
 export function useInterestsSettings(): Ref<InterestsSettings> {
-  const settings = ref<InterestsSettings>(loadInterestsSettings())
+  if (!sharedInterestsSettings) {
+    sharedInterestsSettings = ref(loadInterestsSettings())
 
-  watch(
-    settings,
-    (value) => {
-      saveInterestsSettings(value)
-    },
-    { deep: true },
-  )
+    watch(
+      sharedInterestsSettings,
+      (value) => {
+        saveInterestsSettings(value)
+      },
+      { deep: true },
+    )
+  }
 
-  return settings
+  return sharedInterestsSettings
 }

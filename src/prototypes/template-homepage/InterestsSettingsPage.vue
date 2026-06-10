@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { CdxButton, CdxIcon, CdxLookup, CdxToggleSwitch, type MenuItemData } from '@wikimedia/codex'
 import { cdxIconClose, cdxIconSearch } from '@wikimedia/codex-icons'
 
+import { useConfig } from '@/composables/useConfig'
 import InterestsToggleChip from './InterestsToggleChip.vue'
 import { buildInterestsSuggestions } from './suggested-edits/data/interestsSearch'
 import {
@@ -15,7 +16,27 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const { user } = useConfig()
 const settings = useInterestsSettings()
+const isRealUser = computed(() => user.value === 'real')
+
+const watchlistEnabled = computed({
+  get: () => (isRealUser.value ? false : settings.value.personalization.watchlist),
+  set: (value: boolean) => {
+    if (!isRealUser.value) {
+      settings.value.personalization.watchlist = value
+    }
+  },
+})
+
+const readingListEnabled = computed({
+  get: () => (isRealUser.value ? false : settings.value.personalization.readingList),
+  set: (value: boolean) => {
+    if (!isRealUser.value) {
+      settings.value.personalization.readingList = value
+    }
+  },
+})
 
 const searchInput = ref('')
 const searchSelected = ref<string | null>(null)
@@ -160,8 +181,21 @@ watch(searchSelected, (value) => {
             </CdxToggleSwitch>
           </div>
           <div class="interests-settings-page__switch-row">
-            <CdxToggleSwitch v-model="settings.personalization.watchlist" align-switch>
+            <CdxToggleSwitch
+              v-model="watchlistEnabled"
+              align-switch
+              :disabled="isRealUser"
+            >
               Show suggestions based on my watchlist
+            </CdxToggleSwitch>
+          </div>
+          <div class="interests-settings-page__switch-row">
+            <CdxToggleSwitch
+              v-model="readingListEnabled"
+              align-switch
+              :disabled="isRealUser"
+            >
+              Show suggestions based on my reading list
             </CdxToggleSwitch>
           </div>
         </div>

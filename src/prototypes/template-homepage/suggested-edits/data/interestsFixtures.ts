@@ -12,6 +12,7 @@ export interface InterestsChipEntry {
 export interface InterestsPersonalization {
   editingHistory: boolean
   watchlist: boolean
+  readingList: boolean
 }
 
 export interface InterestsSettings {
@@ -91,11 +92,11 @@ const TOPIC_LABELS_BY_CATEGORY: Record<string, string[]> = {
 
 /** Starter chips shown on first join (all unticked). */
 export const STARTER_TOPIC_CHIP_IDS = [
-  'culture:music',
-  'history-and-society:biography-all',
-  'history-and-society:history',
-  'science-technology-math:general-science',
-  'culture:sports',
+  // 'culture:art',
+  // 'culture:music',
+  // 'history-and-society:history',
+  // 'culture:sports',
+  // 'science-technology-math:technology',
 ] as const
 
 export function slugifyInterestsLabel(label: string): string {
@@ -155,11 +156,11 @@ function buildDefaultTopicChips(): InterestsChipEntry[] {
 
 function buildDefaultChips(): InterestsChipEntry[] {
   return [
-    pageChip('gorillaz', 'Gorillaz', true),
-    pageChip('dsei', 'DSEI', true),
-    pageChip('wet-leg', 'Wet Leg', false),
-    pageChip('dada', 'Dada', false),
-    pageChip('surrealism', 'Surrealism', false),
+    // pageChip('gorillaz', 'Gorillaz', true),
+    // pageChip('dsei', 'DSEI', true),
+    // pageChip('wet-leg', 'Wet Leg', false),
+    // pageChip('dada', 'Dada', false),
+    // pageChip('surrealism', 'Surrealism', false),
     ...buildDefaultTopicChips(),
   ]
 }
@@ -168,6 +169,7 @@ export const DEFAULT_INTERESTS_SETTINGS: InterestsSettings = {
   personalization: {
     editingHistory: true,
     watchlist: true,
+    readingList: true,
   },
   chips: buildDefaultChips(),
 }
