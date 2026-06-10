@@ -28,7 +28,7 @@ const model = defineModel<boolean>({ default: false })
 .interests-toggle-chip {
   min-height: 2.5rem;
   max-width: none;
-  padding: var(--spacing-25, 4px) var(--spacing-100, 16px);
+  padding: var(--spacing-25, 4px) 18px;
   border-radius: 9999px;
   font-weight: var(--font-weight-normal, 400);
   gap: var(--spacing-25, 4px);
@@ -41,6 +41,11 @@ const model = defineModel<boolean>({ default: false })
 .interests-toggle-chip__check {
   flex-shrink: 0;
   color: var(--color-base, #202122);
+  margin-right: -12px;
+}
+
+.interests-toggle-chip.cdx-toggle-button--toggled-on .interests-toggle-chip__label {
+  margin-left: -8px;
 }
 
 /* Unselected — all states */
