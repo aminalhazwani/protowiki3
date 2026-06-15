@@ -39,6 +39,55 @@ export interface SuggestionSeedState {
 
 const RESULT_LIMIT = 20
 const LANG = 'en'
+const STORAGE_KEY = 'protowiki:no-distractions:suggestions'
+
+interface StoredSuggestionsCache {
+  cacheKey: string
+  suggestions: Suggestion[]
+  error: string | null
+}
+
+function readSuggestionsCache(cacheKey: string): StoredSuggestionsCache | null {
+  if (typeof localStorage === 'undefined' || !cacheKey.length) return null
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as StoredSuggestionsCache
+    if (parsed.cacheKey !== cacheKey || !Array.isArray(parsed.suggestions)) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeSuggestionsCache(
+  cacheKey: string,
+  cachedSuggestions: Suggestion[],
+  cachedError: string | null,
+): void {
+  if (typeof localStorage === 'undefined' || !cacheKey.length) return
+
+  try {
+    const payload: StoredSuggestionsCache = {
+      cacheKey,
+      suggestions: cachedSuggestions,
+      error: cachedError,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+  } catch {
+    // Quota or privacy mode — ignore; in-memory cache still works this session.
+  }
+}
+
+function clearSuggestionsCache(): void {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Ignore.
+  }
+}
 
 let shared: SuggestionsState | null = null
 let bindSeeds: ((getter: () => SuggestionSeedState) => void) | null = null
@@ -103,6 +152,17 @@ function createState(): SuggestionsState {
   let abortController: AbortController | null = null
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
+  function hydrateFromStorage(cacheKey: string): boolean {
+    const stored = readSuggestionsCache(cacheKey)
+    if (!stored) return false
+
+    suggestions.value = stored.suggestions
+    error.value = stored.error
+    loadedCacheKey = cacheKey
+    loading.value = false
+    return true
+  }
+
   async function assignTasks(
     hits: MorelikeSearchHit[],
     signal: AbortSignal,
@@ -138,6 +198,7 @@ function createState(): SuggestionsState {
       error.value = null
       loadedCacheKey = ''
       loading.value = false
+      clearSuggestionsCache()
       return
     }
 
@@ -149,11 +210,12 @@ function createState(): SuggestionsState {
     try {
       const ordered = orderedSeeds(seeds)
 
-      // Show the interest pages themselves (first), then morelike-related pages.
+      // Show the interest pages themselves (first), then interleaved morelike hits.
+      const relatedLimit = Math.max(1, RESULT_LIMIT - ordered.length)
       const [seedHits, relatedHits] = await Promise.all([
         fetchPagesMetadata(ordered, { lang: LANG, signal }).catch(() => [] as MorelikeSearchHit[]),
         fetchMorelikeResultsBatched(ordered, {
-          limit: RESULT_LIMIT,
+          limit: relatedLimit,
           mltPreset: 'default',
           mltCustom: DEFAULT_MLT_CUSTOM,
           lang: LANG,
@@ -178,6 +240,7 @@ function createState(): SuggestionsState {
       if (fetchCacheKey !== seedStateGetterRef.value().cacheKey) return
       suggestions.value = assigned
       loadedCacheKey = fetchCacheKey
+      writeSuggestionsCache(fetchCacheKey, assigned, null)
     } catch (fetchError) {
       if (fetchError instanceof MorelikeFetchError && fetchError.code === 'aborted') return
       if ((fetchError as Error).name === 'AbortError') return
@@ -195,6 +258,7 @@ function createState(): SuggestionsState {
 
   function scheduleFetch(cacheKey: string): void {
     if (cacheKey === loadedCacheKey) return
+    if (cacheKey.length && hydrateFromStorage(cacheKey)) return
 
     if (debounceTimer) clearTimeout(debounceTimer)
     suggestions.value = []
@@ -220,6 +284,7 @@ function createState(): SuggestionsState {
       loading.value = false
       return
     }
+    if (cacheKey.length && hydrateFromStorage(cacheKey)) return
     scheduleFetch(cacheKey)
   }
 
@@ -227,9 +292,11 @@ function createState(): SuggestionsState {
 }
 
 /**
- * Suggested edits seeded by morelike (similar articles) + the microtask
- * generator (which edit each article needs). Shared singleton so the home and
- * all-suggestions screens reuse one fetch when the cache key is unchanged.
+ * Suggested edits seeded by morelike (similar articles) + Growth newcomer task
+ * types (via cirrusdoc). Shared singleton so the home and all-suggestions screens
+ * reuse one fetch when the cache key is unchanged. Results persist in
+ * localStorage keyed by interests (or title when interests are implicit) so a
+ * full page reload does not refetch unless that key changes.
  *
  * Pass a seed-state getter once from the route shell; child screens call
  * `useSuggestions()` with no args to read the shared cache.
