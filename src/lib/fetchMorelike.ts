@@ -269,6 +269,90 @@ export async function fetchMorelikeForSingleSeed(
   return fetchMorelikeResults([seedTitle], options)
 }
 
+interface MetadataPage {
+  title: string
+  missing?: boolean
+  description?: string
+  thumbnail?: {
+    source: string
+    width: number
+    height: number
+  }
+}
+
+interface MetadataResponse {
+  error?: { code?: string; info?: string }
+  query?: { pages?: MetadataPage[] }
+}
+
+/**
+ * Fetch card metadata (description + thumbnail) for explicit titles, returned
+ * as `MorelikeSearchHit`s in the same order as the input. Used to surface the
+ * interest pages themselves alongside morelike-related results. Missing pages
+ * are skipped.
+ */
+export async function fetchPagesMetadata(
+  titles: string[],
+  options: { lang?: string; signal?: AbortSignal } = {},
+): Promise<MorelikeSearchHit[]> {
+  if (options.signal?.aborted) {
+    throw new MorelikeFetchError('Request aborted', 'aborted')
+  }
+
+  const uniqueTitles = [...new Set(titles.map((title) => title.trim()).filter(Boolean))]
+  if (!uniqueTitles.length) return []
+
+  const lang = normalizeLang(options.lang ?? 'en')
+  const wikiHost = wikiHostFromLang(lang)
+
+  const params = new URLSearchParams({
+    action: 'query',
+    titles: uniqueTitles.join('|'),
+    prop: 'pageimages|description',
+    piprop: 'thumbnail',
+    pithumbsize: '160',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  })
+
+  const response = await fetch(`https://${wikiHost}/w/api.php?${params.toString()}`, {
+    signal: options.signal,
+    headers: wikimediaApiFetchHeaders('pages-metadata'),
+  })
+
+  if (!response.ok) {
+    throw new MorelikeFetchError(`Metadata fetch failed (HTTP ${response.status})`, 'http')
+  }
+
+  const data = (await response.json()) as MetadataResponse
+  if (data.error) {
+    throw new MorelikeFetchError(data.error.info ?? data.error.code ?? 'Metadata fetch failed', 'http')
+  }
+
+  const byKey = new Map<string, MorelikeSearchHit>()
+  for (const page of data.query?.pages ?? []) {
+    if (page.missing || !page.title) continue
+    byKey.set(normalizeTitleKey(page.title), {
+      title: page.title,
+      description: page.description?.trim() ?? '',
+      timestamp: '',
+      pageUrl: articleUrl(wikiHost, page.title),
+      thumbnail: page.thumbnail
+        ? {
+            url: page.thumbnail.source,
+            width: page.thumbnail.width,
+            height: page.thumbnail.height,
+          }
+        : undefined,
+    })
+  }
+
+  return uniqueTitles
+    .map((title) => byKey.get(normalizeTitleKey(title)))
+    .filter((hit): hit is MorelikeSearchHit => hit !== undefined)
+}
+
 const DEFAULT_MAX_MORELIKE_CALLS = 3
 
 /**

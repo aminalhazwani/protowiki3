@@ -133,7 +133,7 @@ function goToInterests() {
 .all__fab {
   position: fixed;
   right: var(--spacing-50, 8px);
-  bottom: 1.9375rem;
+  bottom: 12px;
   z-index: 10;
   display: inline-flex;
   gap: 0;

@@ -1,83 +1,161 @@
 /**
- * Maps Microtask Generator `potential_needs` strings (from
- * https://microtask-generator.toolforge.org/about.html) to the suggestion-card
- * presentation used on the home screen. Colours follow the Figma flow: sourcing
- * tasks are amber, structural/linking tasks are green.
+ * Maps the Wikimedia Growth team's newcomer task types to the suggestion-card
+ * presentation used on the home screen. Each task carries a detector that reads
+ * the same per-page signals Growth's newcomer-task search keys on, surfaced via
+ * `prop=cirrusdoc` (see `@/lib/fetchGrowthTaskSignals`): maintenance templates,
+ * dated maintenance tracking categories, structured-task `recommendation.*`
+ * weighted tags, section headings, outgoing-link density, and article size.
+ *
+ * Task type catalogue: https://www.mediawiki.org/wiki/Help:Growth/Tools/Newcomer_Tasks
+ *
+ * Colours follow the Figma flow: sourcing/content tasks are amber, link/media/
+ * text-fix tasks are green.
  */
+
+import type { GrowthTaskSignals } from '@/lib/fetchGrowthTaskSignals'
 
 export type TaskColor = 'green' | 'amber'
 
 export interface TaskDefinition {
+  /** GrowthExperiments task-type id. */
   id: string
-  /** Exact `need` string returned by the quality-check API. */
-  need: string
   /** Short heading shown on the card. */
   heading: string
   /** One-line call to action under the article title. */
   description: string
   color: TaskColor
+  /** Lower wins when several tasks apply to the same article. */
+  priority: number
+  /** True when this task type applies to a page with the given signals. */
+  matches: (signals: GrowthTaskSignals) => boolean
 }
 
+/** Strip the `Template:` prefix and normalise for comparison. */
+function normalizeTemplate(name: string): string {
+  return name.replace(/^template:/i, '').trim().toLowerCase()
+}
+
+function templateMatches(signals: GrowthTaskSignals, pattern: RegExp): boolean {
+  return signals.templates.some((name) => pattern.test(normalizeTemplate(name)))
+}
+
+function categoryMatches(signals: GrowthTaskSignals, pattern: RegExp): boolean {
+  return signals.categories.some((name) => pattern.test(name.toLowerCase()))
+}
+
+function weightedTagMatches(signals: GrowthTaskSignals, pattern: RegExp): boolean {
+  return signals.weightedTags.some((tag) => pattern.test(tag))
+}
+
+const STUB_BYTE_THRESHOLD = 1500
+const LOW_LINK_THRESHOLD = 8
+
+/**
+ * Ordered by priority (first match wins). Detection prefers precise dated
+ * maintenance categories and specific maintenance templates; never infer a need
+ * from incidental templates (e.g. citation modules are not a "needs references"
+ * signal).
+ */
 export const TASK_CATALOG: TaskDefinition[] = [
   {
     id: 'references',
-    need: 'Add more references',
-    heading: 'Add reference',
-    description: 'Help explain where this information is coming from.',
+    heading: 'Find references',
+    description: 'Find references for this article.',
     color: 'amber',
+    priority: 1,
+    matches: (signals) =>
+      categoryMatches(
+        signals,
+        /unsourced statements|needing additional references|articles lacking sources|all articles with unsourced/,
+      ) ||
+      templateMatches(
+        signals,
+        /^(unreferenced|more citations needed|refimprove|citation needed|unreferenced section|more citations needed section|one source)$/,
+      ),
   },
   {
-    id: 'wikilinks',
-    need: 'Add more internal wikilinks',
-    heading: 'Add links',
-    description: 'Link key terms so readers can explore related topics.',
+    id: 'copyedit',
+    heading: 'Copyedit',
+    description: 'Fix spelling, grammar, and tone.',
     color: 'green',
+    priority: 2,
+    matches: (signals) =>
+      categoryMatches(signals, /needing copy edit|copy edit from/) ||
+      templateMatches(signals, /^(copy edit|copyedit|cleanup|cleanup rewrite|tone)$/),
   },
   {
-    id: 'headings',
-    need: 'Improve article section headings',
-    heading: 'Improve headings',
-    description: 'Add or clarify headings so the article is easier to scan.',
-    color: 'green',
-  },
-  {
-    id: 'images',
-    need: 'Add images or other media',
-    heading: 'Add an image',
-    description: 'Find a freely licensed image to illustrate this article.',
-    color: 'green',
-  },
-  {
-    id: 'infobox',
-    need: 'Add an infobox',
-    heading: 'Add an infobox',
-    description: 'Summarise the key facts about this subject at a glance.',
+    id: 'update',
+    heading: 'Update',
+    description: 'Bring existing articles up-to-date.',
     color: 'amber',
+    priority: 3,
+    matches: (signals) =>
+      categoryMatches(signals, /in need of updating|potentially dated/) ||
+      templateMatches(signals, /^(update|outdated|update section)$/),
   },
   {
-    id: 'categories',
-    need: 'Add more relevant categories',
-    heading: 'Add categories',
-    description: 'Help this article show up in the right topic areas.',
+    id: 'revise-tone',
+    heading: 'Revise tone',
+    description: 'Make articles more factual by removing promotional words.',
     color: 'green',
+    priority: 4,
+    matches: (signals) =>
+      categoryMatches(signals, /promotional tone|articles with peacock|articles needing style editing/) ||
+      templateMatches(signals, /^(peacock|peacock term|advert|advertisement|promotional|fanpov|puffery)$/),
   },
   {
     id: 'expand',
-    need: 'Expand the content',
-    heading: 'Expand the article',
-    description: 'Add well-sourced detail to fill in the gaps.',
+    heading: 'Expand',
+    description: 'Expand short articles.',
     color: 'amber',
+    priority: 5,
+    matches: (signals) =>
+      categoryMatches(signals, /all stub articles|to be expanded|articles to be expanded/) ||
+      templateMatches(signals, /-stub$|^stub$|^expand|^missing information$/) ||
+      (signals.textBytes > 0 && signals.textBytes < STUB_BYTE_THRESHOLD),
   },
   {
-    id: 'maintenance',
-    need: 'Check maintenance message',
-    heading: 'Fix a maintenance issue',
-    description: 'Review the maintenance banner and resolve the flagged issue.',
-    color: 'amber',
+    id: 'image-recommendation',
+    heading: 'Add an image',
+    description: 'Add an image to an unillustrated article.',
+    color: 'green',
+    priority: 6,
+    matches: (signals) => weightedTagMatches(signals, /^recommendation\.image\/exists/),
+  },
+  {
+    id: 'link-recommendation',
+    heading: 'Add links',
+    description: 'Add links between articles.',
+    color: 'green',
+    priority: 7,
+    matches: (signals) => weightedTagMatches(signals, /^recommendation\.link\/exists/),
+  },
+  {
+    id: 'links',
+    heading: 'Add links',
+    description: 'Add links between articles.',
+    color: 'green',
+    priority: 8,
+    matches: (signals) =>
+      categoryMatches(signals, /underlinked|dead-end pages/) ||
+      templateMatches(signals, /^(underlinked|dead end)$/) ||
+      (signals.outgoingLinkCount > 0 && signals.outgoingLinkCount < LOW_LINK_THRESHOLD),
+  },
+  {
+    id: 'section-image-recommendation',
+    heading: 'Add an image to an article section',
+    description: 'Add an image to a section of this article.',
+    color: 'green',
+    priority: 9,
+    matches: (signals) =>
+      weightedTagMatches(signals, /^recommendation\.(image_section|section_image|imagesection)/) &&
+      signals.headings.length > 0,
   },
 ]
 
-const NEED_TO_TASK = new Map(TASK_CATALOG.map((task) => [task.need.toLowerCase(), task]))
+/** Subset used for the deterministic fallback when no signal matches. */
+const FALLBACK_TASK_IDS = ['copyedit', 'links']
+const FALLBACK_TASKS = TASK_CATALOG.filter((task) => FALLBACK_TASK_IDS.includes(task.id))
 
 /** Stable index from a title so a fallback task is consistent across reloads. */
 function hashTitle(title: string): number {
@@ -88,10 +166,19 @@ function hashTitle(title: string): number {
   return hash
 }
 
-export function pickTaskForTitle(title: string, need?: string | null): TaskDefinition {
-  if (need) {
-    const matched = NEED_TO_TASK.get(need.trim().toLowerCase())
+/**
+ * Pick the highest-priority task type whose detector matches the page's
+ * signals. Falls back to a deterministic per-title choice when no signal
+ * matches (or signals are unavailable), so every card shows a stable, plausible
+ * task.
+ */
+export function resolveTaskForSignals(
+  title: string,
+  signals?: GrowthTaskSignals,
+): TaskDefinition {
+  if (signals) {
+    const matched = TASK_CATALOG.find((task) => task.matches(signals))
     if (matched) return matched
   }
-  return TASK_CATALOG[hashTitle(title) % TASK_CATALOG.length]
+  return FALLBACK_TASKS[hashTitle(title) % FALLBACK_TASKS.length]
 }

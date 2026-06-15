@@ -2,13 +2,18 @@ import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 
 import {
   fetchMorelikeResultsBatched,
+  fetchPagesMetadata,
   MorelikeFetchError,
   normalizeTitleKey,
+  type MorelikeSearchHit,
 } from '@/lib/fetchMorelike'
-import { fetchMicrotaskQuality, pickPrimaryNeed } from '@/lib/fetchMicrotaskQuality'
+import {
+  fetchGrowthTaskSignals,
+  type GrowthTaskSignals,
+} from '@/lib/fetchGrowthTaskSignals'
 import { DEFAULT_MLT_CUSTOM } from '@/lib/morelikeMlt'
 
-import { pickTaskForTitle, type TaskColor } from './microtaskCatalog'
+import { resolveTaskForSignals, type TaskColor } from './microtaskCatalog'
 
 export interface Suggestion {
   title: string
@@ -99,25 +104,21 @@ function createState(): SuggestionsState {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
   async function assignTasks(
-    hits: { title: string; description: string; thumbnail?: { url: string } }[],
+    hits: MorelikeSearchHit[],
     signal: AbortSignal,
   ): Promise<Suggestion[]> {
-    let needByTitle = new Map<string, string | null>()
+    let signalsByTitle = new Map<string, GrowthTaskSignals>()
     try {
-      const quality = await fetchMicrotaskQuality(
+      signalsByTitle = await fetchGrowthTaskSignals(
         hits.map((hit) => hit.title),
         { lang: LANG, signal },
       )
-      needByTitle = new Map(
-        quality.map((result) => [normalizeTitleKey(result.title), pickPrimaryNeed(result)]),
-      )
     } catch {
-      // Microtask Generator can be slow/unavailable — fall back to per-title tasks.
+      // cirrusdoc can be slow/unavailable — fall back to deterministic per-title tasks.
     }
 
     return hits.map((hit) => {
-      const need = needByTitle.get(normalizeTitleKey(hit.title)) ?? null
-      const task = pickTaskForTitle(hit.title, need)
+      const task = resolveTaskForSignals(hit.title, signalsByTitle.get(normalizeTitleKey(hit.title)))
       return {
         title: hit.title,
         description: hit.description || 'No description available.',
@@ -146,16 +147,32 @@ function createState(): SuggestionsState {
     error.value = null
 
     try {
-      const hits = await fetchMorelikeResultsBatched(orderedSeeds(seeds), {
-        limit: RESULT_LIMIT,
-        mltPreset: 'default',
-        mltCustom: DEFAULT_MLT_CUSTOM,
-        lang: LANG,
-        signal,
-        maxCalls: 3,
-      })
+      const ordered = orderedSeeds(seeds)
 
-      const assigned = await assignTasks(hits, signal)
+      // Show the interest pages themselves (first), then morelike-related pages.
+      const [seedHits, relatedHits] = await Promise.all([
+        fetchPagesMetadata(ordered, { lang: LANG, signal }).catch(() => [] as MorelikeSearchHit[]),
+        fetchMorelikeResultsBatched(ordered, {
+          limit: RESULT_LIMIT,
+          mltPreset: 'default',
+          mltCustom: DEFAULT_MLT_CUSTOM,
+          lang: LANG,
+          signal,
+          maxCalls: 3,
+        }),
+      ])
+
+      const merged: MorelikeSearchHit[] = []
+      const seen = new Set<string>()
+      for (const hit of [...seedHits, ...relatedHits]) {
+        const key = normalizeTitleKey(hit.title)
+        if (seen.has(key)) continue
+        seen.add(key)
+        merged.push(hit)
+        if (merged.length >= RESULT_LIMIT) break
+      }
+
+      const assigned = await assignTasks(merged, signal)
       if (signal.aborted) return
       // Drop stale responses when interests/title changed mid-flight.
       if (fetchCacheKey !== seedStateGetterRef.value().cacheKey) return
