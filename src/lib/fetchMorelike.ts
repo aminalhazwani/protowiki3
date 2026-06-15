@@ -268,3 +268,78 @@ export async function fetchMorelikeForSingleSeed(
 ): Promise<MorelikeSearchHit[]> {
   return fetchMorelikeResults([seedTitle], options)
 }
+
+const DEFAULT_MAX_MORELIKE_CALLS = 3
+
+/**
+ * Split interest seeds into at most `maxCalls` batches for separate morelike
+ * requests. Preserves input order; e.g. five seeds → [[a,b],[c,d],[e]].
+ */
+export function partitionSeedsForMorelikeCalls(
+  seedTitles: string[],
+  maxCalls = DEFAULT_MAX_MORELIKE_CALLS,
+): string[][] {
+  const titles: string[] = []
+  const seen = new Set<string>()
+
+  for (const raw of seedTitles) {
+    const title = raw.trim()
+    if (!title.length) continue
+    const key = normalizeTitleKey(title)
+    if (seen.has(key)) continue
+    seen.add(key)
+    titles.push(title)
+  }
+
+  if (!titles.length) return []
+
+  const numCalls = Math.min(maxCalls, titles.length)
+  const baseSize = Math.floor(titles.length / numCalls)
+  const remainder = titles.length % numCalls
+  const groups: string[][] = []
+
+  let index = 0
+  for (let call = 0; call < numCalls; call++) {
+    const size = baseSize + (call < remainder ? 1 : 0)
+    groups.push(titles.slice(index, index + size))
+    index += size
+  }
+
+  return groups
+}
+
+/** Run up to `maxCalls` morelike searches and merge/dedupe hits (cap = `limit`). */
+export async function fetchMorelikeResultsBatched(
+  seedTitles: string[],
+  options: FetchMorelikeOptions & { maxCalls?: number },
+): Promise<MorelikeSearchHit[]> {
+  if (options.signal?.aborted) {
+    throw new MorelikeFetchError('Request aborted', 'aborted')
+  }
+
+  const batches = partitionSeedsForMorelikeCalls(seedTitles, options.maxCalls)
+  if (!batches.length) {
+    throw new MorelikeFetchError('Add at least one seed page title', 'empty')
+  }
+
+  const merged: MorelikeSearchHit[] = []
+  const seen = new Set<string>()
+
+  for (const batch of batches) {
+    if (options.signal?.aborted) {
+      throw new MorelikeFetchError('Request aborted', 'aborted')
+    }
+
+    const hits = await fetchMorelikeResults(batch, options)
+
+    for (const hit of hits) {
+      const key = normalizeTitleKey(hit.title)
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(hit)
+      if (merged.length >= options.limit) return merged
+    }
+  }
+
+  return merged
+}
