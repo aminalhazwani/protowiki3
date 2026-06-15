@@ -67,11 +67,11 @@ Trouble-shooting: If it doesn't appear at first or you see a blank screeen, try 
 ### Deploying a prototype
 
 ProtoWiki gets deployed when you commit to the `main` branch.\
-It's available at `[your-username].github.io/[your-fork-name]`\
+It's available at `[your-username].github.io/[your-copy-name]`\
 For example: [wikimedia.github.io/ProtoWiki](https://wikimedia.github.io/ProtoWiki).\
 You might need to enable actions within the actions tab of your repo to get this to work.
 
-Alternatively, when you create a pull request on your fork, a preview gets deployed. Here's an [example](https://github.com/wikimedia/ProtoWiki/pull/3#issuecomment-4488446669).\
+Alternatively, when you create a pull request on your copy, a preview gets deployed. Here's an [example](https://github.com/wikimedia/ProtoWiki/pull/3#issuecomment-4488446669).\
 This is great because it also creates a QR code that people can use to try the prototype on their phone.
 
 ## Questions? Thoughts?
