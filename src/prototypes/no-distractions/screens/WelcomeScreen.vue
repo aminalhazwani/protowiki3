@@ -24,13 +24,7 @@ const greeting = computed(() => {
 
       <div class="welcome__body">
         <div class="welcome__hero-wrap">
-          <img
-            class="welcome__hero"
-            :src="WELCOME_HERO"
-            alt=""
-            width="412"
-            height="275"
-          />
+          <img class="welcome__hero" :src="WELCOME_HERO" alt="" width="412" height="275" />
         </div>
 
         <div class="welcome__footer">
@@ -38,7 +32,9 @@ const greeting = computed(() => {
             <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('survey')">
               Personalize your Home
             </CdxButton>
-            <CdxButton weight="quiet" @click="props.flow.goTo('home')">Not now</CdxButton>
+            <button type="button" class="ob-skip ob-skip--inverse" @click="props.flow.goTo('home')">
+              Not now
+            </button>
           </div>
         </div>
       </div>
@@ -114,18 +110,16 @@ const greeting = computed(() => {
   padding-top: var(--spacing-100, 16px);
 }
 
-.welcome__actions :deep(.cdx-button) {
+.welcome__actions :deep(.cdx-button),
+.welcome__actions .ob-skip {
   box-sizing: border-box;
   width: 100%;
+}
+
+.welcome__actions :deep(.cdx-button) {
   min-height: 3rem;
   padding-block: var(--spacing-100, 16px);
   font-size: var(--font-size-medium, 1rem);
   font-weight: var(--font-weight-bold);
-}
-
-.welcome__actions :deep(.cdx-button--weight-quiet) {
-  min-height: 2.75rem;
-  padding-block: var(--spacing-75, 12px);
-  color: #c8ccd1;
 }
 </style>

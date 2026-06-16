@@ -7,10 +7,7 @@ import {
   normalizeTitleKey,
   type MorelikeSearchHit,
 } from '@/lib/fetchMorelike'
-import {
-  fetchGrowthTaskSignals,
-  type GrowthTaskSignals,
-} from '@/lib/fetchGrowthTaskSignals'
+import { fetchGrowthTaskSignals } from '@/lib/fetchGrowthTaskSignals'
 import { DEFAULT_MLT_CUSTOM } from '@/lib/morelikeMlt'
 
 import { resolveTaskForSignals, type TaskColor } from './microtaskCatalog'
@@ -167,26 +164,25 @@ function createState(): SuggestionsState {
     hits: MorelikeSearchHit[],
     signal: AbortSignal,
   ): Promise<Suggestion[]> {
-    let signalsByTitle = new Map<string, GrowthTaskSignals>()
-    try {
-      signalsByTitle = await fetchGrowthTaskSignals(
-        hits.map((hit) => hit.title),
-        { lang: LANG, signal },
-      )
-    } catch {
-      // cirrusdoc can be slow/unavailable — fall back to deterministic per-title tasks.
-    }
+    const signalsByTitle = await fetchGrowthTaskSignals(
+      hits.map((hit) => hit.title),
+      { lang: LANG, signal },
+    )
 
-    return hits.map((hit) => {
-      const task = resolveTaskForSignals(hit.title, signalsByTitle.get(normalizeTitleKey(hit.title)))
-      return {
-        title: hit.title,
-        description: hit.description || 'No description available.',
-        thumbnailSrc: hit.thumbnail?.url,
-        taskHeading: task.heading,
-        taskDescription: task.description,
-        taskColor: task.color,
-      }
+    return hits.flatMap((hit) => {
+      const task = resolveTaskForSignals(signalsByTitle.get(normalizeTitleKey(hit.title)))
+      if (!task) return []
+
+      return [
+        {
+          title: hit.title,
+          description: hit.description || 'No description available.',
+          thumbnailSrc: hit.thumbnail?.url,
+          taskHeading: task.heading,
+          taskDescription: task.description,
+          taskColor: task.color,
+        },
+      ]
     })
   }
 

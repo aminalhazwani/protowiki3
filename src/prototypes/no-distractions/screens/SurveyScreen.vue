@@ -51,7 +51,7 @@ function choose(value: SurveyChoice): void {
         </div>
 
         <div class="ob-actions">
-          <button type="button" class="ob-skip" @click="props.flow.goTo('interests')">Skip</button>
+          <CdxButton weight="quiet" @click="props.flow.goTo('interests')">Skip</CdxButton>
           <CdxButton
             action="progressive"
             weight="primary"

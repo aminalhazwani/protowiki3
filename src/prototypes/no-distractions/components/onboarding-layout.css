@@ -53,6 +53,7 @@
   padding-block: var(--spacing-75, 12px);
 }
 
+/* Welcome footer “Not now” on #101418 — Codex quiet hover breaks on dark surfaces. */
 .ob-skip {
   align-self: center;
   min-height: 2.75rem;
@@ -65,6 +66,20 @@
   line-height: var(--line-height-small, 1.375);
   color: #404244;
   cursor: pointer;
+}
+
+/* Light label on dark surfaces (welcome footer). Plain .ob-skip stays for light pages. */
+.ob-skip--inverse {
+  color: #c8ccd1;
+}
+
+.ob-skip--inverse:hover {
+  color: #eaecf0;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.ob-skip--inverse:active {
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 .ob-field .cdx-text-input__input {

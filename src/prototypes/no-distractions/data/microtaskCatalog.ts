@@ -4,7 +4,7 @@
  * the same per-page signals Growth's newcomer-task search keys on, surfaced via
  * `prop=cirrusdoc` (see `@/lib/fetchGrowthTaskSignals`): maintenance templates,
  * dated maintenance tracking categories, structured-task `recommendation.*`
- * weighted tags, section headings, outgoing-link density, and article size.
+ * weighted tags, and section headings.
  *
  * Task type catalogue: https://www.mediawiki.org/wiki/Help:Growth/Tools/Newcomer_Tasks
  *
@@ -32,7 +32,10 @@ export interface TaskDefinition {
 
 /** Strip the `Template:` prefix and normalise for comparison. */
 function normalizeTemplate(name: string): string {
-  return name.replace(/^template:/i, '').trim().toLowerCase()
+  return name
+    .replace(/^template:/i, '')
+    .trim()
+    .toLowerCase()
 }
 
 function templateMatches(signals: GrowthTaskSignals, pattern: RegExp): boolean {
@@ -47,9 +50,6 @@ function weightedTagMatches(signals: GrowthTaskSignals, pattern: RegExp): boolea
   return signals.weightedTags.some((tag) => pattern.test(tag))
 }
 
-const STUB_BYTE_THRESHOLD = 1500
-const LOW_LINK_THRESHOLD = 8
-
 /**
  * Ordered by priority (first match wins). Detection prefers precise dated
  * maintenance categories and specific maintenance templates; never infer a need
@@ -60,7 +60,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
   {
     id: 'references',
     heading: 'Find references',
-    description: 'Find references for this article.',
+    description: 'Add sources to verify Wikipedia articles',
     color: 'amber',
     priority: 1,
     matches: (signals) =>
@@ -85,8 +85,8 @@ export const TASK_CATALOG: TaskDefinition[] = [
   },
   {
     id: 'update',
-    heading: 'Update',
-    description: 'Bring existing articles up-to-date.',
+    heading: 'Update articles',
+    description: 'Bring existing articles up-to-date',
     color: 'amber',
     priority: 3,
     matches: (signals) =>
@@ -96,23 +96,28 @@ export const TASK_CATALOG: TaskDefinition[] = [
   {
     id: 'revise-tone',
     heading: 'Revise tone',
-    description: 'Make articles more factual by removing promotional words.',
+    description: 'Make articles more factual by removing promotional words',
     color: 'green',
     priority: 4,
     matches: (signals) =>
-      categoryMatches(signals, /promotional tone|articles with peacock|articles needing style editing/) ||
-      templateMatches(signals, /^(peacock|peacock term|advert|advertisement|promotional|fanpov|puffery)$/),
+      categoryMatches(
+        signals,
+        /promotional tone|articles with peacock|articles needing style editing/,
+      ) ||
+      templateMatches(
+        signals,
+        /^(peacock|peacock term|advert|advertisement|promotional|fanpov|puffery)$/,
+      ),
   },
   {
     id: 'expand',
-    heading: 'Expand',
-    description: 'Expand short articles.',
+    heading: 'Expand short articles',
+    description: 'Make articles longer by finding and adding more information',
     color: 'amber',
     priority: 5,
     matches: (signals) =>
       categoryMatches(signals, /all stub articles|to be expanded|articles to be expanded/) ||
-      templateMatches(signals, /-stub$|^stub$|^expand|^missing information$/) ||
-      (signals.textBytes > 0 && signals.textBytes < STUB_BYTE_THRESHOLD),
+      templateMatches(signals, /-stub$|^stub$|^expand|^missing information$/),
   },
   {
     id: 'image-recommendation',
@@ -124,22 +129,21 @@ export const TASK_CATALOG: TaskDefinition[] = [
   },
   {
     id: 'link-recommendation',
-    heading: 'Add links',
-    description: 'Add links between articles.',
+    heading: 'Add links between articles',
+    description: 'Make words from one article link to another article.',
     color: 'green',
     priority: 7,
     matches: (signals) => weightedTagMatches(signals, /^recommendation\.link\/exists/),
   },
   {
     id: 'links',
-    heading: 'Add links',
-    description: 'Add links between articles.',
+    heading: 'Add links between articles',
+    description: 'Make words from one article link to another article.',
     color: 'green',
     priority: 8,
     matches: (signals) =>
       categoryMatches(signals, /underlinked|dead-end pages/) ||
-      templateMatches(signals, /^(underlinked|dead end)$/) ||
-      (signals.outgoingLinkCount > 0 && signals.outgoingLinkCount < LOW_LINK_THRESHOLD),
+      templateMatches(signals, /^(underlinked|dead end)$/),
   },
   {
     id: 'section-image-recommendation',
@@ -153,32 +157,11 @@ export const TASK_CATALOG: TaskDefinition[] = [
   },
 ]
 
-/** Subset used for the deterministic fallback when no signal matches. */
-const FALLBACK_TASK_IDS = ['copyedit', 'links']
-const FALLBACK_TASKS = TASK_CATALOG.filter((task) => FALLBACK_TASK_IDS.includes(task.id))
-
-/** Stable index from a title so a fallback task is consistent across reloads. */
-function hashTitle(title: string): number {
-  let hash = 0
-  for (let index = 0; index < title.length; index += 1) {
-    hash = (hash * 31 + title.charCodeAt(index)) >>> 0
-  }
-  return hash
-}
-
 /**
  * Pick the highest-priority task type whose detector matches the page's
- * signals. Falls back to a deterministic per-title choice when no signal
- * matches (or signals are unavailable), so every card shows a stable, plausible
- * task.
+ * CirrusSearch signals, or null when none apply.
  */
-export function resolveTaskForSignals(
-  title: string,
-  signals?: GrowthTaskSignals,
-): TaskDefinition {
-  if (signals) {
-    const matched = TASK_CATALOG.find((task) => task.matches(signals))
-    if (matched) return matched
-  }
-  return FALLBACK_TASKS[hashTitle(title) % FALLBACK_TASKS.length]
+export function resolveTaskForSignals(signals?: GrowthTaskSignals): TaskDefinition | null {
+  if (!signals) return null
+  return TASK_CATALOG.find((task) => task.matches(signals)) ?? null
 }

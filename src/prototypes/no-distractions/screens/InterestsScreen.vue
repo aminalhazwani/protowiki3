@@ -121,7 +121,7 @@ onBeforeUnmount(() => {
             </CdxButton>
           </template>
           <template v-else>
-            <button type="button" class="ob-skip" @click="props.flow.goTo('email')">Skip</button>
+            <CdxButton weight="quiet" @click="props.flow.goTo('email')">Skip</CdxButton>
             <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('email')">
               Next
             </CdxButton>
