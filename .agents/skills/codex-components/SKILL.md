@@ -129,12 +129,12 @@ When in doubt, the canonical docs are at
 - [`codex-icons`](../codex-icons/SKILL.md) for the icon catalogue.
 - [`codex-tokens`](../codex-tokens/SKILL.md) for the design tokens that
   drive every component's appearance.
-- [`codex-design-principles`](../codex-design-principles/SKILL.md) for
-  the **why** behind the component set.
+- [`codex-style-guide`](../codex-style-guide/SKILL.md) for the **why** —
+  the design rules for links vs buttons, forms, overflow, and the rest.
 
 ## Inside ProtoWiki
 
 ProtoWiki composes these primitives into wrappers (`ChromeWrapper`,
 `SpecialPageWrapper`, `PlainWrapper`) and reader surfaces (`ArticleWrapper`,
-`ArticleRenderer`, `ArticleLive`, `ArticleSnapshot`, `ArticleCustom`, …; **`SearchBar`** wraps `CdxTypeaheadSearch`). See
+`ArticleRenderer`, `ArticleLive`, `ArticleSnapshot`, `ArticleCustom`, …; **`Search`** wraps `CdxTypeaheadSearch`). See
 [`protowiki-components`](../protowiki-components/SKILL.md).

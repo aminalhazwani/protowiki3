@@ -16,9 +16,8 @@ import { useConfig } from '@/composables/useConfig'
 import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { globalSkin, globalTheme } from '@/theme'
 import type { Skin, Theme } from '@/theme'
-import PrototypeUserSettingsPopover from '../PrototypeUserSettingsPopover.vue'
-import PrototypeChromeMenuPopover from '../PrototypeChromeMenuPopover.vue'
-import SearchBar from '../SearchBar/SearchBar.vue'
+import UserSettingsPopover from '../settings/UserSettingsPopover.vue'
+import Search from '../Search.vue'
 
 const { user } = useConfig()
 
@@ -135,7 +134,7 @@ function navHas(tool: ChromeNavTool): boolean {
 
       <div class="chrome-header__inline-search">
         <div class="chrome-header__search">
-          <SearchBar />
+          <Search />
         </div>
         <CdxButton
           class="chrome-header__search-submit"
@@ -165,7 +164,7 @@ function navHas(tool: ChromeNavTool): boolean {
             >
               Donate
             </a>
-            <PrototypeUserSettingsPopover v-slot="{ toggle, open }">
+            <UserSettingsPopover v-slot="{ toggle, open }">
               <button
                 type="button"
                 class="chrome-header__text-link chrome-header__text-link--button"
@@ -175,7 +174,7 @@ function navHas(tool: ChromeNavTool): boolean {
               >
                 Create account
               </button>
-            </PrototypeUserSettingsPopover>
+            </UserSettingsPopover>
             <a
               class="chrome-header__text-link"
               href="https://en.wikipedia.org/w/index.php?title=Special:UserLogin"
@@ -197,11 +196,7 @@ function navHas(tool: ChromeNavTool): boolean {
           <CdxButton v-if="navHas('appearance')" weight="quiet" aria-label="Appearance">
             <CdxIcon :icon="cdxIconAppearance" />
           </CdxButton>
-          <CdxButton
-            v-if="navHas('notifications')"
-            weight="quiet"
-            aria-label="Notifications"
-          >
+          <CdxButton v-if="navHas('notifications')" weight="quiet" aria-label="Notifications">
             <CdxIcon :icon="cdxIconBell" />
           </CdxButton>
           <CdxButton v-if="navHas('notices')" weight="quiet" aria-label="Notices">
@@ -215,7 +210,7 @@ function navHas(tool: ChromeNavTool): boolean {
           >
             <CdxIcon :icon="cdxIconWatchlist" />
           </CdxButton>
-          <PrototypeUserSettingsPopover v-if="navHas('user')" v-slot="{ toggle, open }">
+          <UserSettingsPopover v-if="navHas('user')" v-slot="{ toggle, open }">
             <CdxButton
               class="chrome-header__user-btn"
               weight="quiet"
@@ -226,7 +221,7 @@ function navHas(tool: ChromeNavTool): boolean {
               <CdxIcon :icon="cdxIconUserAvatar" />
               <span class="chrome-header__dropdown-chevron" aria-hidden="true" />
             </CdxButton>
-          </PrototypeUserSettingsPopover>
+          </UserSettingsPopover>
         </slot>
       </div>
     </nav>
@@ -267,14 +262,10 @@ function navHas(tool: ChromeNavTool): boolean {
         >
           <CdxIcon :icon="cdxIconSearch" />
         </CdxButton>
-        <CdxButton
-          weight="quiet"
-          size="large"
-          aria-label="Notifications"
-        >
+        <CdxButton weight="quiet" size="large" aria-label="Notifications">
           <CdxIcon :icon="cdxIconBell" />
         </CdxButton>
-        <PrototypeUserSettingsPopover v-slot="{ toggle, open }">
+        <UserSettingsPopover v-slot="{ toggle, open }">
           <CdxButton
             class="chrome-header__mobile-user-btn"
             weight="quiet"
@@ -283,9 +274,9 @@ function navHas(tool: ChromeNavTool): boolean {
             :aria-expanded="open"
             @click="toggle"
           >
-            <CdxIcon :icon="cdxIconUserAvatar" size="large" />
+            <CdxIcon :icon="cdxIconUserAvatar" size="medium" />
           </CdxButton>
-        </PrototypeUserSettingsPopover>
+        </UserSettingsPopover>
       </div>
     </nav>
   </header>
@@ -505,7 +496,6 @@ function navHas(tool: ChromeNavTool): boolean {
     height: var(--size-icon-large, 40px);
     padding: 0.45rem 0.5rem;
   }
-
 }
 
 @media (max-width: 768px) {
@@ -521,7 +511,7 @@ function navHas(tool: ChromeNavTool): boolean {
   align-items: center;
   gap: var(--spacing-50, 8px);
   min-height: 3.375em;
-  padding: 0 var(--spacing-100, 16px) 0 var(--spacing-50, 8px);
+  padding: 0 var(--spacing-50, 8px) 0 var(--spacing-25, 4px);
   background-color: var(--background-color-interactive, #eaecf0);
   box-shadow: inset 0 -1px 3px 0 rgba(0, 0, 0, 0.08);
 }

@@ -10,10 +10,10 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { CdxButton, CdxCard, CdxIcon } from '@wikimedia/codex'
-import { cdxIconSettings } from '@wikimedia/codex-icons'
+import { cdxIconConfigure } from '@wikimedia/codex-icons'
 
 import PlainWrapper from '@/components/PlainWrapper.vue'
-import PrototypeUserSettingsPopover from '@/components/PrototypeUserSettingsPopover.vue'
+import UserSettingsPopover from '@/components/settings/UserSettingsPopover.vue'
 
 const router = useRouter()
 
@@ -101,7 +101,7 @@ const showBucketDivider = computed(
   <!--  -->
   <PlainWrapper heading="ProtoWiki">
     <template #actions>
-      <PrototypeUserSettingsPopover v-slot="{ toggle, open }">
+      <UserSettingsPopover v-slot="{ toggle, open }">
         <CdxButton
           weight="quiet"
           :icon-only="true"
@@ -109,9 +109,9 @@ const showBucketDivider = computed(
           :aria-expanded="open"
           @click="toggle"
         >
-          <CdxIcon :icon="cdxIconSettings" />
+          <CdxIcon :icon="cdxIconConfigure" />
         </CdxButton>
-      </PrototypeUserSettingsPopover>
+      </UserSettingsPopover>
     </template>
     <div class="prototype-index">
       <div class="prototype-index__list">

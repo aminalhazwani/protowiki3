@@ -111,6 +111,9 @@ from an API.
 Use this for "pick a Wikipedia article", "pick a category", "pick a
 user". Pair it with the [`wiki-apis`](../../wiki-apis/SKILL.md) skill.
 
+`CdxLookup` exposes a `focus()` method via a template ref, so you can
+programmatically focus the input (e.g. after clearing a selection).
+
 ## CdxSearchInput
 
 A text input with a leading magnifying-glass icon. For full typeahead
@@ -122,7 +125,7 @@ Search bar with typeahead suggestion list and submit handling. The
 typical wiring is to debounce keystrokes (150–250ms), call the
 Wikipedia `?action=opensearch` endpoint with an `AbortController`, and
 feed the returned titles into the suggestion slot. ProtoWiki ships a
-`SearchBar` component that already does all of this — see
+`Search` component that already does all of this — see
 [`protowiki-components`](../../protowiki-components/SKILL.md).
 
 ## CdxAccordion
@@ -142,3 +145,10 @@ Collapsible section — title + body.
 Codex uses `v-model:open` (dialogs), `v-model:selected` (selects /
 combobox / lookup), `v-model:input-value` (free-text portion of
 lookup). Pay attention to which target you bind.
+
+## Designing the form (style guide)
+
+For *how to construct a form well* — usability rules, layout & width,
+fieldsets/modules, validation timing, readonly vs disabled, spacing
+tokens, and which field type to pick — see
+[`codex-style-guide` → constructing forms](../../codex-style-guide/references/constructing-forms.md).
