@@ -17,6 +17,7 @@ import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { globalSkin, globalTheme } from '@/theme'
 import type { Skin, Theme } from '@/theme'
 import UserSettingsPopover from '../settings/UserSettingsPopover.vue'
+import PrototypeChromeMenuPopover from '../PrototypeChromeMenuPopover.vue'
 import Search from '../Search.vue'
 
 const { user } = useConfig()

@@ -20,8 +20,9 @@ const interests = computed(() => props.flow.interests.value)
 const configureMode = computed(() => props.flow.returnTo.value !== '')
 
 async function finishInterests(): Promise<void> {
-  if (configureMode.value) {
-    await props.flow.goTo(props.flow.returnTo.value, { returnTo: '' })
+  const returnTo = props.flow.returnTo.value
+  if (returnTo) {
+    await props.flow.goTo(returnTo, { returnTo: '' })
   } else {
     await props.flow.goTo('email')
   }
