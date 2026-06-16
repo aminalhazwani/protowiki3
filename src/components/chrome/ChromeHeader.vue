@@ -505,7 +505,7 @@ function navHas(tool: ChromeNavTool): boolean {
   align-items: center;
   gap: var(--spacing-50, 8px);
   min-height: 3.375em;
-  padding: 0 var(--spacing-100, 16px) 0 var(--spacing-50, 8px);
+  padding: 0 var(--spacing-50, 8px) 0 var(--spacing-25, 4px);
   background-color: var(--background-color-interactive, #eaecf0);
   box-shadow: inset 0 -1px 3px 0 rgba(0, 0, 0, 0.08);
 }
