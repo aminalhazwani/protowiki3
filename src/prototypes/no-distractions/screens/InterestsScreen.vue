@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { CdxButton, CdxSearchInput } from '@wikimedia/codex'
+import { CdxButton, CdxSearchInput, CdxToggleSwitch } from '@wikimedia/codex'
+
+import { useConfig } from '@/composables/useConfig'
 
 import iconSubtractCircle from '../assets/icon-subtract-circle.svg'
 import OnboardingShell from '../components/OnboardingShell.vue'
 import TitleSearchResults from '../components/TitleSearchResults.vue'
+import { useConfigureSettings } from '../data/useConfigureSettings'
 import { fetchTitleSearchResults, type TitleSearchResult } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+const { user, realUsername } = useConfig()
+const configureSettings = useConfigureSettings()
 
 const search = ref('')
 const results = ref<TitleSearchResult[]>([])
@@ -18,6 +24,9 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const interests = computed(() => props.flow.interests.value)
 const configureMode = computed(() => props.flow.returnTo.value !== '')
+const showEditingHistoryToggle = computed(
+  () => configureMode.value && user.value === 'real',
+)
 
 async function finishInterests(): Promise<void> {
   const returnTo = props.flow.returnTo.value
@@ -113,6 +122,17 @@ onBeforeUnmount(() => {
               </span>
             </li>
           </ul>
+
+          <div v-if="showEditingHistoryToggle" class="interests__switch-list">
+            <div class="interests__switch-row">
+              <CdxToggleSwitch v-model="configureSettings.editingHistory" align-switch>
+                Show suggestions based on editing history
+              </CdxToggleSwitch>
+            </div>
+            <p v-if="!realUsername.trim()" class="interests__switch-hint">
+              Set a username in prototype settings.
+            </p>
+          </div>
         </div>
 
         <div class="ob-actions">
@@ -199,5 +219,24 @@ onBeforeUnmount(() => {
   display: block;
   width: 1.25rem;
   height: 1.25rem;
+}
+
+.interests__switch-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-50, 8px);
+}
+
+.interests__switch-row {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+.interests__switch-hint {
+  margin: 0;
+  font-size: var(--font-size-small, 0.875rem);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-subtle, #54595d);
 }
 </style>

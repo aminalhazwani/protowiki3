@@ -1,17 +1,31 @@
 <script setup lang="ts">
-import { nextTick } from 'vue'
+import { computed, nextTick } from 'vue'
 import { CdxIcon, CdxMessage, CdxProgressBar } from '@wikimedia/codex'
-import { cdxIconConfigure, cdxIconHelp, cdxIconHome } from '@wikimedia/codex-icons'
+import { cdxIconHelp, cdxIconHome } from '@wikimedia/codex-icons'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
+import AllSuggestionsStickyHead from '../components/AllSuggestionsStickyHead.vue'
+import RecentChangeCard from '../components/RecentChangeCard.vue'
 import SuggestionCard from '../components/SuggestionCard.vue'
+import { useRecentChanges } from '../data/useRecentChanges'
 import { useSuggestions } from '../data/useSuggestions'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
-const { suggestions, loading, error } = useSuggestions()
+const isRecentChanges = computed(() => props.flow.module.value === 'recent-changes')
+
+const { suggestions, loading: suggestionsLoading, error: suggestionsError } = useSuggestions()
+const { changes, loading: changesLoading, error: changesError } = useRecentChanges()
+
+const loading = computed(() =>
+  isRecentChanges.value ? changesLoading.value : suggestionsLoading.value,
+)
+const error = computed(() => (isRecentChanges.value ? changesError.value : suggestionsError.value))
+const hasItems = computed(() =>
+  isRecentChanges.value ? changes.value.length > 0 : suggestions.value.length > 0,
+)
 
 async function goHome() {
   await props.flow.goTo('home')
@@ -27,39 +41,51 @@ function goToInterests() {
 <template>
   <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false">
     <div class="all">
-      <header class="all__head">
-        <h1 class="all__title">Suggested edits</h1>
-        <button
-          class="all__icon-btn"
-          type="button"
-          aria-label="Configure interests"
-          @click="goToInterests"
-        >
-          <CdxIcon :icon="cdxIconConfigure" />
-        </button>
-      </header>
+      <AllSuggestionsStickyHead :flow="props.flow" @configure="goToInterests" />
 
-      <CdxProgressBar v-if="loading && !suggestions.length" inline aria-label="Loading suggestions" />
-
-      <CdxMessage v-else-if="error" type="error" :allow-user-dismiss="false">
-        {{ error }}
-      </CdxMessage>
-
-      <p v-else-if="!suggestions.length" class="all__empty">
-        No suggestions yet — add an interest to get started.
-      </p>
-
-      <div v-else class="all__list">
-        <SuggestionCard
-          v-for="suggestion in suggestions"
-          :key="suggestion.title"
-          :task-heading="suggestion.taskHeading"
-          :task-color="suggestion.taskColor"
-          :article-title="suggestion.title"
-          :article-description="suggestion.description"
-          :task-description="suggestion.taskDescription"
-          :thumbnail-src="suggestion.thumbnailSrc"
+      <div class="all__content">
+        <CdxProgressBar
+          v-if="loading && !hasItems"
+          inline
+          :aria-label="isRecentChanges ? 'Loading recent changes' : 'Loading suggestions'"
         />
+
+        <CdxMessage v-else-if="error" type="error" :allow-user-dismiss="false">
+          {{ error }}
+        </CdxMessage>
+
+        <p v-else-if="!hasItems" class="all__empty">
+          <template v-if="isRecentChanges">
+            No recent changes yet — add an interest to get started.
+          </template>
+          <template v-else> No suggestions yet — add an interest to get started. </template>
+        </p>
+
+        <div v-else-if="isRecentChanges" class="all__list">
+          <RecentChangeCard
+            v-for="change in changes"
+            :key="change.title"
+            :article-title="change.title"
+            :article-description="change.description"
+            :editor="change.editor"
+            :relative-time="change.relativeTime"
+            :edit-summary="change.editSummary"
+            :thumbnail-src="change.thumbnailSrc"
+          />
+        </div>
+
+        <div v-else class="all__list">
+          <SuggestionCard
+            v-for="suggestion in suggestions"
+            :key="suggestion.title"
+            :task-heading="suggestion.taskHeading"
+            :task-color="suggestion.taskColor"
+            :article-title="suggestion.title"
+            :article-description="suggestion.description"
+            :task-description="suggestion.taskDescription"
+            :thumbnail-src="suggestion.thumbnailSrc"
+          />
+        </div>
       </div>
 
       <div class="all__fab">
@@ -78,45 +104,14 @@ function goToInterests() {
 .all {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-100, 16px);
-  padding: var(--spacing-100, 16px);
   padding-bottom: calc(var(--spacing-100, 16px) + 3.75rem);
 }
 
-.all__head {
+.all__content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 2rem;
-}
-
-.all__title {
-  margin: 0;
-  font-family:
-    var(--font-family-system-sans, system-ui, sans-serif), var(--font-family-base, sans-serif);
-  font-size: var(--font-size-large, 1.125rem);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-large, 1.56);
-  color: var(--color-base);
-}
-
-.all__icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: var(--spacing-25, 4px);
-  border: none;
-  border-radius: var(--border-radius-base, 2px);
-  background: transparent;
-  color: var(--color-base);
-  cursor: pointer;
-}
-
-.all__icon-btn :deep(.cdx-icon) {
-  width: 1.25rem;
-  height: 1.25rem;
+  flex-direction: column;
+  gap: var(--spacing-100, 16px);
+  padding: 0 var(--spacing-100, 16px) var(--spacing-100, 16px);
 }
 
 .all__list {

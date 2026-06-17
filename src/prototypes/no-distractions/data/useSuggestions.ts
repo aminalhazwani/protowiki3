@@ -8,6 +8,10 @@ import {
   type MorelikeSearchHit,
 } from '@/lib/fetchMorelike'
 import { fetchGrowthTaskSignals } from '@/lib/fetchGrowthTaskSignals'
+import {
+  fetchUserEditedPageTitles,
+  FetchUserEditedPageTitlesError,
+} from '@/lib/fetchUserEditedPageTitles'
 import { DEFAULT_MLT_CUSTOM } from '@/lib/morelikeMlt'
 
 import { resolveTaskForSignals, type TaskColor } from './microtaskCatalog'
@@ -32,10 +36,14 @@ export interface SuggestionSeedState {
   seeds: string[]
   /** Stable identity for cache hits — refetch only when this changes. */
   cacheKey: string
+  useEditingHistory?: boolean
+  realUsername?: string
+  lang?: string
 }
 
 const RESULT_LIMIT = 20
 const LANG = 'en'
+const HISTORY_SEED_LIMIT = 5
 const STORAGE_KEY = 'protowiki:no-distractions:suggestions'
 
 interface StoredSuggestionsCache {
@@ -144,6 +152,9 @@ function createState(): SuggestionsState {
   const seedStateGetterRef = ref<() => SuggestionSeedState>(() => ({
     seeds: [],
     cacheKey: '',
+    useEditingHistory: false,
+    realUsername: '',
+    lang: LANG,
   }))
   let loadedCacheKey = ''
   let abortController: AbortController | null = null
@@ -162,11 +173,12 @@ function createState(): SuggestionsState {
 
   async function assignTasks(
     hits: MorelikeSearchHit[],
+    lang: string,
     signal: AbortSignal,
   ): Promise<Suggestion[]> {
     const signalsByTitle = await fetchGrowthTaskSignals(
       hits.map((hit) => hit.title),
-      { lang: LANG, signal },
+      { lang, signal },
     )
 
     return hits.flatMap((hit) => {
@@ -186,15 +198,51 @@ function createState(): SuggestionsState {
     })
   }
 
-  async function runFetch(seeds: string[], fetchCacheKey: string): Promise<void> {
+  async function resolveSeeds(signal: AbortSignal): Promise<string[] | null> {
+    const { seeds, useEditingHistory, realUsername, lang } = seedStateGetterRef.value()
+    const wikiLang = lang?.trim() || LANG
+
+    if (useEditingHistory && !realUsername?.trim()) {
+      return null
+    }
+
+    let merged = orderedSeeds(seeds)
+
+    if (useEditingHistory && realUsername?.trim()) {
+      try {
+        const historyPages = await fetchUserEditedPageTitles(realUsername, {
+          limit: HISTORY_SEED_LIMIT,
+          lang: wikiLang,
+          signal,
+        })
+        merged = orderedSeeds([...merged, ...historyPages])
+      } catch (fetchError) {
+        if (fetchError instanceof FetchUserEditedPageTitlesError) {
+          if (fetchError.code === 'aborted') throw fetchError
+          if (fetchError.code === 'missing_username') return null
+          if (fetchError.code === 'no_edits') return merged.length ? merged : []
+        } else if ((fetchError as Error).name === 'AbortError') {
+          throw fetchError
+        } else {
+          throw fetchError
+        }
+      }
+    }
+
+    return merged
+  }
+
+  async function runFetch(fetchCacheKey: string): Promise<void> {
     abortController?.abort()
 
-    if (!seeds.length) {
+    const { useEditingHistory, realUsername } = seedStateGetterRef.value()
+
+    if (useEditingHistory && !realUsername?.trim()) {
       suggestions.value = []
-      error.value = null
-      loadedCacheKey = ''
+      error.value = 'Set a username in prototype settings.'
+      loadedCacheKey = fetchCacheKey
       loading.value = false
-      clearSuggestionsCache()
+      writeSuggestionsCache(fetchCacheKey, [], error.value)
       return
     }
 
@@ -204,17 +252,29 @@ function createState(): SuggestionsState {
     error.value = null
 
     try {
-      const ordered = orderedSeeds(seeds)
+      const ordered = await resolveSeeds(signal)
+      if (signal.aborted) return
+      if (fetchCacheKey !== seedStateGetterRef.value().cacheKey) return
+
+      if (!ordered?.length) {
+        suggestions.value = []
+        error.value = null
+        loadedCacheKey = fetchCacheKey
+        clearSuggestionsCache()
+        return
+      }
+
+      const wikiLang = seedStateGetterRef.value().lang?.trim() || LANG
 
       // Show the interest pages themselves (first), then interleaved morelike hits.
       const relatedLimit = Math.max(1, RESULT_LIMIT - ordered.length)
       const [seedHits, relatedHits] = await Promise.all([
-        fetchPagesMetadata(ordered, { lang: LANG, signal }).catch(() => [] as MorelikeSearchHit[]),
+        fetchPagesMetadata(ordered, { lang: wikiLang, signal }).catch(() => [] as MorelikeSearchHit[]),
         fetchMorelikeResultsBatched(ordered, {
           limit: relatedLimit,
           mltPreset: 'default',
           mltCustom: DEFAULT_MLT_CUSTOM,
-          lang: LANG,
+          lang: wikiLang,
           signal,
           maxCalls: 3,
         }),
@@ -230,7 +290,7 @@ function createState(): SuggestionsState {
         if (merged.length >= RESULT_LIMIT) break
       }
 
-      const assigned = await assignTasks(merged, signal)
+      const assigned = await assignTasks(merged, wikiLang, signal)
       if (signal.aborted) return
       // Drop stale responses when interests/title changed mid-flight.
       if (fetchCacheKey !== seedStateGetterRef.value().cacheKey) return
@@ -239,6 +299,9 @@ function createState(): SuggestionsState {
       writeSuggestionsCache(fetchCacheKey, assigned, null)
     } catch (fetchError) {
       if (fetchError instanceof MorelikeFetchError && fetchError.code === 'aborted') return
+      if (fetchError instanceof FetchUserEditedPageTitlesError && fetchError.code === 'aborted') {
+        return
+      }
       if ((fetchError as Error).name === 'AbortError') return
       if (fetchCacheKey !== seedStateGetterRef.value().cacheKey) return
       error.value =
@@ -262,9 +325,9 @@ function createState(): SuggestionsState {
     loading.value = cacheKey.length > 0
 
     debounceTimer = setTimeout(() => {
-      const { seeds, cacheKey: currentKey } = seedStateGetterRef.value()
+      const { cacheKey: currentKey } = seedStateGetterRef.value()
       if (currentKey !== cacheKey) return
-      void runFetch(seeds, currentKey)
+      void runFetch(currentKey)
     }, 400)
   }
 

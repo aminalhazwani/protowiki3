@@ -22,13 +22,21 @@ export const SCREENS = [
   'email',
   'home',
   'all',
+  'featured',
+  'trending',
 ] as const
 
 export type Screen = (typeof SCREENS)[number]
 
 export type SurveyChoice = 'read' | 'edit' | 'both'
 
+export const MODULES = ['suggested-edits', 'recent-changes'] as const
+
+export type Module = (typeof MODULES)[number]
+
 const SURVEY_CHOICES: SurveyChoice[] = ['read', 'edit', 'both']
+
+const DEFAULT_MODULE: Module = 'suggested-edits'
 
 const DEFAULT_SCREEN: Screen = 'picker'
 
@@ -41,6 +49,10 @@ function isScreen(value: string): value is Screen {
   return (SCREENS as readonly string[]).includes(value)
 }
 
+function isModule(value: string): value is Module {
+  return (MODULES as readonly string[]).includes(value as Module)
+}
+
 export interface FlowPatch {
   title?: string
   username?: string
@@ -49,6 +61,8 @@ export interface FlowPatch {
   email?: string
   /** Screen to return to after configuring interests (cleared on exit). */
   returnTo?: Screen | ''
+  /** Active home-module view on the all-suggestions screen. */
+  module?: Module | ''
 }
 
 export interface FlowState {
@@ -68,6 +82,8 @@ export interface FlowState {
   returnTo: ComputedRef<Screen | ''>
   /** Email captured on the email screen. */
   email: ComputedRef<string>
+  /** Home module on the all-suggestions screen (defaults to suggested-edits). */
+  module: ComputedRef<Module>
   /** Merge `patch` into the query without changing the screen (history replace). */
   patch: (patch: FlowPatch) => void
   /** Navigate to `screen`, optionally merging `patch` (history push). */
@@ -87,6 +103,11 @@ function serializePatch(patch: FlowPatch): Record<string, string | undefined> {
   if ('returnTo' in patch) {
     const target = patch.returnTo
     out.returnTo = target && isScreen(target) ? target : undefined
+  }
+  if ('module' in patch) {
+    const target = patch.module
+    out.module =
+      target && isModule(target) && target !== DEFAULT_MODULE ? target : undefined
   }
   return out
 }
@@ -160,6 +181,11 @@ export function useFlowState(): FlowState {
     return isScreen(raw) ? raw : ''
   })
 
+  const module = computed<Module>(() => {
+    const raw = firstString(route.query.module)
+    return isModule(raw) ? raw : DEFAULT_MODULE
+  })
+
   return {
     screen,
     title,
@@ -169,6 +195,7 @@ export function useFlowState(): FlowState {
     hasExplicitInterests,
     returnTo,
     email,
+    module,
     patch,
     goTo,
   }
