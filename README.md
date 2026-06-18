@@ -2,7 +2,9 @@
 
 This repo is an experimental collection of resources for MediaWiki prototyping. It contains many links to many tools you can use. It's also an unopinionated prototyping template itself for minimal prototypes.
 
-You can see it at [wikimedia.github.io/ProtoWiki](https://wikimedia.github.io/ProtoWiki).
+You can see it at [wikimedia.github.io/ProtoWiki](https://wikimedia.github.io/ProtoWiki).\
+See release notes at [github.com/wikimedia/ProtoWiki/releases](https://github.com/wikimedia/ProtoWiki/releases).\
+Make requests and give feedback at [github.com/wikimedia/ProtoWiki/issues](https://github.com/wikimedia/ProtoWiki/issues).
 
 ## Resources
 
@@ -73,9 +75,3 @@ You might need to enable actions within the actions tab of your repo to get this
 
 Alternatively, when you create a pull request on your copy, a preview gets deployed. Here's an [example](https://github.com/wikimedia/ProtoWiki/pull/3#issuecomment-4488446669).\
 This is great because it also creates a QR code that people can use to try the prototype on their phone.
-
-## Questions? Thoughts?
-
-Chat to me (Lu Wilson) on Slack! or lwilson-ctr on the wikis!
-
-This is all very experimental and exploratory. Thank you for being part of this.
