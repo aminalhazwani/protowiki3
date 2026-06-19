@@ -9,6 +9,7 @@ import AllSuggestionsStickyHead from '../components/AllSuggestionsStickyHead.vue
 import RecentChangeCard from '../components/RecentChangeCard.vue'
 import SuggestionCard from '../components/SuggestionCard.vue'
 import { useRecentChanges } from '../data/useRecentChanges'
+import { useSuggestionFilters } from '../data/useSuggestionFilters'
 import { useSuggestions } from '../data/useSuggestions'
 import type { FlowState } from '../data/useFlowState'
 
@@ -18,13 +19,18 @@ const isRecentChanges = computed(() => props.flow.module.value === 'recent-chang
 
 const { suggestions, loading: suggestionsLoading, error: suggestionsError } = useSuggestions()
 const { changes, loading: changesLoading, error: changesError } = useRecentChanges()
+const { isEnabled } = useSuggestionFilters()
+
+const visibleSuggestions = computed(() =>
+  suggestions.value.filter((suggestion) => isEnabled(suggestion.taskHeading)),
+)
 
 const loading = computed(() =>
   isRecentChanges.value ? changesLoading.value : suggestionsLoading.value,
 )
 const error = computed(() => (isRecentChanges.value ? changesError.value : suggestionsError.value))
 const hasItems = computed(() =>
-  isRecentChanges.value ? changes.value.length > 0 : suggestions.value.length > 0,
+  isRecentChanges.value ? changes.value.length > 0 : visibleSuggestions.value.length > 0,
 )
 
 async function goHome() {
@@ -58,6 +64,9 @@ function goToInterests() {
           <template v-if="isRecentChanges">
             No recent changes yet — add an interest to get started.
           </template>
+          <template v-else-if="suggestions.length > 0">
+            No suggestions match the current filters.
+          </template>
           <template v-else> No suggestions yet — add an interest to get started. </template>
         </p>
 
@@ -76,7 +85,7 @@ function goToInterests() {
 
         <div v-else class="all__list">
           <SuggestionCard
-            v-for="suggestion in suggestions"
+            v-for="suggestion in visibleSuggestions"
             :key="suggestion.title"
             :task-heading="suggestion.taskHeading"
             :task-color="suggestion.taskColor"

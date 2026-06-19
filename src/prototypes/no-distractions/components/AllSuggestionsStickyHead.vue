@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { CdxIcon } from '@wikimedia/codex'
-import { cdxIconConfigure } from '@wikimedia/codex-icons'
+import { computed, ref } from 'vue'
+import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { cdxIconConfigure, cdxIconFilter } from '@wikimedia/codex-icons'
 
+import SuggestedEditsFilterSheet from './SuggestedEditsFilterSheet.vue'
 import SuggestedEditsModeMenu, { type MenuModule } from './SuggestedEditsModeMenu.vue'
 import type { FlowState } from '../data/useFlowState'
 
@@ -19,25 +20,35 @@ const activeModule = computed<MenuModule>(() => {
   if (props.flow.screen.value === 'trending') return 'trending'
   return props.flow.module.value
 })
+
+const filterOpen = ref(false)
 </script>
 
 <template>
   <header class="all-suggestions-sticky-head">
-    <div class="all-suggestions-sticky-head__spacer" aria-hidden="true" />
+    <CdxButton
+      weight="quiet"
+      size="medium"
+      aria-label="Filter suggestions"
+      @click="filterOpen = true"
+    >
+      <CdxIcon :icon="cdxIconFilter" />
+    </CdxButton>
     <SuggestedEditsModeMenu
       :flow="flow"
       :active-module="activeModule"
       @configure="emit('configure')"
     />
-    <button
-      class="all-suggestions-sticky-head__icon-btn"
-      type="button"
+    <CdxButton
+      weight="quiet"
+      size="medium"
       aria-label="Configure interests"
       @click="emit('configure')"
     >
       <CdxIcon :icon="cdxIconConfigure" />
-    </button>
+    </CdxButton>
   </header>
+  <SuggestedEditsFilterSheet v-model:open="filterOpen" />
 </template>
 
 <style scoped>
@@ -45,8 +56,8 @@ const activeModule = computed<MenuModule>(() => {
   position: sticky;
   top: 0;
   z-index: 20;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
   min-height: 2rem;
@@ -54,28 +65,4 @@ const activeModule = computed<MenuModule>(() => {
   background-color: var(--background-color-base);
 }
 
-.all-suggestions-sticky-head__spacer {
-  width: 2rem;
-  height: 2rem;
-}
-
-.all-suggestions-sticky-head__icon-btn {
-  justify-self: end;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: var(--spacing-25, 4px);
-  border: none;
-  border-radius: var(--border-radius-base, 2px);
-  background: transparent;
-  color: var(--color-base);
-  cursor: pointer;
-}
-
-.all-suggestions-sticky-head__icon-btn :deep(.cdx-icon) {
-  width: 1.25rem;
-  height: 1.25rem;
-}
 </style>

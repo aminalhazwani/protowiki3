@@ -16,6 +16,8 @@ import type { GrowthTaskSignals } from '@/lib/fetchGrowthTaskSignals'
 
 export type TaskColor = 'green' | 'amber'
 
+export type TaskDifficulty = 'easy' | 'medium' | 'hard'
+
 export interface TaskDefinition {
   /** GrowthExperiments task-type id. */
   id: string
@@ -24,6 +26,8 @@ export interface TaskDefinition {
   /** One-line call to action under the article title. */
   description: string
   color: TaskColor
+  /** Relative effort, used to group the suggested-edits filter. */
+  difficulty: TaskDifficulty
   /** Lower wins when several tasks apply to the same article. */
   priority: number
   /** True when this task type applies to a page with the given signals. */
@@ -62,6 +66,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Find references',
     description: 'Add sources to verify Wikipedia articles',
     color: 'amber',
+    difficulty: 'medium',
     priority: 1,
     matches: (signals) =>
       categoryMatches(
@@ -78,6 +83,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Copyedit',
     description: 'Fix spelling, grammar, and tone.',
     color: 'green',
+    difficulty: 'easy',
     priority: 2,
     matches: (signals) =>
       categoryMatches(signals, /needing copy edit|copy edit from/) ||
@@ -88,6 +94,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Update articles',
     description: 'Bring existing articles up-to-date',
     color: 'amber',
+    difficulty: 'medium',
     priority: 3,
     matches: (signals) =>
       categoryMatches(signals, /in need of updating|potentially dated/) ||
@@ -98,6 +105,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Revise tone',
     description: 'Make articles more factual by removing promotional words',
     color: 'green',
+    difficulty: 'easy',
     priority: 4,
     matches: (signals) =>
       categoryMatches(
@@ -114,6 +122,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Expand short articles',
     description: 'Make articles longer by finding and adding more information',
     color: 'amber',
+    difficulty: 'hard',
     priority: 5,
     matches: (signals) =>
       categoryMatches(signals, /all stub articles|to be expanded|articles to be expanded/) ||
@@ -124,6 +133,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Add an image',
     description: 'Add an image to an unillustrated article.',
     color: 'green',
+    difficulty: 'easy',
     priority: 6,
     matches: (signals) => weightedTagMatches(signals, /^recommendation\.image\/exists/),
   },
@@ -132,6 +142,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Add links between articles',
     description: 'Make words from one article link to another article.',
     color: 'green',
+    difficulty: 'easy',
     priority: 7,
     matches: (signals) => weightedTagMatches(signals, /^recommendation\.link\/exists/),
   },
@@ -140,6 +151,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Add links between articles',
     description: 'Make words from one article link to another article.',
     color: 'green',
+    difficulty: 'easy',
     priority: 8,
     matches: (signals) =>
       categoryMatches(signals, /underlinked|dead-end pages/) ||
@@ -150,6 +162,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Add an image to an article section',
     description: 'Add an image to a section of this article.',
     color: 'green',
+    difficulty: 'easy',
     priority: 9,
     matches: (signals) =>
       weightedTagMatches(signals, /^recommendation\.(image_section|section_image|imagesection)/) &&
@@ -165,3 +178,36 @@ export function resolveTaskForSignals(signals?: GrowthTaskSignals): TaskDefiniti
   if (!signals) return null
   return TASK_CATALOG.find((task) => task.matches(signals)) ?? null
 }
+
+export interface SuggestionFilterOption {
+  /** Visible heading; also the stable key used to enable/disable the filter. */
+  heading: string
+  description: string
+  difficulty: TaskDifficulty
+}
+
+const DIFFICULTY_RANK: Record<TaskDifficulty, number> = { easy: 0, medium: 1, hard: 2 }
+
+/**
+ * One entry per unique task heading, for the suggested-edits filter sheet.
+ * When several catalog entries share a heading (e.g. the two link task types),
+ * keep the easiest difficulty. Ordered easy → medium → hard, then by priority.
+ */
+export const SUGGESTION_FILTER_OPTIONS: SuggestionFilterOption[] = (() => {
+  const byHeading = new Map<string, SuggestionFilterOption>()
+  for (const task of TASK_CATALOG) {
+    const existing = byHeading.get(task.heading)
+    if (!existing) {
+      byHeading.set(task.heading, {
+        heading: task.heading,
+        description: task.description,
+        difficulty: task.difficulty,
+      })
+    } else if (DIFFICULTY_RANK[task.difficulty] < DIFFICULTY_RANK[existing.difficulty]) {
+      existing.difficulty = task.difficulty
+    }
+  }
+  return [...byHeading.values()].sort(
+    (a, b) => DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty],
+  )
+})()
