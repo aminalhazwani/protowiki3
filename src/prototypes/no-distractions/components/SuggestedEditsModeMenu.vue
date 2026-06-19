@@ -140,4 +140,12 @@ function onSelect(value: MenuItemValue | MenuItemValue[] | null): void {
 .suggested-edits-mode-menu :deep(.cdx-menu__group-wrapper:first-child) {
   border-top: none;
 }
+
+/* Center the menu under the button instead of aligning to its left edge.
+   Codex sets left/transform inline, so override with !important; the 4px keeps
+   the menu's vertical gap from the button. */
+.suggested-edits-mode-menu :deep(.cdx-menu-button__menu-wrapper .cdx-menu) {
+  left: 50% !important;
+  transform: translate(-50%, 4px) !important;
+}
 </style>
