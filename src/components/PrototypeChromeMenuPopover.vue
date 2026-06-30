@@ -4,11 +4,14 @@ import { ref } from 'vue'
 import { CdxPopover } from '@wikimedia/codex'
 
 import PrototypeChromeMenuPanel from './PrototypeChromeMenuPanel.vue'
+import { flagEnabled } from '../urlFlags'
 
 const open = ref(false)
 const anchor = ref<HTMLElement | null>(null)
 
 function toggle(): void {
+  // Gated for usability testing: only opens when ?prototype-settings=1 is in the URL.
+  if (!flagEnabled('prototype-settings')) return
   open.value = !open.value
 }
 </script>

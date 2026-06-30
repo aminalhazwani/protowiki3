@@ -12,7 +12,7 @@ import {
   useRecentChanges,
 } from './data/useRecentChanges'
 import { resolveSuggestionSeedState, useSuggestions } from './data/useSuggestions'
-import PagePickerScreen from './screens/PagePickerScreen.vue'
+import SearchScreen from './screens/SearchScreen.vue'
 import ReadScreen from './screens/ReadScreen.vue'
 import CreateAccountScreen from './screens/CreateAccountScreen.vue'
 import WelcomeScreen from './screens/WelcomeScreen.vue'
@@ -78,7 +78,7 @@ useTrendingPages(true)
 // Logged-out chrome before the account exists; logged-in afterwards. The
 // article header reads the global config user, so we drive it per screen and
 // restore whatever the gallery had when leaving the prototype.
-const LOGGED_OUT_SCREENS: Screen[] = ['picker', 'read', 'account']
+const LOGGED_OUT_SCREENS: Screen[] = ['search', 'read', 'account']
 const originalUser = user.value
 
 watch(
@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
 
 <template>
   <MobileWrapper max-width="412px" :show-frame-border="false">
-    <PagePickerScreen v-if="flow.screen.value === 'picker'" :flow="flow" />
+    <SearchScreen v-if="flow.screen.value === 'search'" :flow="flow" />
     <ReadScreen v-else-if="flow.screen.value === 'read'" :flow="flow" />
     <CreateAccountScreen v-else-if="flow.screen.value === 'account'" :flow="flow" />
     <WelcomeScreen v-else-if="flow.screen.value === 'welcome'" :flow="flow" />

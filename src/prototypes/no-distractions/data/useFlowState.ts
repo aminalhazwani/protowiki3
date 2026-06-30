@@ -13,7 +13,7 @@ import { useRoute, useRouter, type LocationQuery, type LocationQueryRaw } from '
  */
 
 export const SCREENS = [
-  'picker',
+  'search',
   'read',
   'account',
   'welcome',
@@ -38,7 +38,7 @@ const SURVEY_CHOICES: SurveyChoice[] = ['read', 'edit', 'both']
 
 const DEFAULT_MODULE: Module = 'suggested-edits'
 
-const DEFAULT_SCREEN: Screen = 'picker'
+const DEFAULT_SCREEN: Screen = 'read'
 
 function firstString(value: LocationQuery[string]): string {
   if (Array.isArray(value)) return value[0] ?? ''
@@ -66,7 +66,7 @@ export interface FlowPatch {
 }
 
 export interface FlowState {
-  /** Active screen (defaults to `picker`). */
+  /** Active screen (defaults to `read`). */
   screen: ComputedRef<Screen>
   /** Seed article the reader picked at the start. */
   title: ComputedRef<string>

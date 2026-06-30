@@ -51,6 +51,11 @@ interface Props {
    * **`#nav`** replaces the whole cluster regardless.
    */
   navTools?: ChromeNavTool[]
+  /**
+   * When `true`, the search icon becomes a button that emits **`search`** instead
+   * of linking out to `Special:Search` — lets a prototype open an in-app search view.
+   */
+  internalSearch?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -61,7 +66,10 @@ const props = withDefaults(defineProps<Props>(), {
   taglineSrc: undefined,
   mobileWordmarkSrc: undefined,
   navTools: undefined,
+  internalSearch: false,
 })
+
+const emit = defineEmits<{ search: [] }>()
 
 const effectiveSkin = computed<Skin>(() => props.skin ?? globalSkin.value)
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
@@ -150,6 +158,16 @@ function navHas(tool: ChromeNavTool): boolean {
 
       <div class="chrome-header__desktop-end">
         <CdxButton
+          v-if="props.internalSearch"
+          class="chrome-header__search-icon-toggle"
+          weight="quiet"
+          aria-label="Search"
+          @click="emit('search')"
+        >
+          <CdxIcon :icon="cdxIconSearch" />
+        </CdxButton>
+        <CdxButton
+          v-else
           class="chrome-header__search-icon-toggle"
           weight="quiet"
           aria-label="Search"
@@ -257,6 +275,16 @@ function navHas(tool: ChromeNavTool): boolean {
 
       <div class="chrome-header__mobile-actions">
         <CdxButton
+          v-if="props.internalSearch"
+          weight="quiet"
+          size="large"
+          aria-label="Search"
+          @click="emit('search')"
+        >
+          <CdxIcon :icon="cdxIconSearch" />
+        </CdxButton>
+        <CdxButton
+          v-else
           weight="quiet"
           size="large"
           aria-label="Search"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { CdxButton, CdxMessage, CdxProgressBar } from '@wikimedia/codex'
+import { CdxMessage, CdxProgressBar } from '@wikimedia/codex'
 
 import ArticleHeader from '@/components/article/ArticleHeader.vue'
 import ArticleRenderer from '@/components/article/ArticleRenderer.vue'
@@ -12,29 +12,31 @@ import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
-const displayTitle = computed(() => props.flow.title.value.replace(/_/g, ' ').trim())
+const MAIN_PAGE_TITLE = 'Main Page'
+const effectiveTitle = computed(() => props.flow.title.value.trim() || MAIN_PAGE_TITLE)
+const displayTitle = computed(() => effectiveTitle.value.replace(/_/g, ' ').trim())
+// The Main Page is the homepage landing — production hides the article header
+// (title, tabs, icon toolbar) there, so we skip it without touching the shared
+// ArticleHeader component.
+const isMainPage = computed(() => effectiveTitle.value === MAIN_PAGE_TITLE)
 const saveSheetOpen = ref(false)
 
-const { html, loading, error } = useArticleHtml(computed(() => props.flow.title.value))
+const { html, loading, error } = useArticleHtml(effectiveTitle)
 
 function onBookmark(): void {
   saveSheetOpen.value = true
 }
+
+function onSearch(): void {
+  props.flow.goTo('search')
+}
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile">
-    <div v-if="!displayTitle" class="read-empty">
-      <CdxMessage type="notice" :allow-user-dismiss="false">
-        Pick an article to read first.
-      </CdxMessage>
-      <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('picker')">
-        Choose an article
-      </CdxButton>
-    </div>
-
-    <article v-else class="article nd-article" data-skin="mobile">
+  <ChromeWrapper skin="mobile" @search="onSearch">
+    <article class="article nd-article" data-skin="mobile">
       <ArticleHeader
+        v-if="!isMainPage"
         :title="displayTitle"
         skin="mobile"
         bookmark-affordance="bookmark"
@@ -64,13 +66,5 @@ function onBookmark(): void {
   padding: var(--spacing-150, 24px) var(--spacing-100, 16px) var(--spacing-100, 16px);
   background-color: var(--background-color-base);
   text-align: start;
-}
-
-.read-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-100, 16px);
-  padding: var(--spacing-150, 24px) var(--spacing-100, 16px);
 }
 </style>

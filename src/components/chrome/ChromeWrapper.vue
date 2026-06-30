@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide } from 'vue'
+import { computed, getCurrentInstance, provide } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 import type { ChromeNavTool } from './headerNavTools'
@@ -60,6 +60,14 @@ const props = withDefaults(defineProps<Props>(), {
   navTools: undefined,
 })
 
+const emit = defineEmits<{ search: [] }>()
+
+// Only turn the chrome search icon into an in-app button when a parent actually
+// listens for `@search`; otherwise the shared default (external Special:Search
+// link) is preserved for every other consumer.
+const instance = getCurrentInstance()
+const hasSearchHandler = computed(() => Boolean(instance?.vnode.props?.onSearch))
+
 const { displayName } = useConfig()
 
 const effectiveSkin = computed<Skin>(() => props.skin ?? globalSkin.value)
@@ -87,6 +95,8 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :tagline-src="props.taglineSrc"
         :mobile-wordmark-src="props.mobileWordmarkSrc"
         :nav-tools="props.navTools"
+        :internal-search="hasSearchHandler"
+        @search="emit('search')"
       >
         <template v-if="$slots.menu" #menu>
           <slot name="menu" />
