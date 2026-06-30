@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { CdxIcon } from '@wikimedia/codex'
 import { cdxIconArrowNext, cdxIconUserMentor } from '@wikimedia/codex-icons'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
+import PageTabs from '@/components/PageTabs.vue'
 
 import SuggestedEditsModule from '../components/SuggestedEditsModule.vue'
 import { useSuggestions } from '../data/useSuggestions'
@@ -11,6 +12,16 @@ import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
+const greeting = computed(() => {
+  const name = props.flow.username.value
+  return name ? `Hello, ${name}!` : 'Hello!'
+})
+
+const homeTabs = [
+  { id: 'homepage', label: 'Homepage', active: true },
+  { id: 'userpage', label: 'User page' },
+  { id: 'talk', label: 'Talk' },
+]
 const { suggestions, loading, error, count } = useSuggestions()
 
 function scrollToTop() {
@@ -23,6 +34,11 @@ onMounted(scrollToTop)
 <template>
   <ChromeWrapper skin="mobile" :last-edited-notice="false">
     <div class="home">
+      <header class="home__masthead">
+        <h1 class="home__greeting">{{ greeting }}</h1>
+        <PageTabs :tabs="homeTabs" aria-label="Homepage sections" />
+      </header>
+
       <SuggestedEditsModule
         :suggestions="suggestions"
         :loading="loading"
@@ -97,6 +113,22 @@ onMounted(scrollToTop)
   gap: var(--spacing-100, 16px);
   padding: var(--spacing-100, 16px);
 }
+
+.home__masthead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-100, 16px);
+}
+
+.home__greeting {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-xxx-large, 2rem);
+  font-weight: var(--font-weight-normal, 400);
+  line-height: var(--line-height-xxx-large, 1.375);
+  color: var(--color-base);
+}
+
 
 .home__module {
   display: flex;

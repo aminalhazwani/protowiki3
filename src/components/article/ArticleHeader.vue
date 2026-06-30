@@ -20,6 +20,7 @@ import {
   type ArticleLanguageLink,
 } from './shared/articleLanguageLinks'
 import { useConfig } from '@/composables/useConfig'
+import PageTabs from '@/components/PageTabs.vue'
 import { globalSkin, PROTOWIKI_CHROME_SKIN } from '@/theme'
 import type { Skin } from '@/theme'
 
@@ -107,6 +108,16 @@ function onLanguagePick(row: ArticleLanguageLink) {
   emit('languageSelect', row)
   closeLangMenu()
 }
+
+const pageTabs = [
+  { id: 'article', label: 'Article', active: true },
+  { id: 'talk', label: 'Talk' },
+]
+
+function onTabSelect(id: string): void {
+  if (id === 'talk') emit('talkClick')
+  else emit('articleClick')
+}
 </script>
 
 <template>
@@ -133,17 +144,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
     </div>
 
     <div class="article-header__toolbar">
-      <nav class="article-header__tabs" aria-label="Page tabs">
-        <a
-          href="#"
-          class="article-header__tab article-header__tab--active"
-          aria-current="page"
-          @click.prevent="$emit('articleClick')"
-        >
-          Article
-        </a>
-        <a href="#" class="article-header__tab" @click.prevent="$emit('talkClick')"> Talk </a>
-      </nav>
+      <PageTabs :tabs="pageTabs" :skin="effectiveSkin" aria-label="Page tabs" @select="onTabSelect" />
 
       <nav
         v-if="effectiveSkin === 'desktop'"
@@ -423,7 +424,6 @@ function onLanguagePick(row: ArticleLanguageLink) {
   font-size: var(--font-size-small, 14px);
 }
 
-.article-header__tabs,
 .article-header__actions {
   display: flex;
   align-items: center;
@@ -431,7 +431,6 @@ function onLanguagePick(row: ArticleLanguageLink) {
   flex-wrap: wrap;
 }
 
-.article-header__tab,
 .article-header__action {
   display: inline-flex;
   align-items: center;
@@ -443,12 +442,10 @@ function onLanguagePick(row: ArticleLanguageLink) {
   margin-bottom: -1px;
 }
 
-.article-header__tab:hover,
 .article-header__action:hover {
   text-decoration: underline;
 }
 
-.article-header__tab--active,
 .article-header__action--active {
   color: var(--color-base);
   font-weight: var(--font-weight-bold);
@@ -535,33 +532,9 @@ function onLanguagePick(row: ArticleLanguageLink) {
 
 .article-header[data-skin='mobile'] .article-header__toolbar {
   /* No top rule under the page title; no bottom on the row wrapper — the tab
-     strip carries the divider (see `.article-header__tabs` below). */
+     strip (PageTabs, mobile skin) carries the divider. */
   border-top: none;
   border-bottom: none;
   padding-top: var(--spacing-35, 6px);
-}
-
-.article-header[data-skin='mobile'] .article-header__tabs {
-  width: 100%;
-  align-items: flex-end;
-  padding-bottom: 0;
-  margin-bottom: 0;
-  border-bottom: 1px solid var(--border-color-subtle);
-}
-
-.article-header[data-skin='mobile'] .article-header__tab {
-  margin-bottom: -1px;
-  color: var(--color-subtle);
-}
-
-.article-header[data-skin='mobile'] .article-header__tab:hover {
-  color: var(--color-subtle);
-  text-decoration: none;
-}
-
-.article-header[data-skin='mobile'] .article-header__tab--active {
-  color: var(--color-subtle);
-  border-bottom-color: var(--color-subtle);
-  font-weight: var(--font-weight-bold);
 }
 </style>
