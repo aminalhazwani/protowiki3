@@ -1,31 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { CdxIcon, CdxMessage, CdxProgressBar } from '@wikimedia/codex'
-import { cdxIconArrowNext } from '@wikimedia/codex-icons'
+import { onMounted } from 'vue'
+import { CdxIcon } from '@wikimedia/codex'
+import { cdxIconArrowNext, cdxIconUserMentor } from '@wikimedia/codex-icons'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
-import ReturnToArticle from '../components/ReturnToArticle.vue'
-import SuggestionCard from '../components/SuggestionCard.vue'
+import SuggestedEditsModule from '../components/SuggestedEditsModule.vue'
 import { useSuggestions } from '../data/useSuggestions'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
 const { suggestions, loading, error, count } = useSuggestions()
-
-const topSuggestions = computed(() => suggestions.value.slice(0, 3))
-const returnTitle = computed(() => props.flow.title.value || 'reading')
-const viewAllLabel = computed(() =>
-  count.value > 0 ? `View all ${count.value} suggestions` : 'View all suggestions',
-)
-
-const canOpenAll = computed(() => suggestions.value.length > 0)
-
-function openAllSuggestions(): void {
-  if (!canOpenAll.value) return
-  void props.flow.goTo('all')
-}
 
 function scrollToTop() {
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
@@ -35,54 +21,15 @@ onMounted(scrollToTop)
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false">
     <div class="home">
-      <ReturnToArticle :title="returnTitle" @click="props.flow.goTo('read')" />
-
-      <section
-        class="home__module home__module--suggestions"
-        :class="{ 'home__module--interactive': canOpenAll }"
-        :role="canOpenAll ? 'button' : undefined"
-        :tabindex="canOpenAll ? 0 : undefined"
-        :aria-label="canOpenAll ? viewAllLabel : undefined"
-        @click="openAllSuggestions"
-        @keydown.enter.prevent="openAllSuggestions"
-        @keydown.space.prevent="openAllSuggestions"
-      >
-        <header class="home__module-head">
-          <h2 class="home__module-title">Suggested edits</h2>
-          <span v-if="canOpenAll" class="home__module-chevron" aria-hidden="true">
-            <CdxIcon :icon="cdxIconArrowNext" />
-          </span>
-        </header>
-
-        <CdxProgressBar v-if="loading && !suggestions.length" inline aria-label="Loading suggestions" />
-
-        <CdxMessage v-else-if="error" type="error" :allow-user-dismiss="false">
-          {{ error }}
-        </CdxMessage>
-
-        <p v-else-if="!suggestions.length" class="home__empty">
-          No suggestions yet — add an interest to get started.
-        </p>
-
-        <div v-else class="home__cards">
-          <SuggestionCard
-            v-for="suggestion in topSuggestions"
-            :key="suggestion.title"
-            :task-heading="suggestion.taskHeading"
-            :task-color="suggestion.taskColor"
-            :article-title="suggestion.title"
-            :article-description="suggestion.description"
-            :task-description="suggestion.taskDescription"
-            :thumbnail-src="suggestion.thumbnailSrc"
-          />
-        </div>
-
-        <div v-if="suggestions.length" class="home__view-all" aria-hidden="true">
-          {{ viewAllLabel }}
-        </div>
-      </section>
+      <SuggestedEditsModule
+        :suggestions="suggestions"
+        :loading="loading"
+        :error="error"
+        :count="count"
+        @open-all="props.flow.goTo('all')"
+      />
 
       <section class="home__module home__module--impact">
         <div class="home__impact-preview">
@@ -112,6 +59,32 @@ onMounted(scrollToTop)
           Start with a few <strong>suggested edits</strong>, then see how many people are viewing
           your contributions here.
         </p>
+      </section>
+
+      <section class="home__module">
+        <header class="home__module-head">
+          <h2 class="home__module-title">Your mentor</h2>
+          <span class="home__module-chevron" aria-hidden="true">
+            <CdxIcon :icon="cdxIconArrowNext" />
+          </span>
+        </header>
+        <p class="home__mentor-intro">
+          We've assigned you an experienced editor to answer your questions about editing.
+        </p>
+        <div class="home__mentor-block">
+          <div class="home__mentor-user">
+            <CdxIcon :icon="cdxIconUserMentor" class="home__mentor-avatar" />
+            <span class="home__mentor-name">ARoseWolf</span>
+          </div>
+          <p class="home__mentor-meta">Active 497 days ago</p>
+        </div>
+      </section>
+
+      <section class="home__module">
+        <header class="home__module-head">
+          <h2 class="home__module-title">Get help with editing</h2>
+        </header>
+        <p class="home__help-summary">Ask the help desk or read help pages.</p>
       </section>
     </div>
   </ChromeWrapper>
@@ -151,15 +124,6 @@ onMounted(scrollToTop)
   color: var(--color-base);
 }
 
-.home__module--interactive {
-  cursor: pointer;
-}
-
-.home__module--interactive:focus-visible {
-  outline: 2px solid var(--color-progressive, #36c);
-  outline-offset: 2px;
-}
-
 .home__module-chevron {
   display: inline-flex;
   align-items: center;
@@ -172,34 +136,6 @@ onMounted(scrollToTop)
 .home__module-chevron :deep(.cdx-icon) {
   width: 1.25rem;
   height: 1.25rem;
-}
-
-.home__cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-75, 12px);
-}
-
-.home__view-all {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 2.75rem;
-  padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
-  border-radius: var(--border-radius-base, 2px);
-  background-color: var(--background-color-progressive, #36c);
-  font-size: var(--font-size-medium, 1rem);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-small, 1.375);
-  color: var(--color-inverted, #fff);
-  text-align: center;
-}
-
-.home__empty {
-  margin: 0;
-  color: var(--color-subtle);
 }
 
 .home__module--impact {
@@ -255,6 +191,52 @@ onMounted(scrollToTop)
   padding: var(--spacing-100, 16px);
   font-size: var(--font-size-small, 0.875rem);
   line-height: var(--line-height-small, 1.375);
+  color: var(--color-subtle, #54595d);
+}
+
+.home__mentor-intro {
+  margin: 0;
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-medium, 1.625);
+  color: var(--color-base);
+}
+
+.home__mentor-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-50, 8px);
+}
+
+.home__mentor-user {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-75, 12px);
+}
+
+.home__mentor-avatar {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-base--subtle, #54595d);
+}
+
+.home__mentor-name {
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-base);
+}
+
+.home__mentor-meta {
+  margin: 0;
+  font-size: var(--font-size-small, 0.875rem);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-subtle, #54595d);
+}
+
+.home__help-summary {
+  margin: 0;
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-medium, 1.625);
   color: var(--color-subtle, #54595d);
 }
 </style>
