@@ -19,7 +19,7 @@ import WelcomeScreen from './screens/WelcomeScreen.vue'
 import SurveyScreen from './screens/SurveyScreen.vue'
 import InterestsScreen from './screens/InterestsScreen.vue'
 import HomeScreen from './screens/HomeScreen.vue'
-import AllSuggestionsScreen from './screens/AllSuggestionsScreen.vue'
+import SuggestedEditsCarouselScreen from './screens/SuggestedEditsCarouselScreen.vue'
 import FeaturedScreen from './screens/FeaturedScreen.vue'
 import TrendingScreen from './screens/TrendingScreen.vue'
 import { useFeaturedFeed } from './data/useFeaturedFeed'
@@ -104,7 +104,7 @@ onBeforeUnmount(() => {
     <SurveyScreen v-else-if="flow.screen.value === 'survey'" :flow="flow" />
     <InterestsScreen v-else-if="flow.screen.value === 'interests'" :flow="flow" />
     <HomeScreen v-else-if="flow.screen.value === 'home'" :flow="flow" />
-    <AllSuggestionsScreen v-else-if="flow.screen.value === 'all'" :flow="flow" />
+    <SuggestedEditsCarouselScreen v-else-if="flow.screen.value === 'all'" :flow="flow" />
     <FeaturedScreen v-else-if="flow.screen.value === 'featured'" :flow="flow" />
     <TrendingScreen v-else-if="flow.screen.value === 'trending'" :flow="flow" />
   </MobileWrapper>
