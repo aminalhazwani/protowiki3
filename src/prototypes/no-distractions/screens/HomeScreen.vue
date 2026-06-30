@@ -84,14 +84,33 @@ onMounted(scrollToTop)
         </div>
       </section>
 
-      <section class="home__module">
-        <header class="home__module-head">
-          <h2 class="home__module-title">Your impact</h2>
-        </header>
-        <p class="home__impact-text">
-          Start with a few
-          <a href="#" class="home__inline-link" @click.prevent="props.flow.goTo('all')">
-            suggested edits</a>, then see how many people are viewing your contributions.
+      <section class="home__module home__module--impact">
+        <div class="home__impact-preview">
+          <header class="home__module-head">
+            <h2 class="home__module-title">Your impact</h2>
+            <span class="home__module-chevron" aria-hidden="true">
+              <CdxIcon :icon="cdxIconArrowNext" />
+            </span>
+          </header>
+
+          <div class="home__impact-hero">
+            <img
+              class="home__impact-image"
+              src="https://en.wikipedia.org/w/extensions/GrowthExperiments/images/intro-heart-article.png?269e6"
+              alt=""
+            />
+            <div class="home__impact-text">
+              <p class="home__impact-heading">0 edits to articles so far</p>
+              <p class="home__impact-body">
+                Help extend free knowledge to the world by editing topics that matter most to you.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p class="home__impact-footer">
+          Start with a few <strong>suggested edits</strong>, then see how many people are viewing
+          your contributions here.
         </p>
       </section>
     </div>
@@ -183,14 +202,59 @@ onMounted(scrollToTop)
   color: var(--color-subtle);
 }
 
+.home__module--impact {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.home__impact-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-100, 16px);
+  padding: var(--spacing-100, 16px);
+  background-color: var(--background-color-interactive-subtle, #f8f9fa);
+}
+
+.home__impact-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-100, 16px);
+}
+
+.home__impact-image {
+  flex-shrink: 0;
+  width: 72px;
+  height: auto;
+}
+
 .home__impact-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-25, 4px);
+  min-width: 0;
+}
+
+.home__impact-heading {
+  margin: 0;
+  font-size: var(--font-size-medium, 1rem);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-base);
+}
+
+.home__impact-body {
   margin: 0;
   font-size: var(--font-size-medium, 1rem);
   line-height: var(--line-height-medium, 1.625);
-  color: var(--color-subtle, #54595d);
+  color: var(--color-base);
 }
 
-.home__inline-link {
-  color: var(--color-progressive, #36c);
+.home__impact-footer {
+  margin: 0;
+  padding: var(--spacing-100, 16px);
+  font-size: var(--font-size-small, 0.875rem);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-subtle, #54595d);
 }
 </style>
