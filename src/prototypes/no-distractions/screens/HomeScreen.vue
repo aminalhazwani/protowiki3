@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { CdxIcon, CdxMessage, CdxProgressBar } from '@wikimedia/codex'
-import { cdxIconArrowNext, cdxIconHelp, cdxIconHome } from '@wikimedia/codex-icons'
+import { cdxIconArrowNext } from '@wikimedia/codex-icons'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
@@ -94,15 +94,6 @@ onMounted(scrollToTop)
             suggested edits</a>, then see how many people are viewing your contributions.
         </p>
       </section>
-
-      <div class="home__fab">
-        <button class="home__fab-btn home__fab-btn--active" type="button" aria-label="Home">
-          <CdxIcon :icon="cdxIconHome" />
-        </button>
-        <button class="home__fab-btn" type="button" aria-label="Help">
-          <CdxIcon :icon="cdxIconHelp" />
-        </button>
-      </div>
     </div>
   </ChromeWrapper>
 </template>
@@ -113,7 +104,6 @@ onMounted(scrollToTop)
   flex-direction: column;
   gap: var(--spacing-100, 16px);
   padding: var(--spacing-100, 16px);
-  padding-bottom: calc(var(--spacing-100, 16px) + 3.75rem);
 }
 
 .home__module {
@@ -202,47 +192,5 @@ onMounted(scrollToTop)
 
 .home__inline-link {
   color: var(--color-progressive, #36c);
-}
-
-.home__fab {
-  position: fixed;
-  right: var(--spacing-50, 8px);
-  bottom: 12px;
-  z-index: 10;
-  display: inline-flex;
-  gap: 0;
-  padding: var(--spacing-25, 4px);
-  border-radius: var(--border-radius-pill, 9999px);
-  background-color: var(--background-color-interactive, #eaecf0);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-}
-
-@media (min-width: 480px) {
-  .home__fab {
-    right: calc((100vw - min(100vw, 412px)) / 2 + var(--spacing-50, 8px));
-  }
-}
-
-.home__fab-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  padding: 0;
-  border: none;
-  border-radius: var(--border-radius-circle, 50%);
-  background: transparent;
-  color: var(--color-base);
-  cursor: pointer;
-}
-
-.home__fab-btn--active {
-  background-color: var(--background-color-interactive-subtle, #dadde3);
-}
-
-.home__fab-btn :deep(.cdx-icon) {
-  width: 1.25rem;
-  height: 1.25rem;
 }
 </style>
