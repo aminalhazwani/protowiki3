@@ -22,7 +22,7 @@ function choose(value: SurveyChoice): void {
 </script>
 
 <template>
-  <OnboardingShell :current="1" flush-content>
+  <OnboardingShell :current="2" flush-content>
     <div class="ob-page">
       <h1 class="ob-title">What would you like to do on Wikipedia?</h1>
 

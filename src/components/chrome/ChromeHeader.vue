@@ -19,6 +19,7 @@ import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { globalSkin, globalTheme } from '@/theme'
 import type { Skin, Theme } from '@/theme'
 import UserSettingsPopover from '../settings/UserSettingsPopover.vue'
+import AccountMenuPopover from '../settings/AccountMenuPopover.vue'
 import PrototypeChromeMenuPopover from '../PrototypeChromeMenuPopover.vue'
 import Search from '../Search.vue'
 
@@ -56,6 +57,12 @@ interface Props {
    * of linking out to `Special:Search` — lets a prototype open an in-app search view.
    */
   internalSearch?: boolean
+  /**
+   * When `true`, the logged-out user affordances (mobile avatar; desktop
+   * "Create account" link) open an in-app account menu that emits
+   * **`create-account`** instead of the dev settings panel / external login.
+   */
+  accountMenu?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -67,9 +74,10 @@ const props = withDefaults(defineProps<Props>(), {
   mobileWordmarkSrc: undefined,
   navTools: undefined,
   internalSearch: false,
+  accountMenu: false,
 })
 
-const emit = defineEmits<{ search: [] }>()
+const emit = defineEmits<{ search: []; 'create-account': [] }>()
 
 const effectiveSkin = computed<Skin>(() => props.skin ?? globalSkin.value)
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
@@ -185,7 +193,15 @@ function navHas(tool: ChromeNavTool): boolean {
             >
               Donate
             </a>
-            <UserSettingsPopover v-slot="{ toggle, open }">
+            <button
+              v-if="props.accountMenu"
+              type="button"
+              class="chrome-header__text-link chrome-header__text-link--button"
+              @click="emit('create-account')"
+            >
+              Create account
+            </button>
+            <UserSettingsPopover v-else v-slot="{ toggle, open }">
               <button
                 type="button"
                 class="chrome-header__text-link chrome-header__text-link--button"
@@ -300,7 +316,23 @@ function navHas(tool: ChromeNavTool): boolean {
         >
           <CdxIcon :icon="cdxIconBellOutline" />
         </CdxButton>
-        <UserSettingsPopover v-slot="{ toggle, open }">
+        <AccountMenuPopover
+          v-if="isLoggedOut && props.accountMenu"
+          v-slot="{ toggle, open }"
+          @create-account="emit('create-account')"
+        >
+          <CdxButton
+            class="chrome-header__mobile-user-btn"
+            weight="quiet"
+            size="large"
+            aria-label="User menu"
+            :aria-expanded="open"
+            @click="toggle"
+          >
+            <CdxIcon :icon="cdxIconUserAvatarOutline" size="medium" />
+          </CdxButton>
+        </AccountMenuPopover>
+        <UserSettingsPopover v-else v-slot="{ toggle, open }">
           <CdxButton
             class="chrome-header__mobile-user-btn"
             weight="quiet"
@@ -611,11 +643,13 @@ function navHas(tool: ChromeNavTool): boolean {
   justify-content: center;
 }
 
-.chrome-header[data-skin='mobile'] .prototype-user-settings-popover {
+.chrome-header[data-skin='mobile'] .prototype-user-settings-popover,
+.chrome-header[data-skin='mobile'] .account-menu-popover {
   width: var(--size-icon-large, 40px);
 }
 
-.chrome-header[data-skin='mobile'] .prototype-user-settings-popover__trigger {
+.chrome-header[data-skin='mobile'] .prototype-user-settings-popover__trigger,
+.chrome-header[data-skin='mobile'] .account-menu-popover__trigger {
   width: 100%;
   justify-content: center;
 }

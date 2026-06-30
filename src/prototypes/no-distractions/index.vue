@@ -18,7 +18,6 @@ import CreateAccountScreen from './screens/CreateAccountScreen.vue'
 import WelcomeScreen from './screens/WelcomeScreen.vue'
 import SurveyScreen from './screens/SurveyScreen.vue'
 import InterestsScreen from './screens/InterestsScreen.vue'
-import EmailScreen from './screens/EmailScreen.vue'
 import HomeScreen from './screens/HomeScreen.vue'
 import AllSuggestionsScreen from './screens/AllSuggestionsScreen.vue'
 import FeaturedScreen from './screens/FeaturedScreen.vue'
@@ -104,7 +103,6 @@ onBeforeUnmount(() => {
     <WelcomeScreen v-else-if="flow.screen.value === 'welcome'" :flow="flow" />
     <SurveyScreen v-else-if="flow.screen.value === 'survey'" :flow="flow" />
     <InterestsScreen v-else-if="flow.screen.value === 'interests'" :flow="flow" />
-    <EmailScreen v-else-if="flow.screen.value === 'email'" :flow="flow" />
     <HomeScreen v-else-if="flow.screen.value === 'home'" :flow="flow" />
     <AllSuggestionsScreen v-else-if="flow.screen.value === 'all'" :flow="flow" />
     <FeaturedScreen v-else-if="flow.screen.value === 'featured'" :flow="flow" />

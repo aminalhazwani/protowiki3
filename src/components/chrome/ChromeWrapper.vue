@@ -60,13 +60,16 @@ const props = withDefaults(defineProps<Props>(), {
   navTools: undefined,
 })
 
-const emit = defineEmits<{ search: [] }>()
+const emit = defineEmits<{ search: []; 'create-account': [] }>()
 
 // Only turn the chrome search icon into an in-app button when a parent actually
 // listens for `@search`; otherwise the shared default (external Special:Search
-// link) is preserved for every other consumer.
+// link) is preserved for every other consumer. Same idea for the account menu:
+// only swap the logged-out avatar/link to the in-app menu when a parent listens
+// for `@create-account`, so every other consumer's chrome is unchanged.
 const instance = getCurrentInstance()
 const hasSearchHandler = computed(() => Boolean(instance?.vnode.props?.onSearch))
+const hasCreateAccountHandler = computed(() => Boolean(instance?.vnode.props?.onCreateAccount))
 
 const { displayName } = useConfig()
 
@@ -96,7 +99,9 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :mobile-wordmark-src="props.mobileWordmarkSrc"
         :nav-tools="props.navTools"
         :internal-search="hasSearchHandler"
+        :account-menu="hasCreateAccountHandler"
         @search="emit('search')"
+        @create-account="emit('create-account')"
       >
         <template v-if="$slots.menu" #menu>
           <slot name="menu" />

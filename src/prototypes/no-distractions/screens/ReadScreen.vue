@@ -30,10 +30,14 @@ function onBookmark(): void {
 function onSearch(): void {
   props.flow.goTo('search')
 }
+
+function onCreateAccount(): void {
+  props.flow.goTo('account')
+}
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" @search="onSearch">
+  <ChromeWrapper skin="mobile" @search="onSearch" @create-account="onCreateAccount">
     <article class="article nd-article" data-skin="mobile">
       <ArticleHeader
         v-if="!isMainPage"

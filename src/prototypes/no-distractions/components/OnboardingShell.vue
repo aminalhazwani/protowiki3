@@ -9,7 +9,7 @@ import './onboarding-layout.css'
  * use inline actions (Figma dashpage pattern), they pin CTAs inside `.ob-body`.
  */
 interface Props {
-  /** Active step (1 = survey, 2 = interests, 3 = email). 0 = welcome — no segment highlighted. */
+  /** Active step (1 = welcome, 2 = survey, 3 = interests). 0 = no segment highlighted. */
   current?: number
   /** Total number of progress segments. */
   total?: number
@@ -73,7 +73,7 @@ const activeSegment = computed(() => (props.current > 0 ? props.current - 1 : -1
 }
 
 .onboarding-shell__segment--active {
-  background-color: var(--background-color-interactive, #c8ccd1);
+  background-color: var(--background-color-interactive--active, #c8ccd1);
 }
 
 .onboarding-shell__content {

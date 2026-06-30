@@ -33,7 +33,7 @@ async function finishInterests(): Promise<void> {
   if (returnTo) {
     await props.flow.goTo(returnTo, { returnTo: '' })
   } else {
-    await props.flow.goTo('email')
+    await props.flow.goTo('home')
   }
 }
 
@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <OnboardingShell :current="2" :show-progress="!configureMode" flush-content>
+  <OnboardingShell :current="3" :show-progress="!configureMode" flush-content>
     <div class="ob-page">
       <h1 class="ob-title">What are your main interests?</h1>
 
@@ -142,9 +142,8 @@ onBeforeUnmount(() => {
             </CdxButton>
           </template>
           <template v-else>
-            <CdxButton weight="quiet" @click="props.flow.goTo('email')">Skip</CdxButton>
-            <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('email')">
-              Next
+            <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('home')">
+              Go to your Home
             </CdxButton>
           </template>
         </div>

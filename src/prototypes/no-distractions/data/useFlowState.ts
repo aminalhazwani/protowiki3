@@ -19,7 +19,6 @@ export const SCREENS = [
   'welcome',
   'survey',
   'interests',
-  'email',
   'home',
   'all',
   'featured',

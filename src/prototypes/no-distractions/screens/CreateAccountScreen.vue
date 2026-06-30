@@ -19,10 +19,14 @@ function createAccount(): void {
     email: email.value,
   })
 }
+
+function onCreateAccount(): void {
+  props.flow.goTo('account')
+}
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" @create-account="onCreateAccount">
     <form class="account" @submit.prevent="createAccount">
       <h1 class="account__title">Create account</h1>
 
