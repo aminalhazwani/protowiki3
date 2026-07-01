@@ -24,6 +24,7 @@ function onCreateAccount(): void {
     skin="mobile"
     :last-edited-notice="false"
     brand-to="/no-distractions"
+    hide-actions
     @create-account="onCreateAccount"
   >
     <div class="account">

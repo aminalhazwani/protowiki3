@@ -64,6 +64,12 @@ interface Props {
    */
   accountMenu?: boolean
   /**
+   * When `true`, hide the mobile header action buttons (search + user/account
+   * menu). Used for focused flows like the account-creation screen where the
+   * header should only show the menu and wordmark.
+   */
+  hideActions?: boolean
+  /**
    * Router target for the brand/wordmark link (desktop + mobile). Defaults to
    * **`/`** (the gallery root); set to a prototype route so the logo returns to
    * that prototype's home instead.
@@ -81,6 +87,7 @@ const props = withDefaults(defineProps<Props>(), {
   navTools: undefined,
   internalSearch: false,
   accountMenu: false,
+  hideActions: false,
   brandTo: '/',
 })
 
@@ -296,7 +303,7 @@ function navHas(tool: ChromeNavTool): boolean {
         </slot>
       </RouterLink>
 
-      <div class="chrome-header__mobile-actions">
+      <div v-if="!props.hideActions" class="chrome-header__mobile-actions">
         <CdxButton
           v-if="props.internalSearch"
           weight="quiet"

@@ -46,6 +46,11 @@ interface Props {
   navTools?: ChromeNavTool[]
   /** Forwarded to **`ChromeHeader`**: router target for the brand/wordmark link. */
   brandTo?: string
+  /**
+   * Forwarded to **`ChromeHeader`**: hide the mobile header action buttons
+   * (search + user/account menu) for focused flows like account creation.
+   */
+  hideActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -61,6 +66,7 @@ const props = withDefaults(defineProps<Props>(), {
   mobileWordmarkSrc: undefined,
   navTools: undefined,
   brandTo: undefined,
+  hideActions: false,
 })
 
 const emit = defineEmits<{ search: []; 'create-account': [] }>()
@@ -102,6 +108,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :mobile-wordmark-src="props.mobileWordmarkSrc"
         :nav-tools="props.navTools"
         :brand-to="props.brandTo"
+        :hide-actions="props.hideActions"
         :internal-search="hasSearchHandler"
         :account-menu="hasCreateAccountHandler"
         @search="emit('search')"
