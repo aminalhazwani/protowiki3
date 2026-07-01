@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide } from 'vue'
+import { computed, getCurrentInstance, provide } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 import type { ChromeNavTool } from './headerNavTools'
@@ -44,6 +44,13 @@ interface Props {
   mobileWordmarkSrc?: string
   /** Forwarded to **`ChromeHeader`** (desktop tools only). */
   navTools?: ChromeNavTool[]
+  /** Forwarded to **`ChromeHeader`**: router target for the brand/wordmark link. */
+  brandTo?: string
+  /**
+   * Forwarded to **`ChromeHeader`**: hide the mobile header action buttons
+   * (search + user/account menu) for focused flows like account creation.
+   */
+  hideActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -58,7 +65,20 @@ const props = withDefaults(defineProps<Props>(), {
   taglineSrc: undefined,
   mobileWordmarkSrc: undefined,
   navTools: undefined,
+  brandTo: undefined,
+  hideActions: false,
 })
+
+const emit = defineEmits<{ search: []; 'create-account': [] }>()
+
+// Only turn the chrome search icon into an in-app button when a parent actually
+// listens for `@search`; otherwise the shared default (external Special:Search
+// link) is preserved for every other consumer. Same idea for the account menu:
+// only swap the logged-out avatar/link to the in-app menu when a parent listens
+// for `@create-account`, so every other consumer's chrome is unchanged.
+const instance = getCurrentInstance()
+const hasSearchHandler = computed(() => Boolean(instance?.vnode.props?.onSearch))
+const hasCreateAccountHandler = computed(() => Boolean(instance?.vnode.props?.onCreateAccount))
 
 const { displayName } = useConfig()
 
@@ -87,6 +107,12 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :tagline-src="props.taglineSrc"
         :mobile-wordmark-src="props.mobileWordmarkSrc"
         :nav-tools="props.navTools"
+        :brand-to="props.brandTo"
+        :hide-actions="props.hideActions"
+        :internal-search="hasSearchHandler"
+        :account-menu="hasCreateAccountHandler"
+        @search="emit('search')"
+        @create-account="emit('create-account')"
       >
         <template v-if="$slots.menu" #menu>
           <slot name="menu" />

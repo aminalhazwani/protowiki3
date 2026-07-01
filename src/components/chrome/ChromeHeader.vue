@@ -19,6 +19,8 @@ import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { globalSkin, globalTheme } from '@/theme'
 import type { Skin, Theme } from '@/theme'
 import UserSettingsPopover from '../settings/UserSettingsPopover.vue'
+import AccountMenuPopover from '../settings/AccountMenuPopover.vue'
+import PrototypeChromeMenuPopover from '../PrototypeChromeMenuPopover.vue'
 import Search from '../Search.vue'
 
 const { user } = useConfig()
@@ -50,6 +52,29 @@ interface Props {
    * **`#nav`** replaces the whole cluster regardless.
    */
   navTools?: ChromeNavTool[]
+  /**
+   * When `true`, the search icon becomes a button that emits **`search`** instead
+   * of linking out to `Special:Search` — lets a prototype open an in-app search view.
+   */
+  internalSearch?: boolean
+  /**
+   * When `true`, the logged-out user affordances (mobile avatar; desktop
+   * "Create account" link) open an in-app account menu that emits
+   * **`create-account`** instead of the dev settings panel / external login.
+   */
+  accountMenu?: boolean
+  /**
+   * When `true`, hide the mobile header action buttons (search + user/account
+   * menu). Used for focused flows like the account-creation screen where the
+   * header should only show the menu and wordmark.
+   */
+  hideActions?: boolean
+  /**
+   * Router target for the brand/wordmark link (desktop + mobile). Defaults to
+   * **`/`** (the gallery root); set to a prototype route so the logo returns to
+   * that prototype's home instead.
+   */
+  brandTo?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -60,7 +85,13 @@ const props = withDefaults(defineProps<Props>(), {
   taglineSrc: undefined,
   mobileWordmarkSrc: undefined,
   navTools: undefined,
+  internalSearch: false,
+  accountMenu: false,
+  hideActions: false,
+  brandTo: '/',
 })
+
+const emit = defineEmits<{ search: []; 'create-account': [] }>()
 
 const effectiveSkin = computed<Skin>(() => props.skin ?? globalSkin.value)
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
@@ -99,13 +130,20 @@ function navHas(tool: ChromeNavTool): boolean {
     <nav v-if="isDesktop" class="chrome-header__nav-desktop" aria-label="Site">
       <div class="chrome-header__desktop-start">
         <slot name="menu">
-          <!-- Mock only — not interactive (FakeMediaWiki uses bare chrome / icon affordances). -->
-          <span class="chrome-header__menu-icon" aria-hidden="true">
-            <CdxIcon :icon="cdxIconMenu" />
-          </span>
+          <PrototypeChromeMenuPopover v-slot="{ toggle, open }">
+            <CdxButton
+              class="chrome-header__menu-btn"
+              weight="quiet"
+              aria-label="Main menu"
+              :aria-expanded="open"
+              @click="toggle"
+            >
+              <CdxIcon :icon="cdxIconMenu" />
+            </CdxButton>
+          </PrototypeChromeMenuPopover>
         </slot>
 
-        <RouterLink class="chrome-header__brand-link" to="/" aria-label="Visit the main page">
+        <RouterLink class="chrome-header__brand-link" :to="props.brandTo" aria-label="Visit the main page">
           <slot name="logo">
             <span class="chrome-header__wordmarks">
               <img
@@ -142,6 +180,16 @@ function navHas(tool: ChromeNavTool): boolean {
 
       <div class="chrome-header__desktop-end">
         <CdxButton
+          v-if="props.internalSearch"
+          class="chrome-header__search-icon-toggle"
+          weight="quiet"
+          aria-label="Search"
+          @click="emit('search')"
+        >
+          <CdxIcon :icon="cdxIconSearch" />
+        </CdxButton>
+        <CdxButton
+          v-else
           class="chrome-header__search-icon-toggle"
           weight="quiet"
           aria-label="Search"
@@ -159,7 +207,15 @@ function navHas(tool: ChromeNavTool): boolean {
             >
               Donate
             </a>
-            <UserSettingsPopover v-slot="{ toggle, open }">
+            <button
+              v-if="props.accountMenu"
+              type="button"
+              class="chrome-header__text-link chrome-header__text-link--button"
+              @click="emit('create-account')"
+            >
+              Create account
+            </button>
+            <UserSettingsPopover v-else v-slot="{ toggle, open }">
               <button
                 type="button"
                 class="chrome-header__text-link chrome-header__text-link--button"
@@ -191,11 +247,7 @@ function navHas(tool: ChromeNavTool): boolean {
           <CdxButton v-if="navHas('appearance')" weight="quiet" aria-label="Appearance">
             <CdxIcon :icon="cdxIconAppearance" />
           </CdxButton>
-          <CdxButton
-            v-if="navHas('notifications')"
-            weight="quiet"
-            aria-label="Notifications"
-          >
+          <CdxButton v-if="navHas('notifications')" weight="quiet" aria-label="Notifications">
             <CdxIcon :icon="cdxIconBell" />
           </CdxButton>
           <CdxButton v-if="navHas('notices')" weight="quiet" aria-label="Notices">
@@ -228,12 +280,20 @@ function navHas(tool: ChromeNavTool): boolean {
     <!-- Minerva-style chrome (mobile skin) -->
     <nav v-else class="chrome-header__nav-mobile" aria-label="Site">
       <slot name="menu">
-        <CdxButton weight="quiet" size="large" aria-label="Main menu">
-          <CdxIcon :icon="cdxIconMenu" />
-        </CdxButton>
+        <PrototypeChromeMenuPopover v-slot="{ toggle, open }">
+          <CdxButton
+            weight="quiet"
+            size="large"
+            aria-label="Main menu"
+            :aria-expanded="open"
+            @click="toggle"
+          >
+            <CdxIcon :icon="cdxIconMenu" />
+          </CdxButton>
+        </PrototypeChromeMenuPopover>
       </slot>
 
-      <RouterLink class="chrome-header__mobile-brand" to="/" aria-label="Visit the main page">
+      <RouterLink class="chrome-header__mobile-brand" :to="props.brandTo" aria-label="Visit the main page">
         <slot name="logo">
           <img
             class="chrome-header__mobile-wordmark-img"
@@ -243,8 +303,18 @@ function navHas(tool: ChromeNavTool): boolean {
         </slot>
       </RouterLink>
 
-      <div class="chrome-header__mobile-actions">
+      <div v-if="!props.hideActions" class="chrome-header__mobile-actions">
         <CdxButton
+          v-if="props.internalSearch"
+          weight="quiet"
+          size="large"
+          aria-label="Search"
+          @click="emit('search')"
+        >
+          <CdxIcon :icon="cdxIconSearch" />
+        </CdxButton>
+        <CdxButton
+          v-else
           weight="quiet"
           size="large"
           aria-label="Search"
@@ -254,13 +324,30 @@ function navHas(tool: ChromeNavTool): boolean {
           <CdxIcon :icon="cdxIconSearch" />
         </CdxButton>
         <CdxButton
+          v-if="!isLoggedOut"
           weight="quiet"
           size="large"
           aria-label="Notifications"
         >
           <CdxIcon :icon="cdxIconBellOutline" />
         </CdxButton>
-        <UserSettingsPopover v-slot="{ toggle, open }">
+        <AccountMenuPopover
+          v-if="isLoggedOut && props.accountMenu"
+          v-slot="{ toggle, open }"
+          @create-account="emit('create-account')"
+        >
+          <CdxButton
+            class="chrome-header__mobile-user-btn"
+            weight="quiet"
+            size="large"
+            aria-label="User menu"
+            :aria-expanded="open"
+            @click="toggle"
+          >
+            <CdxIcon :icon="cdxIconUserAvatarOutline" size="medium" />
+          </CdxButton>
+        </AccountMenuPopover>
+        <UserSettingsPopover v-else v-slot="{ toggle, open }">
           <CdxButton
             class="chrome-header__mobile-user-btn"
             weight="quiet"
@@ -491,7 +578,6 @@ function navHas(tool: ChromeNavTool): boolean {
     height: var(--size-icon-large, 40px);
     padding: 0.45rem 0.5rem;
   }
-
 }
 
 @media (max-width: 768px) {
@@ -572,11 +658,13 @@ function navHas(tool: ChromeNavTool): boolean {
   justify-content: center;
 }
 
-.chrome-header[data-skin='mobile'] .prototype-user-settings-popover {
+.chrome-header[data-skin='mobile'] .prototype-user-settings-popover,
+.chrome-header[data-skin='mobile'] .account-menu-popover {
   width: var(--size-icon-large, 40px);
 }
 
-.chrome-header[data-skin='mobile'] .prototype-user-settings-popover__trigger {
+.chrome-header[data-skin='mobile'] .prototype-user-settings-popover__trigger,
+.chrome-header[data-skin='mobile'] .account-menu-popover__trigger {
   width: 100%;
   justify-content: center;
 }
