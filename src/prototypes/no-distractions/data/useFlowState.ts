@@ -89,15 +89,15 @@ export interface FlowState {
   goTo: (screen: Screen, patch?: FlowPatch) => Promise<void>
 }
 
-function serializePatch(patch: FlowPatch): Record<string, string | undefined> {
-  const out: Record<string, string | undefined> = {}
+function serializePatch(patch: FlowPatch): Record<string, string | string[] | undefined> {
+  const out: Record<string, string | string[] | undefined> = {}
   if ('title' in patch) out.title = patch.title?.trim() || undefined
   if ('username' in patch) out.username = patch.username?.trim() || undefined
   if ('survey' in patch) out.survey = patch.survey || undefined
   if ('email' in patch) out.email = patch.email?.trim() || undefined
   if ('interests' in patch) {
-    const joined = (patch.interests ?? []).map((item) => item.trim()).filter(Boolean).join(',')
-    out.interests = joined.length ? joined : undefined
+    const items = (patch.interests ?? []).map((item) => item.trim()).filter(Boolean)
+    out.interests = items.length ? items : undefined
   }
   if ('returnTo' in patch) {
     const target = patch.returnTo
@@ -111,7 +111,10 @@ function serializePatch(patch: FlowPatch): Record<string, string | undefined> {
   return out
 }
 
-function mergeQuery(current: LocationQuery, updates: Record<string, string | undefined>): LocationQueryRaw {
+function mergeQuery(
+  current: LocationQuery,
+  updates: Record<string, string | string[] | undefined>,
+): LocationQueryRaw {
   const next: LocationQueryRaw = { ...current }
   for (const [key, value] of Object.entries(updates)) {
     if (value === undefined) {
@@ -163,10 +166,8 @@ export function useFlowState(): FlowState {
         // No explicit param: seed from the article the reader picked.
         return title.value ? [title.value] : []
       }
-      return firstString(raw)
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
+      const list = Array.isArray(raw) ? raw : [raw]
+      return list.map((item) => (item ?? '').trim()).filter(Boolean)
     },
     set(value) {
       patch({ interests: value })
