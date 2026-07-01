@@ -32,7 +32,7 @@ function openArticle(title: string) {
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false" brand-to="/no-distractions">
     <div class="trending">
       <AllSuggestionsStickyHead :flow="props.flow" @configure="goToInterests" />
 

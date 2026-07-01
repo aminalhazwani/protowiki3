@@ -32,7 +32,7 @@ onMounted(scrollToTop)
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" brand-to="/no-distractions">
     <div class="home">
       <header class="home__masthead">
         <h1 class="home__greeting">{{ greeting }}</h1>

@@ -44,6 +44,8 @@ interface Props {
   mobileWordmarkSrc?: string
   /** Forwarded to **`ChromeHeader`** (desktop tools only). */
   navTools?: ChromeNavTool[]
+  /** Forwarded to **`ChromeHeader`**: router target for the brand/wordmark link. */
+  brandTo?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -58,6 +60,7 @@ const props = withDefaults(defineProps<Props>(), {
   taglineSrc: undefined,
   mobileWordmarkSrc: undefined,
   navTools: undefined,
+  brandTo: undefined,
 })
 
 const emit = defineEmits<{ search: []; 'create-account': [] }>()
@@ -98,6 +101,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :tagline-src="props.taglineSrc"
         :mobile-wordmark-src="props.mobileWordmarkSrc"
         :nav-tools="props.navTools"
+        :brand-to="props.brandTo"
         :internal-search="hasSearchHandler"
         :account-menu="hasCreateAccountHandler"
         @search="emit('search')"

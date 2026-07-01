@@ -37,7 +37,7 @@ function onCreateAccount(): void {
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" @search="onSearch" @create-account="onCreateAccount">
+  <ChromeWrapper skin="mobile" brand-to="/no-distractions" @search="onSearch" @create-account="onCreateAccount">
     <article class="article nd-article" data-skin="mobile">
       <ArticleHeader
         v-if="!isMainPage"

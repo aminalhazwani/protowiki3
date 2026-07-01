@@ -63,6 +63,12 @@ interface Props {
    * **`create-account`** instead of the dev settings panel / external login.
    */
   accountMenu?: boolean
+  /**
+   * Router target for the brand/wordmark link (desktop + mobile). Defaults to
+   * **`/`** (the gallery root); set to a prototype route so the logo returns to
+   * that prototype's home instead.
+   */
+  brandTo?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -75,6 +81,7 @@ const props = withDefaults(defineProps<Props>(), {
   navTools: undefined,
   internalSearch: false,
   accountMenu: false,
+  brandTo: '/',
 })
 
 const emit = defineEmits<{ search: []; 'create-account': [] }>()
@@ -129,7 +136,7 @@ function navHas(tool: ChromeNavTool): boolean {
           </PrototypeChromeMenuPopover>
         </slot>
 
-        <RouterLink class="chrome-header__brand-link" to="/" aria-label="Visit the main page">
+        <RouterLink class="chrome-header__brand-link" :to="props.brandTo" aria-label="Visit the main page">
           <slot name="logo">
             <span class="chrome-header__wordmarks">
               <img
@@ -279,7 +286,7 @@ function navHas(tool: ChromeNavTool): boolean {
         </PrototypeChromeMenuPopover>
       </slot>
 
-      <RouterLink class="chrome-header__mobile-brand" to="/" aria-label="Visit the main page">
+      <RouterLink class="chrome-header__mobile-brand" :to="props.brandTo" aria-label="Visit the main page">
         <slot name="logo">
           <img
             class="chrome-header__mobile-wordmark-img"
@@ -310,6 +317,7 @@ function navHas(tool: ChromeNavTool): boolean {
           <CdxIcon :icon="cdxIconSearch" />
         </CdxButton>
         <CdxButton
+          v-if="!isLoggedOut"
           weight="quiet"
           size="large"
           aria-label="Notifications"
