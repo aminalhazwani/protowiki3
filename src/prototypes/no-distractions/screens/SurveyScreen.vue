@@ -9,8 +9,8 @@ import type { FlowState, SurveyChoice } from '../data/useFlowState'
 const props = defineProps<{ flow: FlowState }>()
 
 const OPTIONS: { value: SurveyChoice; label: string }[] = [
-  { value: 'read', label: 'Read and explore' },
-  { value: 'edit', label: 'Edit and contribute' },
+  { value: 'read', label: 'Reading and exploring' },
+  { value: 'edit', label: 'Editing and contributing' },
   { value: 'both', label: 'A bit of both' },
 ]
 
@@ -24,13 +24,13 @@ function choose(value: SurveyChoice): void {
 <template>
   <OnboardingShell :current="2" flush-content>
     <div class="ob-page">
-      <h1 class="ob-title">What would you like to do on Wikipedia?</h1>
+      <h1 class="ob-title">What brings you to Wikipedia?</h1>
 
       <div class="ob-body">
         <div
           class="survey__options"
           role="radiogroup"
-          aria-label="What would you like to do on Wikipedia?"
+          aria-label="What brings you to Wikipedia?"
         >
           <button
             v-for="option in OPTIONS"
