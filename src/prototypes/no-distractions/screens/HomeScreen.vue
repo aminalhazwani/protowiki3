@@ -117,7 +117,7 @@ onMounted(scrollToTop)
 .home__masthead {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-100, 16px);
+  gap: var(--spacing-50, 8px);
 }
 
 .home__greeting {

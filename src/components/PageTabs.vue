@@ -59,6 +59,7 @@ const effectiveSkin = computed<Skin>(() => props.skin ?? inheritedSkin?.value ??
   flex-wrap: wrap;
   font-family: var(--font-family-base);
   font-size: var(--font-size-small, 14px);
+  font-weight: var(--font-weight-bold);
 }
 
 .page-tabs__tab {
@@ -78,7 +79,6 @@ const effectiveSkin = computed<Skin>(() => props.skin ?? inheritedSkin?.value ??
 .page-tabs__tab--active {
   border-bottom-color: var(--color-base);
   color: var(--color-base);
-  font-weight: var(--font-weight-bold);
   text-decoration: none;
 }
 
