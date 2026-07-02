@@ -94,8 +94,8 @@ onBeforeUnmount(() => {
               v-model="search"
               class="interests__input"
               :class="{ 'interests__input--with-results': results.length > 0 }"
-              placeholder="Add your interests"
-              aria-label="Add your interests"
+              placeholder="Search articles or topics"
+              aria-label="Search articles or topics"
               @submit="addInterest(search)"
             />
 
