@@ -16,10 +16,17 @@
                 >
               </template>
               <template v-else-if="settings.fields.username.behaviors.chooseCarefullyCopy">
-                <a href="#" class="public-link" @click.prevent="showPolicy = true"
-                  >Choose carefully</a
-                >
-                — it's how the community will know you.
+                <span class="username-description-row">
+                  Avoid using your real name.
+                  <CdxButton
+                    weight="quiet"
+                    size="small"
+                    type="button"
+                    aria-label="Username policy"
+                    @click="showPolicy = true">
+                      <cdx-icon size="small" :icon="cdxIconHelpNotice" />
+                  </CdxButton>
+                </span>
               </template>
               <template v-else-if="settings.fields.username.behaviors.thingsToKnowCopy">
                 There are some
@@ -372,7 +379,7 @@ import {
   CdxCheckbox,
   CdxInfoChip,
 } from '@wikimedia/codex'
-import { cdxIconEye, cdxIconPrevious, cdxIconReload } from '@wikimedia/codex-icons'
+import { cdxIconEye, cdxIconPrevious, cdxIconReload, cdxIconHelpNotice } from '@wikimedia/codex-icons'
 import HCaptchaDisclaimer from './HCaptchaDisclaimer.vue'
 import UsernamePolicy from './UsernamePolicy.vue'
 import { useFormValidation } from '../composables/useFormValidation'
@@ -855,6 +862,12 @@ function onFormSubmit() {
 
 .public-link {
   font-weight: var(--font-weight-bold);
+}
+
+.username-description-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-25);
 }
 
 .username-check-progress {

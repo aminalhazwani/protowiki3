@@ -9,12 +9,16 @@
           </CdxButton>
         </div>
         <ul class="policy-list">
-          <li>Don't use <a href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy#Disruptive_or_offensive_usernames" target="_blank">offensive</a>, <a href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy#Misleading_usernames" target="_blank">misleading</a>, or <a href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy#Promotional_usernames" target="_blank">promotional names</a>.</li>
-          <li>Your username must represent you as an individual, <a href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy#Usernames_implying_shared_use" target="_blank">not an organization</a>.</li>
-          <li>
-            Consider <b>privacy risks</b> before using your <a href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy#Real_names" target="_blank">real name</a>.
-          </li>
+          <li>Consider <b>privacy risks</b> before using your real name.</li>
+          <li>Don't use offensive, misleading, or promotional names.</li>
+          <li>Your username must represent you as an individual, not an organization.</li>
         </ul>
+        <a
+          href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy"
+          target="_blank"
+          rel="noopener"
+          class="policy-full-link"
+        >Read the full username policy</a>
       </div>
     </div>
   </Transition>
@@ -78,6 +82,12 @@ defineEmits(['close'])
 
 .policy-list li:last-child {
   margin-bottom: 0;
+}
+
+.policy-full-link {
+  display: block;
+  margin-top: var(--spacing-100);
+  color: var(--color-progressive);
 }
 
 .slide-up-enter-active {
