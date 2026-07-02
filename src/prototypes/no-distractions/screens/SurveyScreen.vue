@@ -106,12 +106,14 @@ function choose(value: SurveyChoice): void {
   flex-shrink: 0;
   width: 1.25rem;
   height: 1.25rem;
-  color: var(--color-success, #177860);
 }
 
+/* Codex forces color-base on .cdx-icon, so set the progressive color here
+   (not on the parent) for the active checkmark. */
 .survey__indicator :deep(.cdx-icon) {
   width: 1.25rem;
   height: 1.25rem;
+  color: var(--color-progressive, #36c);
 }
 
 .survey__label {
