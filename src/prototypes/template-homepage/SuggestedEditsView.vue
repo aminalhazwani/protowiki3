@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CdxButton, CdxIcon, CdxSelect } from '@wikimedia/codex'
+import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import {
   cdxIconArrowNext,
   cdxIconChart,
+  cdxIconDownTriangle,
   cdxIconEdit,
   cdxIconFunnel,
   cdxIconImage,
@@ -85,8 +86,6 @@ const emit = defineEmits<{
   'open-interests': []
 }>()
 
-const difficultyMenuItems = computed(() => [{ value: 'mixed', label: props.difficultyFilter }])
-
 const displayIndex = computed(() => (props.currentIndex ?? 0) + 1)
 
 const totalCountLabel = computed(() => {
@@ -145,17 +144,25 @@ function onOpenInterests(): void {
             @click="onOpenInterests"
           >
             <span class="suggested-edits-view__filter-trigger-label">{{ topicFilter }}</span>
-            <span class="suggested-edits-view__filter-trigger-indicator" aria-hidden="true" />
+            <CdxIcon
+              :icon="cdxIconDownTriangle"
+              size="small"
+              class="suggested-edits-view__filter-trigger-indicator"
+              aria-hidden="true"
+            />
           </button>
         </div>
         <div class="suggested-edits-view__filter">
           <CdxIcon :icon="cdxIconChart" size="small" class="suggested-edits-view__filter-icon" />
-          <CdxSelect
-            :selected="'mixed'"
-            :menu-items="difficultyMenuItems"
-            :default-label="difficultyFilter"
-            disabled
-          />
+          <span class="suggested-edits-view__filter-trigger suggested-edits-view__filter-trigger--static">
+            <span class="suggested-edits-view__filter-trigger-label">{{ difficultyFilter }}</span>
+            <CdxIcon
+              :icon="cdxIconDownTriangle"
+              size="small"
+              class="suggested-edits-view__filter-trigger-indicator"
+              aria-hidden="true"
+            />
+          </span>
         </div>
       </div>
 
@@ -415,46 +422,11 @@ function onOpenInterests(): void {
 .suggested-edits-view__filter-trigger-indicator {
   position: absolute;
   right: 0;
-  width: 0;
-  height: 0;
-  border-top: 5px solid var(--color-subtle, #72777d);
-  border-right: 5px solid transparent;
-  border-left: 5px solid transparent;
+  color: var(--color-subtle, #72777d);
 }
 
-.suggested-edits-view__filter :deep(.cdx-select-vue) {
-  flex: 1;
-  width: 100%;
-  min-width: 0;
-}
-
-.suggested-edits-view__filter :deep(.cdx-select-vue__handle) {
-  height: 3rem;
-  padding: 0 var(--spacing-150, 24px) 0 0;
-  border: 0;
-  border-radius: 0;
-  background-color: transparent;
-  box-shadow: none;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-base--subtle, #54595d);
-  font-size: var(--font-size-medium, 1rem);
-  font-weight: var(--font-weight-normal, 400);
-}
-
-.suggested-edits-view__filter :deep(.cdx-select-vue__indicator) {
-  right: 0;
-}
-
-.suggested-edits-view__filter :deep(.cdx-select-vue--disabled) {
-  opacity: 1;
-}
-
-.suggested-edits-view__filter :deep(.cdx-select-vue--disabled .cdx-select-vue__handle) {
-  color: var(--color-base--subtle, #54595d);
-  opacity: 1;
+.suggested-edits-view__filter-trigger--static {
+  cursor: default;
 }
 
 .suggested-edits-view__filter :deep(.cdx-select-vue--disabled .cdx-select-vue__indicator) {
