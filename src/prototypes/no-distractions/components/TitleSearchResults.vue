@@ -54,9 +54,17 @@ defineEmits<{
 }
 
 .title-search-results--attached {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: var(--z-index-dropdown, 50);
   margin: 0;
   border-top: none;
   border-radius: 0 0 var(--border-radius-base, 2px) var(--border-radius-base, 2px);
+  background-color: var(--background-color-base, #fff);
+  box-shadow: var(--box-shadow-outset-large-below, 0 4px 8px 0)
+    var(--box-shadow-color-alpha-base, rgba(0, 0, 0, 0.06));
 }
 
 .title-search-results__item {
