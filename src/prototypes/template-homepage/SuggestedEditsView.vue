@@ -4,11 +4,12 @@ import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import {
   cdxIconArrowNext,
   cdxIconChart,
+  cdxIconConfigure,
   cdxIconDownTriangle,
   cdxIconEdit,
-  cdxIconFunnel,
   cdxIconImage,
   cdxIconInfo,
+  cdxIconLevelTwo,
   cdxIconRobot,
 } from '@wikimedia/codex-icons'
 
@@ -136,7 +137,7 @@ function onOpenInterests(): void {
         aria-label="Suggestion filters"
       >
         <div class="suggested-edits-view__filter">
-          <CdxIcon :icon="cdxIconFunnel" size="small" class="suggested-edits-view__filter-icon" />
+          <CdxIcon :icon="cdxIconConfigure" size="small" class="suggested-edits-view__filter-icon" />
           <button
             type="button"
             class="suggested-edits-view__filter-trigger"
@@ -153,7 +154,7 @@ function onOpenInterests(): void {
           </button>
         </div>
         <div class="suggested-edits-view__filter">
-          <CdxIcon :icon="cdxIconChart" size="small" class="suggested-edits-view__filter-icon" />
+          <CdxIcon :icon="cdxIconLevelTwo" size="small" class="suggested-edits-view__filter-icon" />
           <span class="suggested-edits-view__filter-trigger suggested-edits-view__filter-trigger--static">
             <span class="suggested-edits-view__filter-trigger-label">{{ difficultyFilter }}</span>
             <CdxIcon
