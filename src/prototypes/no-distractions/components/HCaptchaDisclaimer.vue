@@ -17,11 +17,7 @@
 }
 
 .hcaptcha-disclaimer a {
-  color: var(--color-progressive);
-  text-decoration: none;
-}
-
-.hcaptcha-disclaimer a:hover {
-  text-decoration: underline;
+  color: var(--color-subtle);
+  text-decoration: var(--text-decoration-underline);
 }
 </style>

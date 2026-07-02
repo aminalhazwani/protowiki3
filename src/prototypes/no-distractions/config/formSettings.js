@@ -11,7 +11,7 @@ export const baseSettings = {
     multiStep: false,
   },
   hcaptcha: {
-    position: 'above', // 'above' or 'below' the CTA button
+    position: 'below', // 'above' or 'below' the CTA button
   },
   inputHeight: {
     size: '32', // '32', '36', or '40' pixels
