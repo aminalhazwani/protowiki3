@@ -55,7 +55,11 @@ const activeSegment = computed(() => (props.current > 0 ? props.current - 1 : -1
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  /* 100vh on iOS Safari uses the largest viewport (toolbar hidden), so the
+     shell ends up taller than what's actually visible and the page scrolls.
+     100dvh tracks the real visible viewport as the toolbar shows/hides. */
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--background-color-base);
 }
 
