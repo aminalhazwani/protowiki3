@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconClose } from '@wikimedia/codex-icons'
 
@@ -8,15 +8,12 @@ import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
 
 const props = defineProps<{ flow: FlowState }>()
 
-const { dismissed, dismiss, markSeen } = useReturnHomeBanner()
+const { dismissed, dismiss } = useReturnHomeBanner()
 
-// Only shows once a home exists (a username was captured during onboarding) and
-// the reader hasn't dismissed the reminder — via the X or by returning Home.
+// Shows once a home exists (a username was captured during onboarding), and
+// persists on the main page / articles until the reader dismisses it — via the
+// X or by returning Home through the account menu.
 const visible = computed(() => Boolean(props.flow.username.value) && !dismissed.value)
-
-// Record that the reminder has actually appeared, so returning Home dismisses it
-// (but the initial onboarding arrival at Home, before it's shown, does not).
-watch(visible, (shown) => shown && markSeen(), { immediate: true })
 </script>
 
 <template>

@@ -3,9 +3,10 @@ import { ref } from 'vue'
 /**
  * Shared dismissal state for the return-to-Home banner.
  *
- * Module-level refs so the banner, the screens, and the Home watcher all read
- * and write one source of truth within a page session. The dismissed flag is
- * persisted (localStorage) so the reminder stays gone across reloads.
+ * A module-level ref so the banner and the screens that can dismiss it (the X,
+ * and the account-menu → Home action) read and write one source of truth. The
+ * flag is persisted (localStorage) so the reminder stays gone across reloads.
+ * The banner otherwise persists on the main page and articles.
  */
 
 const DISMISS_KEY = 'nd:return-home-banner-dismissed'
@@ -19,16 +20,8 @@ function readFlag(): boolean {
 }
 
 const dismissed = ref(readFlag())
-// Whether the reminder has actually been shown this session. Returning Home only
-// dismisses it *after* it's been seen, so onboarding's initial Home arrival
-// (before any article visit) doesn't pre-dismiss it.
-const seen = ref(false)
 
 export function useReturnHomeBanner() {
-  function markSeen(): void {
-    seen.value = true
-  }
-
   function dismiss(): void {
     dismissed.value = true
     try {
@@ -38,10 +31,5 @@ export function useReturnHomeBanner() {
     }
   }
 
-  /** Dismiss on returning Home, but only once the reminder has been shown. */
-  function dismissIfSeen(): void {
-    if (seen.value) dismiss()
-  }
-
-  return { dismissed, seen, markSeen, dismiss, dismissIfSeen }
+  return { dismissed, dismiss }
 }

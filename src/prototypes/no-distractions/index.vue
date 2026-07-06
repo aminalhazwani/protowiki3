@@ -6,7 +6,6 @@ import { useConfig } from '@/composables/useConfig'
 import { normalizeWikiUsername, type ConfigUser } from '@/config'
 
 import { useFlowState, type Screen } from './data/useFlowState'
-import { useReturnHomeBanner } from './data/useReturnHomeBanner'
 import { useConfigureSettings } from './data/useConfigureSettings'
 import { resolveRecentChangesCacheKey, useRecentChanges } from './data/useRecentChanges'
 import { resolveSuggestionSeedState, useSuggestions } from './data/useSuggestions'
@@ -89,17 +88,6 @@ watch(
     const loggedOut = LOGGED_OUT_SCREENS.includes(screen) && !(screen === 'read' && hasHome)
     const next: ConfigUser = loggedOut ? 'logged-out' : 'new'
     if (user.value !== next) user.value = next
-  },
-  { immediate: true },
-)
-
-// Returning Home retires the return-to-Home reminder (once it's been shown), so
-// it doesn't keep reappearing on articles after the user has learned the gesture.
-const { dismissIfSeen } = useReturnHomeBanner()
-watch(
-  flow.screen,
-  (screen) => {
-    if (screen === 'home') dismissIfSeen()
   },
   { immediate: true },
 )

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { CdxButton, CdxIcon, CdxTextInput } from '@wikimedia/codex'
 import { cdxIconArrowPrevious } from '@wikimedia/codex-icons'
 
@@ -8,6 +9,8 @@ import { fetchTitleSearchResults, type TitleSearchResult } from '../data/titleSe
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+const router = useRouter()
 
 const query = ref('')
 const results = ref<TitleSearchResult[]>([])
@@ -53,6 +56,14 @@ function read(title: string): void {
 }
 
 function goBack(): void {
+  // Return to wherever search was opened from (home, an article, …). Opening
+  // search pushed a history entry, so stepping back lands on that screen rather
+  // than always the main page. Fall back to the main page for a direct deep-link.
+  const back = window.history.state?.back
+  if (typeof back === 'string' && back.includes('/no-distractions')) {
+    router.back()
+    return
+  }
   props.flow.goTo('read')
 }
 

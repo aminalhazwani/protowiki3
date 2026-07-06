@@ -10,11 +10,13 @@ import SavePagesSheet from '../components/SavePagesSheet.vue'
 import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
 import { useArticleHtml } from '../data/useArticleHtml'
 import { useBrandTo } from '../data/useBrandTo'
+import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
 const brandTo = useBrandTo()
+const { dismiss: dismissReturnHomeBanner } = useReturnHomeBanner()
 
 const MAIN_PAGE_TITLE = 'Main Page'
 const effectiveTitle = computed(() => props.flow.title.value.trim() || MAIN_PAGE_TITLE)
@@ -40,6 +42,8 @@ function onCreateAccount(): void {
 }
 
 function onGoHome(): void {
+  // Returning Home via the account menu retires the reminder for good.
+  dismissReturnHomeBanner()
   void props.flow.goTo('home')
 }
 </script>
