@@ -28,11 +28,15 @@ function scrollToTop() {
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
 }
 
+function onSearch(): void {
+  props.flow.goTo('search')
+}
+
 onMounted(scrollToTop)
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false" brand-to="/no-distractions">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" brand-to="/no-distractions" @search="onSearch">
     <div class="home">
       <header class="home__masthead">
         <h1 class="home__greeting">{{ greeting }}</h1>
