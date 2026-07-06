@@ -9,9 +9,12 @@ import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import SavePagesSheet from '../components/SavePagesSheet.vue'
 import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
 import { useArticleHtml } from '../data/useArticleHtml'
+import { useBrandTo } from '../data/useBrandTo'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+const brandTo = useBrandTo()
 
 const MAIN_PAGE_TITLE = 'Main Page'
 const effectiveTitle = computed(() => props.flow.title.value.trim() || MAIN_PAGE_TITLE)
@@ -44,7 +47,7 @@ function onGoHome(): void {
 <template>
   <ChromeWrapper
     skin="mobile"
-    brand-to="/no-distractions"
+    :brand-to="brandTo"
     :username="flow.username.value || undefined"
     @search="onSearch"
     @create-account="onCreateAccount"

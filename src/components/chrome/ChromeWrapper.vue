@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, provide } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 
 import { useConfig } from '@/composables/useConfig'
 import type { ChromeNavTool } from './headerNavTools'
@@ -45,7 +46,7 @@ interface Props {
   /** Forwarded to **`ChromeHeader`** (desktop tools only). */
   navTools?: ChromeNavTool[]
   /** Forwarded to **`ChromeHeader`**: router target for the brand/wordmark link. */
-  brandTo?: string
+  brandTo?: RouteLocationRaw
   /**
    * Forwarded to **`ChromeHeader`**: hide the mobile header action buttons
    * (search + user/account menu) for focused flows like account creation.

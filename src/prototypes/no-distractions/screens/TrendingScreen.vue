@@ -8,9 +8,12 @@ import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import AllSuggestionsStickyHead from '../components/AllSuggestionsStickyHead.vue'
 import FeaturedCard from '../components/FeaturedCard.vue'
 import { useTrendingPages } from '../data/useTrendingPages'
+import { useBrandTo } from '../data/useBrandTo'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+const brandTo = useBrandTo()
 
 const { pages, loading, error } = useTrendingPages()
 
@@ -32,16 +35,12 @@ function openArticle(title: string) {
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false" brand-to="/no-distractions">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false" :brand-to="brandTo">
     <div class="trending">
       <AllSuggestionsStickyHead :flow="props.flow" @configure="goToInterests" />
 
       <div class="trending__content">
-        <CdxProgressBar
-          v-if="loading && !hasContent"
-          inline
-          aria-label="Loading trending pages"
-        />
+        <CdxProgressBar v-if="loading && !hasContent" inline aria-label="Loading trending pages" />
 
         <CdxMessage v-else-if="error" type="error" :allow-user-dismiss="false">
           {{ error }}

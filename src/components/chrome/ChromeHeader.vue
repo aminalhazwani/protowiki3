@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import {
   cdxIconAppearance,
@@ -80,9 +80,9 @@ interface Props {
   /**
    * Router target for the brand/wordmark link (desktop + mobile). Defaults to
    * **`/`** (the gallery root); set to a prototype route so the logo returns to
-   * that prototype's home instead.
+   * that prototype's home instead. Accepts a location object to preserve query.
    */
-  brandTo?: string
+  brandTo?: RouteLocationRaw
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -152,7 +152,11 @@ function navHas(tool: ChromeNavTool): boolean {
           </PrototypeChromeMenuPopover>
         </slot>
 
-        <RouterLink class="chrome-header__brand-link" :to="props.brandTo" aria-label="Visit the main page">
+        <RouterLink
+          class="chrome-header__brand-link"
+          :to="props.brandTo"
+          aria-label="Visit the main page"
+        >
           <slot name="logo">
             <span class="chrome-header__wordmarks">
               <img
@@ -302,7 +306,11 @@ function navHas(tool: ChromeNavTool): boolean {
         </PrototypeChromeMenuPopover>
       </slot>
 
-      <RouterLink class="chrome-header__mobile-brand" :to="props.brandTo" aria-label="Visit the main page">
+      <RouterLink
+        class="chrome-header__mobile-brand"
+        :to="props.brandTo"
+        aria-label="Visit the main page"
+      >
         <slot name="logo">
           <img
             class="chrome-header__mobile-wordmark-img"
@@ -332,12 +340,7 @@ function navHas(tool: ChromeNavTool): boolean {
         >
           <CdxIcon :icon="cdxIconSearch" />
         </CdxButton>
-        <CdxButton
-          v-if="!isLoggedOut"
-          weight="quiet"
-          size="large"
-          aria-label="Notifications"
-        >
+        <CdxButton v-if="!isLoggedOut" weight="quiet" size="large" aria-label="Notifications">
           <CdxIcon :icon="cdxIconBellOutline" />
         </CdxButton>
         <AccountMenuPopover

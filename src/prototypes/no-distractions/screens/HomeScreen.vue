@@ -8,9 +8,12 @@ import PageTabs from '@/components/PageTabs.vue'
 
 import SuggestedEditsModule from '../components/SuggestedEditsModule.vue'
 import { useSuggestions } from '../data/useSuggestions'
+import { useBrandTo } from '../data/useBrandTo'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+const brandTo = useBrandTo()
 
 const greeting = computed(() => {
   const name = props.flow.username.value
@@ -36,7 +39,7 @@ onMounted(scrollToTop)
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false" brand-to="/no-distractions" @search="onSearch">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" :brand-to="brandTo" @search="onSearch">
     <div class="home">
       <header class="home__masthead">
         <h1 class="home__greeting">{{ greeting }}</h1>
@@ -132,7 +135,6 @@ onMounted(scrollToTop)
   line-height: var(--line-height-xxx-large, 1.375);
   color: var(--color-base);
 }
-
 
 .home__module {
   display: flex;

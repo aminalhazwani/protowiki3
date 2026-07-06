@@ -8,9 +8,12 @@ import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import AllSuggestionsStickyHead from '../components/AllSuggestionsStickyHead.vue'
 import FeaturedCard from '../components/FeaturedCard.vue'
 import { useFeaturedFeed } from '../data/useFeaturedFeed'
+import { useBrandTo } from '../data/useBrandTo'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+const brandTo = useBrandTo()
 
 const { sections, loading, error } = useFeaturedFeed()
 
@@ -32,7 +35,7 @@ function openArticle(title: string) {
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false" brand-to="/no-distractions">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false" :brand-to="brandTo">
     <div class="featured">
       <AllSuggestionsStickyHead :flow="props.flow" @configure="goToInterests" />
 
@@ -52,11 +55,7 @@ function openArticle(title: string) {
         </p>
 
         <template v-else>
-          <section
-            v-for="section in sections"
-            :key="section.id"
-            class="featured__section"
-          >
+          <section v-for="section in sections" :key="section.id" class="featured__section">
             <h2 v-if="section.label" class="featured__section-title">{{ section.label }}</h2>
             <div class="featured__cards">
               <FeaturedCard

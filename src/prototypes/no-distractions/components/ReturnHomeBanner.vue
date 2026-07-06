@@ -1,36 +1,22 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, watch } from 'vue'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconClose } from '@wikimedia/codex-icons'
 
 import type { FlowState } from '../data/useFlowState'
+import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
 
 const props = defineProps<{ flow: FlowState }>()
 
-const DISMISS_KEY = 'nd:return-home-banner-dismissed'
-
-function readDismissed(): boolean {
-  try {
-    return localStorage.getItem(DISMISS_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-const dismissed = ref(readDismissed())
+const { dismissed, dismiss, markSeen } = useReturnHomeBanner()
 
 // Only shows once a home exists (a username was captured during onboarding) and
-// the reader hasn't dismissed the reminder before.
+// the reader hasn't dismissed the reminder — via the X or by returning Home.
 const visible = computed(() => Boolean(props.flow.username.value) && !dismissed.value)
 
-function dismiss(): void {
-  dismissed.value = true
-  try {
-    localStorage.setItem(DISMISS_KEY, '1')
-  } catch {
-    // Ignore storage failures (private mode, quota); the ref still hides it now.
-  }
-}
+// Record that the reminder has actually appeared, so returning Home dismisses it
+// (but the initial onboarding arrival at Home, before it's shown, does not).
+watch(visible, (shown) => shown && markSeen(), { immediate: true })
 </script>
 
 <template>
@@ -86,7 +72,8 @@ function dismiss(): void {
   gap: var(--spacing-50, 8px);
   box-sizing: border-box;
   width: 100%;
-  padding: var(--spacing-75, 12px) var(--spacing-100, 16px) var(--spacing-75, 12px) var(--spacing-50, 8px);
+  padding: var(--spacing-75, 12px) var(--spacing-100, 16px) var(--spacing-75, 12px)
+    var(--spacing-50, 8px);
   border-bottom: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
   background-color: var(--background-color-base, #fff);
 }
