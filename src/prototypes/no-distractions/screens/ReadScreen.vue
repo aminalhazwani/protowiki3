@@ -42,7 +42,7 @@ function onCreateAccount(): void {
 }
 
 function onGoHome(): void {
-  // Returning Home via the account menu retires the reminder for good.
+  // Returning Home via the account menu dismisses the reminder for good.
   dismissReturnHomeBanner()
   void props.flow.goTo('home')
 }
