@@ -81,10 +81,16 @@ const LOGGED_OUT_SCREENS: Screen[] = ['search', 'read', 'account']
 const originalUser = user.value
 
 watch(
-  flow.screen,
-  (screen) => {
+  [flow.screen, flow.username],
+  ([screen, username]) => {
     if (user.value === 'real') return
-    const next: ConfigUser = LOGGED_OUT_SCREENS.includes(screen) ? 'logged-out' : 'new'
+    // Once a home exists (onboarding captured a username), the article page is
+    // shown logged-in — matching the account menu the return-home banner points
+    // to. Pre-account, `read` stays logged-out like `search`/`account`.
+    const hasHome = username.trim().length > 0
+    const loggedOut =
+      LOGGED_OUT_SCREENS.includes(screen) && !(screen === 'read' && hasHome)
+    const next: ConfigUser = loggedOut ? 'logged-out' : 'new'
     if (user.value !== next) user.value = next
   },
   { immediate: true },

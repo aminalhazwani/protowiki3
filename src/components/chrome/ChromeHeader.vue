@@ -20,6 +20,7 @@ import { globalSkin, globalTheme } from '@/theme'
 import type { Skin, Theme } from '@/theme'
 import UserSettingsPopover from '../settings/UserSettingsPopover.vue'
 import AccountMenuPopover from '../settings/AccountMenuPopover.vue'
+import LoggedInAccountMenuPopover from '../settings/LoggedInAccountMenuPopover.vue'
 import PrototypeChromeMenuPopover from '../PrototypeChromeMenuPopover.vue'
 import Search from '../Search.vue'
 
@@ -64,6 +65,13 @@ interface Props {
    */
   accountMenu?: boolean
   /**
+   * When `true`, the logged-in mobile account menu becomes the in-app
+   * `LoggedInAccountMenuPopover` (username / watchlist / contributors / log out)
+   * whose username item emits **`go-home`**, instead of the dev
+   * `UserSettingsPopover`.
+   */
+  homeMenu?: boolean
+  /**
    * When `true`, hide the mobile header action buttons (search + user/account
    * menu). Used for focused flows like the account-creation screen where the
    * header should only show the menu and wordmark.
@@ -87,11 +95,12 @@ const props = withDefaults(defineProps<Props>(), {
   navTools: undefined,
   internalSearch: false,
   accountMenu: false,
+  homeMenu: false,
   hideActions: false,
   brandTo: '/',
 })
 
-const emit = defineEmits<{ search: []; 'create-account': [] }>()
+const emit = defineEmits<{ search: []; 'create-account': []; 'go-home': [] }>()
 
 const effectiveSkin = computed<Skin>(() => props.skin ?? globalSkin.value)
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
@@ -347,6 +356,23 @@ function navHas(tool: ChromeNavTool): boolean {
             <CdxIcon :icon="cdxIconUserAvatarOutline" size="medium" />
           </CdxButton>
         </AccountMenuPopover>
+        <LoggedInAccountMenuPopover
+          v-else-if="props.homeMenu"
+          v-slot="{ toggle, open }"
+          :username="trimmedUsername"
+          @go-home="emit('go-home')"
+        >
+          <CdxButton
+            class="chrome-header__mobile-user-btn"
+            weight="quiet"
+            size="large"
+            aria-label="User menu"
+            :aria-expanded="open"
+            @click="toggle"
+          >
+            <CdxIcon :icon="cdxIconUserAvatarOutline" size="medium" />
+          </CdxButton>
+        </LoggedInAccountMenuPopover>
         <UserSettingsPopover v-else v-slot="{ toggle, open }">
           <CdxButton
             class="chrome-header__mobile-user-btn"

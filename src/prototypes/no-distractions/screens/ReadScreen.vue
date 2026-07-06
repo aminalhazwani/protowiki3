@@ -7,6 +7,7 @@ import ArticleRenderer from '@/components/article/ArticleRenderer.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
 import SavePagesSheet from '../components/SavePagesSheet.vue'
+import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
 import { useArticleHtml } from '../data/useArticleHtml'
 import type { FlowState } from '../data/useFlowState'
 
@@ -34,10 +35,22 @@ function onSearch(): void {
 function onCreateAccount(): void {
   props.flow.goTo('account')
 }
+
+function onGoHome(): void {
+  void props.flow.goTo('home')
+}
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" brand-to="/no-distractions" @search="onSearch" @create-account="onCreateAccount">
+  <ChromeWrapper
+    skin="mobile"
+    brand-to="/no-distractions"
+    :username="flow.username.value || undefined"
+    @search="onSearch"
+    @create-account="onCreateAccount"
+    @go-home="onGoHome"
+  >
+    <ReturnHomeBanner :flow="props.flow" />
     <article class="article nd-article" data-skin="mobile">
       <ArticleHeader
         v-if="!isMainPage"

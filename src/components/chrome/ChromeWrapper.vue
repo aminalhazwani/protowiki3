@@ -69,7 +69,7 @@ const props = withDefaults(defineProps<Props>(), {
   hideActions: false,
 })
 
-const emit = defineEmits<{ search: []; 'create-account': [] }>()
+const emit = defineEmits<{ search: []; 'create-account': []; 'go-home': [] }>()
 
 // Only turn the chrome search icon into an in-app button when a parent actually
 // listens for `@search`; otherwise the shared default (external Special:Search
@@ -79,6 +79,7 @@ const emit = defineEmits<{ search: []; 'create-account': [] }>()
 const instance = getCurrentInstance()
 const hasSearchHandler = computed(() => Boolean(instance?.vnode.props?.onSearch))
 const hasCreateAccountHandler = computed(() => Boolean(instance?.vnode.props?.onCreateAccount))
+const hasGoHomeHandler = computed(() => Boolean(instance?.vnode.props?.onGoHome))
 
 const { displayName } = useConfig()
 
@@ -111,8 +112,10 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :hide-actions="props.hideActions"
         :internal-search="hasSearchHandler"
         :account-menu="hasCreateAccountHandler"
+        :home-menu="hasGoHomeHandler"
         @search="emit('search')"
         @create-account="emit('create-account')"
+        @go-home="emit('go-home')"
       >
         <template v-if="$slots.menu" #menu>
           <slot name="menu" />
