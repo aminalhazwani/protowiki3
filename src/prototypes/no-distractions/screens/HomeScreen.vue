@@ -35,11 +35,24 @@ function onSearch(): void {
   props.flow.goTo('search')
 }
 
+function onGoHome(): void {
+  // Already on the home screen — the account menu's username item just returns
+  // the user to the top rather than triggering a redundant same-route navigation.
+  scrollToTop()
+}
+
 onMounted(scrollToTop)
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false" :brand-to="brandTo" @search="onSearch">
+  <ChromeWrapper
+    skin="mobile"
+    :last-edited-notice="false"
+    :brand-to="brandTo"
+    :username="flow.username.value || undefined"
+    @search="onSearch"
+    @go-home="onGoHome"
+  >
     <div class="home">
       <header class="home__masthead">
         <h1 class="home__greeting">{{ greeting }}</h1>
