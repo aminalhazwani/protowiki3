@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CdxIcon, CdxMessage, CdxProgressBar } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxMessage, CdxProgressBar } from '@wikimedia/codex'
 import { cdxIconArrowNext, cdxIconArticle, cdxIconChart } from '@wikimedia/codex-icons'
 
 import type { Suggestion } from '../data/useSuggestions'
@@ -69,9 +69,14 @@ const featured = computed<Suggestion | null>(() => props.suggestions[0] ?? null)
         </div>
       </div>
 
-      <button type="button" class="se-module__button" @click="emit('openAll')">
+      <CdxButton
+        action="progressive"
+        weight="primary"
+        class="se-module__button"
+        @click="emit('openAll')"
+      >
         See all suggestions
-      </button>
+      </CdxButton>
     </template>
   </section>
 </template>
@@ -206,27 +211,6 @@ const featured = computed<Suggestion | null>(() => props.suggestions[0] ?? null)
 }
 
 .se-module__button {
-  box-sizing: border-box;
   width: 100%;
-  min-height: 2.75rem;
-  padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
-  border: none;
-  border-radius: var(--border-radius-base, 2px);
-  background-color: var(--background-color-progressive, #36c);
-  font-size: var(--font-size-medium, 1rem);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-small, 1.375);
-  color: var(--color-inverted, #fff);
-  text-align: center;
-  cursor: pointer;
-}
-
-.se-module__button:hover {
-  background-color: var(--background-color-progressive--hover, #447ff5);
-}
-
-.se-module__button:focus-visible {
-  outline: 2px solid var(--color-progressive, #36c);
-  outline-offset: 2px;
 }
 </style>
