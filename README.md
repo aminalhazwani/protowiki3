@@ -13,10 +13,8 @@ In all cases, please feel free to [let us know](https://github.com/wikimedia/Pro
 
 ## Resources
 
-
 > [!TIP]
-> This is the big list of resources. For the prototyping system, [scroll down](#prototyping-system).
-
+> This is the big list of resources. For the prototyping system itself, [scroll down](#prototyping-system).
 
 ### Prototype templates
 
@@ -56,6 +54,16 @@ Lists of APIs you can use within prototypes.
 
 > [!TIP]
 > Either follow these instructions, or ask an AI agent to follow them for you.
+
+ProtoWiki's prototyping system gives you certain things out-of-the-box:\
+➜ Codex is installed and ready-to-go.\
+➜ Default styles are in-place for a Wikipedia-ish look and feel.\
+➜ There's a growing collection of components for commonly prototyped things, eg: dashboard modules.\
+➜ There's a growing collection of templates for commonly prototyped pages, eg: the article.\
+➜ Create a prototype by copy-pasting one of the template folders.\
+➜ Your prototypes get [automatically deployed](#deploying-a-prototype) if you decide to publish them.\
+➜ Some commonly used settings are built-in, eg: theme, eg: logged out VS logged in.\
+➜ There are many skills within the repo that agents can use to navigate all of this, including how to use Codex properly, how to use ProtoWiki, how to get live data from wikis, and more.
 
 ### Getting started
 
