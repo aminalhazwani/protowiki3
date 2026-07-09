@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { CdxButton, CdxSearchInput, CdxToggleSwitch } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxSearchInput, CdxToggleSwitch } from '@wikimedia/codex'
+import { cdxIconSubtract } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
+import { normalizeTitleKey } from '@/lib/fetchMorelike'
 
-import iconSubtractCircle from '../assets/icon-subtract-circle.svg'
 import InterestSuggestions from '../components/InterestSuggestions.vue'
 import OnboardingShell from '../components/OnboardingShell.vue'
 import TitleSearchResults from '../components/TitleSearchResults.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
 import { useInterestSuggestions } from '../data/useInterestSuggestions'
+import { useInterestThumbnails } from '../data/useInterestThumbnails'
 import { fetchTitleSearchResults, type TitleSearchResult } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
 
@@ -22,6 +24,15 @@ const { suggestions, loading: suggestionsLoading } = useInterestSuggestions(
   () => props.flow.interests.value,
   () => lang.value,
 )
+
+const interestThumbnails = useInterestThumbnails(
+  () => props.flow.interests.value,
+  () => lang.value,
+)
+
+function thumbFor(title: string): string | undefined {
+  return interestThumbnails.value.get(normalizeTitleKey(title))
+}
 
 const search = ref('')
 const results = ref<TitleSearchResult[]>([])
@@ -117,6 +128,9 @@ onBeforeUnmount(() => {
           <ul class="interests__chips">
             <li v-for="title in interests" :key="title">
               <span class="interests__chip">
+                <span v-if="thumbFor(title)" class="interests__chip-thumb">
+                  <img :src="thumbFor(title)" alt="" />
+                </span>
                 <span class="interests__chip-label">{{ title }}</span>
                 <button
                   type="button"
@@ -124,7 +138,7 @@ onBeforeUnmount(() => {
                   :aria-label="`Remove ${title}`"
                   @click="removeInterest(title)"
                 >
-                  <img class="interests__chip-remove-icon" :src="iconSubtractCircle" alt="" />
+                  <CdxIcon :icon="cdxIconSubtract" />
                 </button>
               </span>
             </li>
@@ -195,6 +209,10 @@ onBeforeUnmount(() => {
   list-style: none;
 }
 
+.interests__chips li {
+  margin-block: 0;
+}
+
 .interests__chip {
   display: inline-flex;
   align-items: center;
@@ -205,6 +223,24 @@ onBeforeUnmount(() => {
   border: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
   border-radius: var(--border-radius-pill, 9999px);
   background-color: var(--background-color-interactive-subtle, #f8f9fa);
+}
+
+.interests__chip-thumb {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: calc(-1 * var(--spacing-50, 8px));
+  border-radius: var(--border-radius-circle, 50%);
+  overflow: hidden;
+}
+
+.interests__chip-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .interests__chip-label {
@@ -225,12 +261,6 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--color-base, #404244);
   cursor: pointer;
-}
-
-.interests__chip-remove-icon {
-  display: block;
-  width: 1.25rem;
-  height: 1.25rem;
 }
 
 .interests__switch-list {
