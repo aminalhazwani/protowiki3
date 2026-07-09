@@ -91,3 +91,12 @@ You might need to enable actions within the actions tab of your repo to get this
 
 Alternatively, when you create a pull request on your copy, a preview gets deployed. Here's an [example](https://github.com/wikimedia/ProtoWiki/pull/3#issuecomment-4488446669).\
 This is great because it also creates a QR code that people can use to try the prototype on their phone.
+
+### Planned features
+
+- Visual editor prototyping support https://github.com/wikimedia/ProtoWiki/issues/15
+- Helpers for accessing real data https://github.com/wikimedia/ProtoWiki/issues/21
+- Improved layout and presentation of the front page https://github.com/wikimedia/ProtoWiki/issues/47
+- Attribution API support https://github.com/wikimedia/ProtoWiki/issues/40 https://github.com/wikimedia/ProtoWiki/issues/41 
+
+To see more planned work, check out the [issues](https://github.com/wikimedia/ProtoWiki/issues).
