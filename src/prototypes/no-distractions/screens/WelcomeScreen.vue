@@ -16,7 +16,7 @@ const greeting = computed(() => {
 </script>
 
 <template>
-  <OnboardingShell :current="1" flush-content>
+  <OnboardingShell :current="1" flush-content @dismiss="props.flow.goTo('home')">
     <div class="welcome">
       <div class="welcome__header">
         <h1 class="welcome__title">{{ greeting }}</h1>

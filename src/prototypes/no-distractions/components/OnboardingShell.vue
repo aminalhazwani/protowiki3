@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { cdxIconClose, cdxIconPrevious } from '@wikimedia/codex-icons'
 
 import './onboarding-layout.css'
 
 /**
- * Full-height onboarding shell for the personalisation steps: a 3-segment
- * progress indicator at the top and a scrollable content area. When screens
- * use inline actions (Figma dashpage pattern), they pin CTAs inside `.ob-body`.
+ * Full-height onboarding shell for the personalisation steps: a header with a
+ * navigation button and a step counter (e.g. `1 / 3`) at the top, and a
+ * scrollable content area. When screens use inline actions (Figma dashpage
+ * pattern), they pin CTAs inside `.ob-body`.
  */
 interface Props {
-  /** Active step (1 = welcome, 2 = survey, 3 = interests). 0 = no segment highlighted. */
+  /** Active step (1 = welcome, 2 = survey, 3 = interests). 0 = no step highlighted. */
   current?: number
-  /** Total number of progress segments. */
+  /** Total number of steps shown in the counter. */
   total?: number
-  /** Hide the progress bar entirely (kept for flexibility). */
+  /** Hide the progress header entirely (kept for flexibility). */
   showProgress?: boolean
   /** Remove padding from the scrollable content area (full-bleed layouts). */
   flushContent?: boolean
@@ -26,19 +30,34 @@ const props = withDefaults(defineProps<Props>(), {
   flushContent: false,
 })
 
-/** Figma highlights one segment at a time, not a cumulative fill. */
-const activeSegment = computed(() => (props.current > 0 ? props.current - 1 : -1))
+const emit = defineEmits<{ dismiss: [] }>()
+
+const router = useRouter()
+
+/** Step 1 shows a close button that dismisses; later steps show a back button. */
+const isFirst = computed(() => props.current <= 1)
+
+function onNavigate(): void {
+  if (isFirst.value) {
+    emit('dismiss')
+  } else {
+    router.back()
+  }
+}
 </script>
 
 <template>
   <div class="onboarding-shell">
-    <div v-if="props.showProgress" class="onboarding-shell__progress" role="presentation">
-      <span
-        v-for="index in props.total"
-        :key="index"
-        class="onboarding-shell__segment"
-        :class="{ 'onboarding-shell__segment--active': index - 1 === activeSegment }"
-      />
+    <div v-if="props.showProgress" class="onboarding-shell__progress">
+      <CdxButton
+        weight="quiet"
+        size="medium"
+        :aria-label="isFirst ? 'Close' : 'Go back'"
+        @click="onNavigate"
+      >
+        <CdxIcon :icon="isFirst ? cdxIconClose : cdxIconPrevious" />
+      </CdxButton>
+      <span class="onboarding-shell__counter">{{ props.current }} / {{ props.total }}</span>
     </div>
 
     <div
@@ -65,19 +84,15 @@ const activeSegment = computed(() => (props.current > 0 ? props.current - 1 : -1
 
 .onboarding-shell__progress {
   display: flex;
-  gap: var(--spacing-50, 8px);
+  align-items: center;
+  justify-content: space-between;
   padding: var(--spacing-100, 16px);
 }
 
-.onboarding-shell__segment {
-  flex: 1;
-  height: 4px;
-  border-radius: var(--border-radius-pill, 9999px);
-  background-color: var(--background-color-neutral, #eaecf0);
-}
-
-.onboarding-shell__segment--active {
-  background-color: var(--background-color-interactive--active, #c8ccd1);
+.onboarding-shell__counter {
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-subtle, #54595d);
 }
 
 .onboarding-shell__content {
