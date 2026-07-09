@@ -27,9 +27,16 @@ const featured = computed<Suggestion | null>(() => props.suggestions[0] ?? null)
   <section class="se-module">
     <header class="se-module__head">
       <h2 class="se-module__title">Suggested edits</h2>
-      <span v-if="featured" class="se-module__chevron" aria-hidden="true">
+      <CdxButton
+        v-if="featured"
+        weight="quiet"
+        :icon-only="true"
+        aria-label="See all suggestions"
+        tabindex="-1"
+        @click="emit('openAll')"
+      >
         <CdxIcon :icon="cdxIconArrowNext" />
-      </span>
+      </CdxButton>
     </header>
 
     <CdxProgressBar v-if="loading && !suggestions.length" inline aria-label="Loading suggestions" />
@@ -107,20 +114,6 @@ const featured = computed<Suggestion | null>(() => props.suggestions[0] ?? null)
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-large, 1.56);
   color: var(--color-base);
-}
-
-.se-module__chevron {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  color: var(--color-base);
-}
-
-.se-module__chevron :deep(.cdx-icon) {
-  width: 1.25rem;
-  height: 1.25rem;
 }
 
 .se-module__counter {

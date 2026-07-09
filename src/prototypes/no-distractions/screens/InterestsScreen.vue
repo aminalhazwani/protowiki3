@@ -5,16 +5,23 @@ import { CdxButton, CdxSearchInput, CdxToggleSwitch } from '@wikimedia/codex'
 import { useConfig } from '@/composables/useConfig'
 
 import iconSubtractCircle from '../assets/icon-subtract-circle.svg'
+import InterestSuggestions from '../components/InterestSuggestions.vue'
 import OnboardingShell from '../components/OnboardingShell.vue'
 import TitleSearchResults from '../components/TitleSearchResults.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
+import { useInterestSuggestions } from '../data/useInterestSuggestions'
 import { fetchTitleSearchResults, type TitleSearchResult } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
-const { user, realUsername } = useConfig()
+const { user, realUsername, lang } = useConfig()
 const configureSettings = useConfigureSettings()
+
+const { suggestions, loading: suggestionsLoading } = useInterestSuggestions(
+  () => props.flow.interests.value,
+  () => lang.value,
+)
 
 const search = ref('')
 const results = ref<TitleSearchResult[]>([])
@@ -122,6 +129,12 @@ onBeforeUnmount(() => {
               </span>
             </li>
           </ul>
+
+          <InterestSuggestions
+            :suggestions="suggestions"
+            :loading="suggestionsLoading"
+            @add="addInterest"
+          />
 
           <div v-if="showEditingHistoryToggle" class="interests__switch-list">
             <div class="interests__switch-row">

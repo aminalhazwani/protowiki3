@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconArrowNext, cdxIconUserMentor } from '@wikimedia/codex-icons'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
@@ -71,9 +71,14 @@ onMounted(scrollToTop)
         <div class="home__impact-preview">
           <header class="home__module-head">
             <h2 class="home__module-title">Your impact</h2>
-            <span class="home__module-chevron" aria-hidden="true">
+            <CdxButton
+              weight="quiet"
+              :icon-only="true"
+              aria-label="View your impact"
+              tabindex="-1"
+            >
               <CdxIcon :icon="cdxIconArrowNext" />
-            </span>
+            </CdxButton>
           </header>
 
           <div class="home__impact-hero">
@@ -100,9 +105,14 @@ onMounted(scrollToTop)
       <section class="home__module">
         <header class="home__module-head">
           <h2 class="home__module-title">Your mentor</h2>
-          <span class="home__module-chevron" aria-hidden="true">
+          <CdxButton
+            weight="quiet"
+            :icon-only="true"
+            aria-label="View your mentor"
+            tabindex="-1"
+          >
             <CdxIcon :icon="cdxIconArrowNext" />
-          </span>
+          </CdxButton>
         </header>
         <p class="home__mentor-intro">
           We've assigned you an experienced editor to answer your questions about editing.
@@ -173,20 +183,6 @@ onMounted(scrollToTop)
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-large, 1.56);
   color: var(--color-base);
-}
-
-.home__module-chevron {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  color: var(--color-base);
-}
-
-.home__module-chevron :deep(.cdx-icon) {
-  width: 1.25rem;
-  height: 1.25rem;
 }
 
 .home__module--impact {
