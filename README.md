@@ -55,15 +55,9 @@ Lists of APIs you can use within prototypes.
 > [!TIP]
 > Either follow these instructions, or ask an AI agent to follow them for you.
 
-ProtoWiki's prototyping system gives you certain things out-of-the-box:\
-➜ Codex is installed and ready-to-go.\
-➜ Default styles are in-place for a Wikipedia-ish look and feel.\
-➜ There's a growing collection of components for commonly prototyped things, eg: dashboard modules.\
-➜ There's a growing collection of templates for commonly prototyped pages, eg: the article.\
-➜ Create a prototype by copy-pasting one of the template folders.\
-➜ Your prototypes get [automatically deployed](#deploying-a-prototype) if you decide to publish them.\
-➜ Some commonly used settings are built-in, eg: theme, eg: logged out VS logged in.\
-➜ There are many skills within the repo that agents can use to navigate all of this, including how to use Codex properly, how to use ProtoWiki, how to get live data from wikis, and more.
+ProtoWiki's prototyping system tries to make things simpler and faster (and more on-design) by bringing you a preconfigured environment with sensible defaults. It comes with Codex installed and all the right styles for a Wikipedia-ish look. It also contains a growing collection of components and templates for commonly prototyped pages. And it does various things automatically that you'll probably need, like [deploying](#deploying-a-prototype).
+
+There are also many skills within the repo that agents can use to navigate all of this, including how to use Codex properly, how to use ProtoWiki, how to get live data from wikis, and more.
 
 ### Getting started
 
@@ -86,7 +80,7 @@ Then open [localhost:5173](https://localhost:5173) in your browser.
 
 I recommend copying one of the `template-*` prototypes as a starting point. For example, copy paste `template-chrome`, give it a new folder name, and change its title and description inside its `index.vue` file.
 
-Trouble-shooting: If it doesn't appear at first or you see a blank screeen, try restarting the dev server. If you don't know how to do this, ask a friendly human or AI agent to help you.
+Trouble-shooting: If it doesn't appear at first or you see a blank screen, try restarting the dev server. If you don't know how to do this, ask a friendly human or AI agent to help you.
 
 ### Deploying a prototype
 
