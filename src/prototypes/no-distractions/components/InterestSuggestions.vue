@@ -29,7 +29,7 @@ defineEmits<{
             <img :src="hit.thumbnail.url" alt="" />
           </span>
           <span class="interest-suggestions__label">{{ hit.title }}</span>
-          <CdxIcon :icon="cdxIconAdd" size="small" class="interest-suggestions__add" />
+          <CdxIcon :icon="cdxIconAdd" class="interest-suggestions__add" />
         </button>
       </li>
     </ul>
@@ -44,7 +44,7 @@ defineEmits<{
 }
 
 .interest-suggestions__heading {
-  margin: 0;
+  margin: var(--spacing-75, 12px) 0 0 0;
   font-family: inherit;
   font-size: var(--font-size-medium, 1rem);
   font-weight: var(--font-weight-bold, 700);
@@ -55,10 +55,14 @@ defineEmits<{
 .interest-suggestions__list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-50, 8px);
+  gap: var(--spacing-75, 12px);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.interest-suggestions__list li {
+  margin-block: 0;
 }
 
 .interest-suggestions__chip {
