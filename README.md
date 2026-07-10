@@ -96,7 +96,5 @@ This is great because it also creates a QR code that people can use to try the p
 
 - Visual editor prototyping support https://github.com/wikimedia/ProtoWiki/issues/15
 - Helpers for accessing real data https://github.com/wikimedia/ProtoWiki/issues/21
-- Improved layout and presentation of the front page https://github.com/wikimedia/ProtoWiki/issues/47
-- Attribution API support https://github.com/wikimedia/ProtoWiki/issues/40 https://github.com/wikimedia/ProtoWiki/issues/41 
 
 To see more planned work, check out the [issues](https://github.com/wikimedia/ProtoWiki/issues).
