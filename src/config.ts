@@ -72,7 +72,7 @@ export const DEFAULT_CONFIG: Config = {
   userPageLists: cloneUserPageListsMap(DEFAULT_USER_PAGE_LISTS),
 }
 
-export const PROTOWIKI_API_USER_AGENT = 'ProtoWiki/0.1'
+export const PROTOWIKI_API_USER_AGENT = 'ProtoWiki/0.3'
 export const PROTOWIKI_API_PROJECT_URL = 'https://github.com/wikimedia/ProtoWiki'
 export const DEFAULT_API_CONTACT = 'lwilson-ctr@wikimedia.org'
 
