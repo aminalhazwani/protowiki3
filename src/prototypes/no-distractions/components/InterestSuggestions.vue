@@ -16,7 +16,7 @@ defineEmits<{
 
 <template>
   <section v-if="suggestions.length" class="interest-suggestions">
-    <h2 class="interest-suggestions__heading">Need inspiration?</h2>
+    <h2 class="interest-suggestions__heading">Related articles</h2>
     <ul class="interest-suggestions__list">
       <li v-for="hit in suggestions" :key="hit.title">
         <button
