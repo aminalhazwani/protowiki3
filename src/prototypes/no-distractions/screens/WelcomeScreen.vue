@@ -53,6 +53,7 @@ const greeting = computed(() => {
 }
 
 .welcome__title {
+  flex-grow: 1;
   margin: 0;
   padding: var(--spacing-400, 64px) var(--spacing-100, 16px) 0;
   font-family: var(--font-family-serif);
@@ -63,20 +64,15 @@ const greeting = computed(() => {
 }
 
 .welcome__illustration {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
   padding: var(--spacing-100, 16px);
 }
 
 .welcome__hero {
   display: block;
   width: 100%;
-  max-width: 15rem;
-  height: auto;
+  height: 100%;
   border: none;
+  object-fit: contain;
 }
 
 .welcome__actions {
