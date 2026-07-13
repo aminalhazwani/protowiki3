@@ -86,7 +86,7 @@ function onNavigate(): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-100, 16px);
+  padding: var(--spacing-100, 16px) var(--spacing-150, 24px) var(--spacing-100, 16px) var(--spacing-100, 16px);
 }
 
 .onboarding-shell__counter {

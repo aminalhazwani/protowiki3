@@ -16,8 +16,12 @@ const OPTIONS: { value: SurveyChoice; label: string }[] = [
 
 const selected = computed(() => props.flow.survey.value)
 
-function choose(value: SurveyChoice): void {
-  props.flow.survey.value = value
+async function choose(value: SurveyChoice): Promise<void> {
+  // Record the answer on the current (survey) history entry first, then advance.
+  // Awaiting the replace keeps both steps distinct so back navigation restores
+  // this screen with the answer still selected.
+  await props.flow.patch({ survey: value })
+  await props.flow.goTo('interests')
 }
 </script>
 
@@ -52,14 +56,6 @@ function choose(value: SurveyChoice): void {
 
         <div class="ob-actions">
           <CdxButton weight="quiet" @click="props.flow.goTo('interests')">Skip</CdxButton>
-          <CdxButton
-            action="progressive"
-            weight="primary"
-            :disabled="!selected"
-            @click="props.flow.goTo('interests')"
-          >
-            Next
-          </CdxButton>
         </div>
       </div>
     </div>

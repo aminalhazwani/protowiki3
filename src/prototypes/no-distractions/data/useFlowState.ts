@@ -84,7 +84,7 @@ export interface FlowState {
   /** Home module on the all-suggestions screen (defaults to suggested-edits). */
   module: ComputedRef<Module>
   /** Merge `patch` into the query without changing the screen (history replace). */
-  patch: (patch: FlowPatch) => void
+  patch: (patch: FlowPatch) => Promise<void>
   /** Navigate to `screen`, optionally merging `patch` (history push). */
   goTo: (screen: Screen, patch?: FlowPatch) => Promise<void>
 }
@@ -139,8 +139,8 @@ export function useFlowState(): FlowState {
   const username = computed(() => firstString(route.query.username).trim())
   const email = computed(() => firstString(route.query.email).trim())
 
-  function patch(next: FlowPatch): void {
-    void router.replace({ query: mergeQuery(route.query, serializePatch(next)) })
+  function patch(next: FlowPatch): Promise<void> {
+    return router.replace({ query: mergeQuery(route.query, serializePatch(next)) }).then(() => undefined)
   }
 
   function goTo(target: Screen, next?: FlowPatch): Promise<void> {
