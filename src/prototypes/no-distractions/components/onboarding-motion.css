@@ -28,20 +28,20 @@
   /* Durations */
   --ob-duration-fade-out: 180ms;
   --ob-duration-fade-in: 280ms;
-  --ob-duration-step: 220ms;
+  --ob-duration-step: 260ms;
   --ob-duration-selection: 140ms;
-  --ob-duration-counter: 120ms;
+  --ob-duration-counter: 160ms;
 
   /* Delays */
-  --ob-delay-hold: 80ms; /* T1 gap between fade-out and fade-in */
+  --ob-delay-hold: 120ms; /* T1 gap between fade-out and fade-in */
   --ob-delay-step-offset: 30ms; /* T2 head start for the outgoing fade */
   --ob-delay-selection-hold: 400ms; /* T3 hold before auto-advance (read by JS) */
 
   /* Stagger */
-  --ob-stagger-step: 50ms;
+  --ob-stagger-step: 80ms;
 
   /* A nudge, not a full-width push — this is a step within one flow. */
-  --ob-step-distance: 24px;
+  --ob-step-distance: 32px;
 }
 
 /* ------------------------------------------------------------------ *
@@ -76,7 +76,9 @@
 .ob-step-back-enter-active,
 .ob-step-back-leave-active {
   transition:
-    transform var(--ob-duration-step) var(--ob-ease-out-strong),
+    /* Movement between peer steps eases in-out (a glide); the fade stays
+       ease-out so it feels responsive and no overlap flash appears. */
+    transform var(--ob-duration-step) var(--ob-ease-in-out),
     opacity var(--ob-duration-step) var(--ob-ease-out-strong);
   will-change: transform, opacity;
 }
@@ -116,17 +118,50 @@
 }
 
 /* ------------------------------------------------------------------ *
- * T2 — step-counter crossfade ("1 / 3" -> "2 / 3")
- * Small enough not to distract from the main content transition.
+ * T2 — rolling step counter (the digit in "1 / 3" -> "2 / 3")
+ * Only the current digit animates; " / 3" stays fixed. Enter and leave
+ * run together inside a clipped box (the shell's `__counter-current`), so
+ * the new digit rolls in as the old rolls out. Direction-aware: forward
+ * rolls up (new from the bottom), back rolls down (new from the top).
+ * `translateY(100%)` is one line height, so the digit fully clears the clip.
  * ------------------------------------------------------------------ */
-.ob-counter-enter-active,
-.ob-counter-leave-active {
-  transition: opacity var(--ob-duration-counter) var(--ob-ease-out-strong);
+.ob-counter-up-enter-active,
+.ob-counter-up-leave-active,
+.ob-counter-down-enter-active,
+.ob-counter-down-leave-active {
+  transition:
+    transform var(--ob-duration-counter) var(--ob-ease-out-strong),
+    opacity var(--ob-duration-counter) var(--ob-ease-out-strong);
+  will-change: transform, opacity;
 }
 
-.ob-counter-enter-from,
-.ob-counter-leave-to {
+/* Pull the leaving digit out of flow so both share the one-line slot. */
+.ob-counter-up-leave-active,
+.ob-counter-down-leave-active {
+  position: absolute;
+  inset: 0;
+}
+
+/* Forward: new digit enters from below, old exits upward. */
+.ob-counter-up-enter-from {
   opacity: 0;
+  transform: translateY(100%);
+}
+
+.ob-counter-up-leave-to {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+/* Back: mirror — new digit enters from above, old exits downward. */
+.ob-counter-down-enter-from {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+.ob-counter-down-leave-to {
+  opacity: 0;
+  transform: translateY(100%);
 }
 
 /* ------------------------------------------------------------------ *
@@ -136,7 +171,11 @@
   .ob-step-forward-enter-from,
   .ob-step-forward-leave-to,
   .ob-step-back-enter-from,
-  .ob-step-back-leave-to {
+  .ob-step-back-leave-to,
+  .ob-counter-up-enter-from,
+  .ob-counter-up-leave-to,
+  .ob-counter-down-enter-from,
+  .ob-counter-down-leave-to {
     transform: none;
   }
 }
