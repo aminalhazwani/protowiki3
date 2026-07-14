@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CdxButton } from '@wikimedia/codex'
 
 import type { FlowState } from '../data/useFlowState'
@@ -9,13 +9,38 @@ const props = defineProps<{ flow: FlowState }>()
 const GLOBE = `${import.meta.env.BASE_URL}images/no-distractions-welcome-globe.gif`
 
 /**
- * The globe GIF is authored to animate once and hold its last frame. Appending a
- * unique query param on mount forces the browser to reload it from frame 1, so the
- * animation replays each time the welcome screen is opened (screens are v-if-mounted).
+ * Static first frame of the globe (a one-frame GIF extracted from the animation).
+ * Shown frozen during the start delay so the mascot is present — not a blank box —
+ * but doesn't move until the delay ends. Regenerate whenever the GIF changes:
+ *   gifsicle --unoptimize <globe>.gif '#0' -o <globe>-poster.gif
  */
-const heroSrc = ref(GLOBE)
+const POSTER = `${import.meta.env.BASE_URL}images/no-distractions-welcome-globe-poster.gif`
+
+/**
+ * Delay before the globe animation starts. Account creation can trigger a
+ * browser/OS "save your password" prompt that covers the screen right as
+ * Welcome opens; holding on the first frame for a beat lets that clear so the
+ * one-shot animation isn't missed behind it.
+ */
+const GIF_START_DELAY_MS = 1000
+
+/**
+ * Hold the frozen first frame, then after the delay swap in a cache-busted URL
+ * for the animated GIF — the unique query forces the browser to (re)load from
+ * frame 1 so it plays once each time Welcome is opened (screens are v-if-mounted).
+ * The animated file is preloaded during the hold so the swap doesn't flash.
+ */
+const heroSrc = ref(POSTER)
+let startTimer: ReturnType<typeof setTimeout> | null = null
 onMounted(() => {
-  heroSrc.value = `${GLOBE}?t=${Date.now()}`
+  const animated = `${GLOBE}?t=${Date.now()}`
+  new Image().src = animated // warm the cache so the poster -> GIF swap is seamless
+  startTimer = setTimeout(() => {
+    heroSrc.value = animated
+  }, GIF_START_DELAY_MS)
+})
+onBeforeUnmount(() => {
+  if (startTimer) clearTimeout(startTimer)
 })
 
 const greeting = computed(() => {
