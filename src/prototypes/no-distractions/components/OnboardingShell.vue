@@ -57,7 +57,13 @@ function onNavigate(): void {
       >
         <CdxIcon :icon="isFirst ? cdxIconClose : cdxIconPrevious" />
       </CdxButton>
-      <span class="onboarding-shell__counter">{{ props.current }} / {{ props.total }}</span>
+      <!-- Crossfade just the label when the step advances (T2, step 3) so it
+           doesn't snap; the header itself stays fixed. -->
+      <Transition name="ob-counter" mode="out-in">
+        <span :key="props.current" class="onboarding-shell__counter">
+          {{ props.current }} / {{ props.total }}
+        </span>
+      </Transition>
     </div>
 
     <div
@@ -86,7 +92,8 @@ function onNavigate(): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-100, 16px) var(--spacing-150, 24px) var(--spacing-100, 16px) var(--spacing-100, 16px);
+  padding: var(--spacing-100, 16px) var(--spacing-150, 24px) var(--spacing-100, 16px)
+    var(--spacing-100, 16px);
 }
 
 .onboarding-shell__counter {

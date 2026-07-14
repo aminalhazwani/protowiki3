@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { CdxButton } from '@wikimedia/codex'
 
-import OnboardingShell from '../components/OnboardingShell.vue'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
@@ -26,21 +25,26 @@ const greeting = computed(() => {
 </script>
 
 <template>
-  <OnboardingShell :current="1" flush-content @dismiss="props.flow.goTo('home')">
-    <div class="welcome">
-      <h1 class="welcome__title">{{ greeting }}</h1>
+  <!--
+    First-run celebration. The screen fades in via the shell's region transition
+    (T1); these blocks then stagger their own transform in on top of that fade,
+    the globe (mascot) leading with a touch more presence (scale). This
+    stagger/scale treatment is reserved for this one moment — steps 2/3 stay
+    efficient and consistent.
+  -->
+  <div class="welcome">
+    <h1 class="welcome__title ob-stagger ob-stagger--1">{{ greeting }}</h1>
 
-      <div class="welcome__illustration">
-        <img class="welcome__hero" :src="heroSrc" alt="" width="480" height="480" />
-      </div>
-
-      <div class="welcome__actions">
-        <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('survey')">
-          Personalize your Home
-        </CdxButton>
-      </div>
+    <div class="welcome__illustration ob-stagger ob-stagger--lead">
+      <img class="welcome__hero" :src="heroSrc" alt="" width="480" height="480" />
     </div>
-  </OnboardingShell>
+
+    <div class="welcome__actions ob-stagger ob-stagger--2">
+      <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('survey')">
+        Personalize your Home
+      </CdxButton>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -90,5 +94,67 @@ const greeting = computed(() => {
   padding-block: var(--spacing-100, 16px);
   font-size: var(--font-size-medium, 1rem);
   font-weight: var(--font-weight-bold);
+}
+
+/* First-run reveal (T1 step 4): each block eases up, the globe leads with a
+   scale pop. Runs once on mount over the region fade; capped at three blocks —
+   all the DOM this screen has. */
+.ob-stagger {
+  animation: ob-rise var(--ob-duration-fade-in, 280ms) var(--ob-ease-out-strong, ease-out) both;
+}
+
+.ob-stagger--lead {
+  animation-name: ob-pop;
+  animation-delay: calc(var(--ob-stagger-step, 50ms) * 1);
+}
+
+.ob-stagger--1 {
+  animation-delay: calc(var(--ob-stagger-step, 50ms) * 0);
+}
+
+.ob-stagger--2 {
+  animation-delay: calc(var(--ob-stagger-step, 50ms) * 2);
+}
+
+@keyframes ob-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ob-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the fade, drop the translate/scale distance. */
+  .ob-stagger {
+    animation-name: ob-fade-only;
+  }
+
+  .ob-stagger--lead {
+    animation-name: ob-fade-only;
+  }
+
+  @keyframes ob-fade-only {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 </style>

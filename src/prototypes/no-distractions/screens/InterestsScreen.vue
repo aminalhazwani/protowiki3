@@ -7,7 +7,6 @@ import { useConfig } from '@/composables/useConfig'
 import { normalizeTitleKey } from '@/lib/fetchMorelike'
 
 import InterestSuggestions from '../components/InterestSuggestions.vue'
-import OnboardingShell from '../components/OnboardingShell.vue'
 import TitleSearchResults from '../components/TitleSearchResults.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
 import { useInterestSuggestions } from '../data/useInterestSuggestions'
@@ -42,9 +41,7 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const interests = computed(() => props.flow.interests.value)
 const configureMode = computed(() => props.flow.returnTo.value !== '')
-const showEditingHistoryToggle = computed(
-  () => configureMode.value && user.value === 'real',
-)
+const showEditingHistoryToggle = computed(() => configureMode.value && user.value === 'real')
 
 async function finishInterests(): Promise<void> {
   const returnTo = props.flow.returnTo.value
@@ -101,82 +98,80 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <OnboardingShell :current="3" :show-progress="!configureMode" flush-content>
-    <div class="ob-page">
-      <h1 class="ob-title">What are your main interests?</h1>
+  <div class="ob-page">
+    <h1 class="ob-title">What are your main interests?</h1>
 
-      <div class="ob-body">
-        <div class="interests__fields">
-          <div class="interests__search">
-            <CdxSearchInput
-              v-model="search"
-              class="interests__input"
-              :class="{ 'interests__input--with-results': results.length > 0 }"
-              placeholder="Search articles or topics"
-              aria-label="Search articles or topics"
-              @submit="addInterest(search)"
-            />
-
-            <TitleSearchResults
-              v-if="results.length"
-              layout="attached"
-              :results="results"
-              @select="addInterest"
-            />
-          </div>
-
-          <ul class="interests__chips">
-            <li v-for="title in interests" :key="title">
-              <span class="interests__chip">
-                <span v-if="thumbFor(title)" class="interests__chip-thumb">
-                  <img :src="thumbFor(title)" alt="" />
-                </span>
-                <span class="interests__chip-label">{{ title }}</span>
-                <button
-                  type="button"
-                  class="interests__chip-remove"
-                  :aria-label="`Remove ${title}`"
-                  @click="removeInterest(title)"
-                >
-                  <CdxIcon :icon="cdxIconSubtract" />
-                </button>
-              </span>
-            </li>
-          </ul>
-
-          <InterestSuggestions
-            :suggestions="suggestions"
-            :loading="suggestionsLoading"
-            @add="addInterest"
+    <div class="ob-body">
+      <div class="interests__fields">
+        <div class="interests__search">
+          <CdxSearchInput
+            v-model="search"
+            class="interests__input"
+            :class="{ 'interests__input--with-results': results.length > 0 }"
+            placeholder="Search articles or topics"
+            aria-label="Search articles or topics"
+            @submit="addInterest(search)"
           />
 
-          <div v-if="showEditingHistoryToggle" class="interests__switch-list">
-            <div class="interests__switch-row">
-              <CdxToggleSwitch v-model="configureSettings.editingHistory" align-switch>
-                Show suggestions based on editing history
-              </CdxToggleSwitch>
-            </div>
-            <p v-if="!realUsername.trim()" class="interests__switch-hint">
-              Set a username in prototype settings.
-            </p>
-          </div>
+          <TitleSearchResults
+            v-if="results.length"
+            layout="attached"
+            :results="results"
+            @select="addInterest"
+          />
         </div>
 
-        <div class="ob-actions">
-          <template v-if="configureMode">
-            <CdxButton action="progressive" weight="primary" @click="finishInterests">
-              Done
-            </CdxButton>
-          </template>
-          <template v-else>
-            <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('home')">
-              Go to your Home
-            </CdxButton>
-          </template>
+        <ul class="interests__chips">
+          <li v-for="title in interests" :key="title">
+            <span class="interests__chip">
+              <span v-if="thumbFor(title)" class="interests__chip-thumb">
+                <img :src="thumbFor(title)" alt="" />
+              </span>
+              <span class="interests__chip-label">{{ title }}</span>
+              <button
+                type="button"
+                class="interests__chip-remove"
+                :aria-label="`Remove ${title}`"
+                @click="removeInterest(title)"
+              >
+                <CdxIcon :icon="cdxIconSubtract" />
+              </button>
+            </span>
+          </li>
+        </ul>
+
+        <InterestSuggestions
+          :suggestions="suggestions"
+          :loading="suggestionsLoading"
+          @add="addInterest"
+        />
+
+        <div v-if="showEditingHistoryToggle" class="interests__switch-list">
+          <div class="interests__switch-row">
+            <CdxToggleSwitch v-model="configureSettings.editingHistory" align-switch>
+              Show suggestions based on editing history
+            </CdxToggleSwitch>
+          </div>
+          <p v-if="!realUsername.trim()" class="interests__switch-hint">
+            Set a username in prototype settings.
+          </p>
         </div>
       </div>
+
+      <div class="ob-actions">
+        <template v-if="configureMode">
+          <CdxButton action="progressive" weight="primary" @click="finishInterests">
+            Done
+          </CdxButton>
+        </template>
+        <template v-else>
+          <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('home')">
+            Go to your Home
+          </CdxButton>
+        </template>
+      </div>
     </div>
-  </OnboardingShell>
+  </div>
 </template>
 
 <style scoped>

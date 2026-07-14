@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
 import { normalizeWikiUsername, type ConfigUser } from '@/config'
 
+import OnboardingShell from './components/OnboardingShell.vue'
+import './components/onboarding-motion.css'
 import { useFlowState, type Screen } from './data/useFlowState'
 import { useConfigureSettings } from './data/useConfigureSettings'
 import { resolveRecentChangesCacheKey, useRecentChanges } from './data/useRecentChanges'
@@ -32,6 +34,55 @@ definePage({
 const flow = useFlowState()
 const { user, realUsername, lang } = useConfig()
 const configureSettings = useConfigureSettings()
+
+// --- Personalisation wizard (welcome -> survey -> interests) ---------------
+// These three steps share one persistent OnboardingShell so the header chrome
+// (back/close, step counter) stays fixed while only the content region slides.
+// Each screen renders its content only; the shell lives here.
+const WIZARD_STEP: Partial<Record<Screen, number>> = {
+  welcome: 1,
+  survey: 2,
+  interests: 3,
+}
+
+const isWizard = computed(() => flow.screen.value in WIZARD_STEP)
+const wizardStep = computed(() => WIZARD_STEP[flow.screen.value] ?? 0)
+
+const wizardComponent = computed(() => {
+  switch (flow.screen.value) {
+    case 'welcome':
+      return WelcomeScreen
+    case 'survey':
+      return SurveyScreen
+    case 'interests':
+      return InterestsScreen
+    default:
+      return null
+  }
+})
+
+// Interests doubles as a reconfigure screen reached from Home (returnTo set);
+// there the wizard counter is meaningless, so hide it — matching the previous
+// per-screen `:show-progress="!configureMode"`.
+const showWizardProgress = computed(
+  () => !(flow.screen.value === 'interests' && flow.returnTo.value !== ''),
+)
+
+// Direction for the step slide. Comparing step order (rather than tracking the
+// nav intent) makes the in-app Back button and the browser Back gesture both
+// resolve to a backward slide.
+const stepDir = ref<'forward' | 'back'>('forward')
+watch(
+  () => flow.screen.value,
+  (to, from) => {
+    const toStep = WIZARD_STEP[to]
+    const fromStep = from ? WIZARD_STEP[from] : undefined
+    if (toStep && fromStep) stepDir.value = toStep >= fromStep ? 'forward' : 'back'
+  },
+)
+const stepTransition = computed(() =>
+  stepDir.value === 'forward' ? 'ob-step-forward' : 'ob-step-back',
+)
 
 // Bind once at the route shell; home/all read the shared cache without rebinding.
 useSuggestions(() => {
@@ -99,15 +150,56 @@ onBeforeUnmount(() => {
 
 <template>
   <MobileWrapper max-width="412px" :show-frame-border="false">
-    <SearchScreen v-if="flow.screen.value === 'search'" :flow="flow" />
-    <ReadScreen v-else-if="flow.screen.value === 'read'" :flow="flow" />
-    <CreateAccountScreen v-else-if="flow.screen.value === 'account'" :flow="flow" />
-    <WelcomeScreen v-else-if="flow.screen.value === 'welcome'" :flow="flow" />
-    <SurveyScreen v-else-if="flow.screen.value === 'survey'" :flow="flow" />
-    <InterestsScreen v-else-if="flow.screen.value === 'interests'" :flow="flow" />
-    <HomeScreen v-else-if="flow.screen.value === 'home'" :flow="flow" />
-    <SuggestedEditsCarouselScreen v-else-if="flow.screen.value === 'all'" :flow="flow" />
-    <FeaturedScreen v-else-if="flow.screen.value === 'featured'" :flow="flow" />
-    <TrendingScreen v-else-if="flow.screen.value === 'trending'" :flow="flow" />
+    <!--
+      Outer region fade (T1): sequential fade-out -> hold -> fade-in between
+      screens with unrelated layouts (e.g. Create Account -> Welcome). The whole
+      wizard shares one key, so this does NOT fire between wizard steps.
+    -->
+    <Transition name="ob-fade" mode="out-in">
+      <OnboardingShell
+        v-if="isWizard"
+        key="wizard"
+        :current="wizardStep"
+        :show-progress="showWizardProgress"
+        flush-content
+        @dismiss="flow.goTo('home')"
+      >
+        <!--
+          Inner step slide (T2): header chrome above stays fixed; only this
+          content region slides. Direction-aware (forward/back).
+        -->
+        <div class="ob-step-viewport">
+          <Transition :name="stepTransition">
+            <component :is="wizardComponent" :key="flow.screen.value" :flow="flow" />
+          </Transition>
+        </div>
+      </OnboardingShell>
+
+      <SearchScreen v-else-if="flow.screen.value === 'search'" key="search" :flow="flow" />
+      <ReadScreen v-else-if="flow.screen.value === 'read'" key="read" :flow="flow" />
+      <CreateAccountScreen v-else-if="flow.screen.value === 'account'" key="account" :flow="flow" />
+      <HomeScreen v-else-if="flow.screen.value === 'home'" key="home" :flow="flow" />
+      <SuggestedEditsCarouselScreen
+        v-else-if="flow.screen.value === 'all'"
+        key="all"
+        :flow="flow"
+      />
+      <FeaturedScreen v-else-if="flow.screen.value === 'featured'" key="featured" :flow="flow" />
+      <TrendingScreen v-else-if="flow.screen.value === 'trending'" key="trending" :flow="flow" />
+    </Transition>
   </MobileWrapper>
 </template>
+
+<style scoped>
+/* Positioning context + horizontal clip for the wizard step slide. `clip`
+   (not `hidden`) contains the 24px nudge without turning this into a vertical
+   scroll container, so tall steps (Interests) still scroll at the page level. */
+.ob-step-viewport {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: clip;
+}
+</style>

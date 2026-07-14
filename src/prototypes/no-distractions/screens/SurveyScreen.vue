@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconSuccess } from '@wikimedia/codex-icons'
 
-import OnboardingShell from '../components/OnboardingShell.vue'
 import type { FlowState, SurveyChoice } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+/** Hold after the selection feedback before auto-advancing (T3). Mirrors
+ *  `--ob-delay-selection-hold`; kept in JS since only the timer needs it. */
+const SELECTION_HOLD_MS = 400
 
 const OPTIONS: { value: SurveyChoice; label: string }[] = [
   { value: 'read', label: 'Reading and exploring' },
@@ -14,52 +17,71 @@ const OPTIONS: { value: SurveyChoice; label: string }[] = [
   { value: 'both', label: 'A bit of both' },
 ]
 
-const selected = computed(() => props.flow.survey.value)
+// Local echo of the tap so the selection state paints immediately, without
+// waiting for the URL round-trip that `patch` performs. Falls back to the
+// persisted answer (e.g. when returning via Back).
+const pending = ref<SurveyChoice | ''>('')
+const selected = computed(() => pending.value || props.flow.survey.value)
+
+let advanceTimer: ReturnType<typeof setTimeout> | null = null
+const advancing = ref(false)
 
 async function choose(value: SurveyChoice): Promise<void> {
+  if (advancing.value) return // ignore taps once we're committed to advancing
+  advancing.value = true
+  pending.value = value
+
   // Record the answer on the current (survey) history entry first, then advance.
   // Awaiting the replace keeps both steps distinct so back navigation restores
   // this screen with the answer still selected.
   await props.flow.patch({ survey: value })
-  await props.flow.goTo('interests')
+
+  // Two sequential behaviours (do not combine): the selection feedback plays,
+  // then a short hold lets it register before the step transition fires.
+  advanceTimer = setTimeout(() => {
+    void props.flow.goTo('interests')
+  }, SELECTION_HOLD_MS)
 }
+
+function skip(): void {
+  if (advancing.value) return
+  void props.flow.goTo('interests')
+}
+
+onBeforeUnmount(() => {
+  if (advanceTimer) clearTimeout(advanceTimer)
+})
 </script>
 
 <template>
-  <OnboardingShell :current="2" flush-content>
-    <div class="ob-page">
-      <h1 class="ob-title">What brings you to Wikipedia?</h1>
+  <div class="ob-page">
+    <h1 class="ob-title">What brings you to Wikipedia?</h1>
 
-      <div class="ob-body">
-        <div
-          class="survey__options"
-          role="radiogroup"
-          aria-label="What brings you to Wikipedia?"
+    <div class="ob-body">
+      <div class="survey__options" role="radiogroup" aria-label="What brings you to Wikipedia?">
+        <button
+          v-for="option in OPTIONS"
+          :key="option.value"
+          type="button"
+          role="radio"
+          :aria-checked="selected === option.value"
+          class="survey__option"
+          :class="{ 'survey__option--selected': selected === option.value }"
+          @click="choose(option.value)"
         >
-          <button
-            v-for="option in OPTIONS"
-            :key="option.value"
-            type="button"
-            role="radio"
-            :aria-checked="selected === option.value"
-            class="survey__option"
-            :class="{ 'survey__option--selected': selected === option.value }"
-            @click="choose(option.value)"
-          >
-            <span v-if="selected === option.value" class="survey__indicator">
-              <CdxIcon :icon="cdxIconSuccess" />
-            </span>
-            <span v-else class="survey__radio" aria-hidden="true" />
-            <span class="survey__label">{{ option.label }}</span>
-          </button>
-        </div>
+          <span v-if="selected === option.value" class="survey__indicator">
+            <CdxIcon :icon="cdxIconSuccess" />
+          </span>
+          <span v-else class="survey__radio" aria-hidden="true" />
+          <span class="survey__label">{{ option.label }}</span>
+        </button>
+      </div>
 
-        <div class="ob-actions">
-          <CdxButton weight="quiet" @click="props.flow.goTo('interests')">Skip</CdxButton>
-        </div>
+      <div class="ob-actions">
+        <CdxButton weight="quiet" @click="skip">Skip</CdxButton>
       </div>
     </div>
-  </OnboardingShell>
+  </div>
 </template>
 
 <style scoped>
@@ -102,6 +124,36 @@ async function choose(value: SurveyChoice): Promise<void> {
   flex-shrink: 0;
   width: 1.25rem;
   height: 1.25rem;
+  /* Selection feedback (T3.A): restrained scale + fade, no overshoot/bounce.
+     `forwards` holds the painted state through the advance hold. */
+  animation: survey-check var(--ob-duration-selection, 140ms) var(--ob-ease-out-strong, ease-out)
+    forwards;
+}
+
+@keyframes survey-check {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .survey__indicator {
+    animation-name: survey-check-fade;
+  }
+
+  @keyframes survey-check-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 /* Codex forces color-base on .cdx-icon, so set the progressive color here
