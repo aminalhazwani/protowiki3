@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
-import { cdxIconSuccess } from '@wikimedia/codex-icons'
+import { CdxButton, CdxRadio } from '@wikimedia/codex'
 
 import type { FlowState, SurveyChoice } from '../data/useFlowState'
 
@@ -11,10 +10,22 @@ const props = defineProps<{ flow: FlowState }>()
  *  `--ob-delay-selection-hold`; kept in JS since only the timer needs it. */
 const SELECTION_HOLD_MS = 400
 
-const OPTIONS: { value: SurveyChoice; label: string }[] = [
-  { value: 'read', label: 'Reading and exploring' },
-  { value: 'edit', label: 'Editing and contributing' },
-  { value: 'both', label: 'A bit of both' },
+const OPTIONS: { value: SurveyChoice; label: string; description: string }[] = [
+  {
+    value: 'read',
+    label: 'Reading and exploring',
+    description: 'Learn, save articles, play games.',
+  },
+  {
+    value: 'edit',
+    label: 'Editing and contributing',
+    description: 'Fix a typo, update an article, or start a new one.',
+  },
+  {
+    value: 'both',
+    label: 'A bit of both',
+    description: 'Read, save, and make a few edits too.',
+  },
 ]
 
 // Local echo of the tap so the selection state paints immediately, without
@@ -43,6 +54,11 @@ async function choose(value: SurveyChoice): Promise<void> {
   }, SELECTION_HOLD_MS)
 }
 
+/** CdxRadio emits the broad input-value union; narrow it back to SurveyChoice. */
+function onSelect(value: string | number | boolean): void {
+  void choose(value as SurveyChoice)
+}
+
 function skip(): void {
   if (advancing.value) return
   void props.flow.goTo('interests')
@@ -58,23 +74,27 @@ onBeforeUnmount(() => {
     <h1 class="ob-title">What brings you to Wikipedia?</h1>
 
     <div class="ob-body">
+      <!-- Each option is a selectable card wrapping a Codex radio; the whole
+           card is a hit target, while the radio keeps native keyboard/aria
+           semantics. `role="radiogroup"` groups them for assistive tech. -->
       <div class="survey__options" role="radiogroup" aria-label="What brings you to Wikipedia?">
-        <button
+        <div
           v-for="option in OPTIONS"
           :key="option.value"
-          type="button"
-          role="radio"
-          :aria-checked="selected === option.value"
           class="survey__option"
           :class="{ 'survey__option--selected': selected === option.value }"
           @click="choose(option.value)"
         >
-          <span v-if="selected === option.value" class="survey__indicator">
-            <CdxIcon :icon="cdxIconSuccess" />
-          </span>
-          <span v-else class="survey__radio" aria-hidden="true" />
-          <span class="survey__label">{{ option.label }}</span>
-        </button>
+          <CdxRadio
+            :model-value="selected"
+            :input-value="option.value"
+            name="survey-motivation"
+            @update:model-value="onSelect"
+          >
+            {{ option.label }}
+            <template #description>{{ option.description }}</template>
+          </CdxRadio>
+        </div>
       </div>
 
       <div class="ob-actions">
@@ -92,17 +112,16 @@ onBeforeUnmount(() => {
 }
 
 .survey__option {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-50, 8px);
-  width: 100%;
-  min-height: 2.75rem;
-  padding: var(--spacing-50, 8px) var(--spacing-75, 12px);
-  border: var(--border-width-base, 1px) solid var(--border-color-interactive, #72777d);
-  border-radius: var(--border-radius-pill, 9999px);
+  padding: var(--spacing-100, 16px);
+  border: var(--border-width-base, 1px) solid var(--border-color-base, #a2a9b1);
+  border-radius: var(--border-radius-base, 2px);
   background-color: var(--background-color-base);
-  text-align: start;
   cursor: pointer;
+  /* Selection is feedback — a quick color change, no movement, so it stays put
+     under reduced motion (movement is what that setting drops, not color). */
+  transition:
+    border-color var(--ob-duration-selection, 140ms) ease,
+    background-color var(--ob-duration-selection, 140ms) ease;
 }
 
 .survey__option--selected {
@@ -110,63 +129,9 @@ onBeforeUnmount(() => {
   background-color: var(--background-color-progressive-subtle, #e8eeff);
 }
 
-.survey__radio {
-  flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
-  border: var(--border-width-base, 1px) solid var(--border-color-base, #a2a9b1);
-  border-radius: var(--border-radius-circle, 50%);
-  background-color: var(--background-color-base);
-}
-
-.survey__indicator {
-  display: inline-flex;
-  flex-shrink: 0;
-  width: 1.25rem;
-  height: 1.25rem;
-  /* Selection feedback (T3.A): restrained scale + fade, no overshoot/bounce.
-     `forwards` holds the painted state through the advance hold. */
-  animation: survey-check var(--ob-duration-selection, 140ms) var(--ob-ease-out-strong, ease-out)
-    forwards;
-}
-
-@keyframes survey-check {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .survey__indicator {
-    animation-name: survey-check-fade;
-  }
-
-  @keyframes survey-check-fade {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-}
-
-/* Codex forces color-base on .cdx-icon, so set the progressive color here
-   (not on the parent) for the active checkmark. */
-.survey__indicator :deep(.cdx-icon) {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--color-progressive, #36c);
-}
-
-.survey__label {
-  font-size: var(--font-size-medium, 1rem);
-  line-height: var(--line-height-small, 1.375);
-  color: var(--color-base);
+/* The card already provides the padding and hit target, so drop the radio's
+   own outer margin and let it fill the card width. */
+.survey__option :deep(.cdx-radio) {
+  margin: 0;
 }
 </style>
