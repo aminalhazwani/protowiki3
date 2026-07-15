@@ -1,0 +1,43 @@
+/**
+ * Shared transition classes for the account-creation flow. Imported once from
+ * the flow shell (`index.vue`).
+ *
+ * Vue `<Transition>` classes MUST live in a plain (non-scoped) stylesheet so
+ * they can be applied to child screen components; component-scoped styles get a
+ * `data-v-*` attribute that these class names would never match.
+ *
+ * Tokens are `--ob-*` prefixed to avoid colliding with Codex design tokens.
+ */
+
+:root {
+  /* Easing */
+  --ob-ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1); /* entrances, exits */
+
+  /* Durations */
+  --ob-duration-fade-out: 180ms;
+  --ob-duration-fade-in: 280ms;
+
+  /* Delays */
+  --ob-delay-hold: 120ms; /* gap between fade-out and fade-in */
+}
+
+/* ------------------------------------------------------------------ *
+ * Region fade (e.g. Read -> Create account).
+ * Used with `mode="out-in"`: the leaving screen fades out, a brief hold,
+ * then the incoming screen fades in.
+ * ------------------------------------------------------------------ */
+.ob-fade-leave-active {
+  transition: opacity var(--ob-duration-fade-out) var(--ob-ease-out-strong);
+  will-change: opacity;
+}
+
+.ob-fade-enter-active {
+  transition: opacity var(--ob-duration-fade-in) var(--ob-ease-out-strong);
+  transition-delay: var(--ob-delay-hold);
+  will-change: opacity;
+}
+
+.ob-fade-enter-from,
+.ob-fade-leave-to {
+  opacity: 0;
+}
