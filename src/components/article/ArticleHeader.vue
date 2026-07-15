@@ -42,7 +42,7 @@ interface Props {
   skin?: Skin
   /**
    * Mobile icon toolbar: watchlist star (default) vs reader bookmark (Minerva
-   * “save for later” affordance in flows like account-setup).
+   * “save for later” affordance in flows like account-creation).
    */
   bookmarkAffordance?: 'watch' | 'bookmark'
 }

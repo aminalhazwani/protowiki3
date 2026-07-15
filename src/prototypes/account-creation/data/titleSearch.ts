@@ -30,7 +30,7 @@ export async function fetchTitleSearchResults(
     `https://${wikiHost}/w/rest.php/v1/search/title?${params.toString()}`,
     {
       signal: options.signal,
-      headers: wikimediaApiFetchHeaders(options.clientTag ?? 'account-setup-title-search'),
+      headers: wikimediaApiFetchHeaders(options.clientTag ?? 'account-creation-title-search'),
     },
   )
 

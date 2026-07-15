@@ -24,8 +24,8 @@ export default [
     // It keeps its plain `<script setup>` so the source stays byte-faithful and
     // isn't burdened with types the upstream component never had.
     files: [
-      'src/prototypes/account-setup/components/CreateAccountForm.vue',
-      'src/prototypes/account-setup/components/UsernamePolicy.vue',
+      'src/prototypes/account-creation/components/CreateAccountForm.vue',
+      'src/prototypes/account-creation/components/UsernamePolicy.vue',
     ],
     rules: {
       'vue/block-lang': 'off',

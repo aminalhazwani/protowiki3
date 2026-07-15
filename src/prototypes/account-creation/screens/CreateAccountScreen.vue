@@ -34,7 +34,7 @@ function onCreateAccount(): void {
   <ChromeWrapper
     skin="mobile"
     :last-edited-notice="false"
-    brand-to="/account-setup"
+    brand-to="/account-creation"
     hide-actions
     @create-account="onCreateAccount"
   >
