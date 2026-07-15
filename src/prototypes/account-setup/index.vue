@@ -27,7 +27,7 @@ import { useTrendingPages } from './data/useTrendingPages'
 
 definePage({
   meta: {
-    title: 'No distractions',
+    title: 'Account setup',
     description: 'A streamlined onboarding flow.',
   },
 })

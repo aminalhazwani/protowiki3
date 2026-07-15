@@ -6,7 +6,7 @@ import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
-const GLOBE = `${import.meta.env.BASE_URL}images/no-distractions-welcome-globe.gif`
+const GLOBE = `${import.meta.env.BASE_URL}images/account-setup-welcome-globe.gif`
 
 /**
  * Static first frame of the globe (a one-frame GIF extracted from the animation).
@@ -14,7 +14,7 @@ const GLOBE = `${import.meta.env.BASE_URL}images/no-distractions-welcome-globe.g
  * but doesn't move until the delay ends. Regenerate whenever the GIF changes:
  *   gifsicle --unoptimize <globe>.gif '#0' -o <globe>-poster.gif
  */
-const POSTER = `${import.meta.env.BASE_URL}images/no-distractions-welcome-globe-poster.gif`
+const POSTER = `${import.meta.env.BASE_URL}images/account-setup-welcome-globe-poster.gif`
 
 /**
  * Delay before the globe animation starts. Account creation can trigger a

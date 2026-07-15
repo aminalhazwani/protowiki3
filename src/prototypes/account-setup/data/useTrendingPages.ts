@@ -23,7 +23,7 @@ export interface TrendingPagesState {
 }
 
 const LANG = 'en'
-const STORAGE_KEY = 'protowiki:no-distractions:trending-pages:v3'
+const STORAGE_KEY = 'protowiki:account-setup:trending-pages:v3'
 
 interface StoredTrendingCache {
   cacheKey: string

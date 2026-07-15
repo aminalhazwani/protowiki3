@@ -46,7 +46,7 @@ const SECTION_LABELS: Record<FeaturedSectionId, string> = {
 const LANG = 'en'
 const DYK_LIMIT = 3
 const BIRTHS_LIMIT = 3
-const STORAGE_KEY = 'protowiki:no-distractions:featured-feed:v6'
+const STORAGE_KEY = 'protowiki:account-setup:featured-feed:v6'
 
 interface StoredFeaturedCache {
   cacheKey: string

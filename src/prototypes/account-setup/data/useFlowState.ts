@@ -2,7 +2,7 @@ import { computed, type ComputedRef, type WritableComputedRef } from 'vue'
 import { useRoute, useRouter, type LocationQuery, type LocationQueryRaw } from 'vue-router'
 
 /**
- * URL-query state for the no-distractions onboarding flow.
+ * URL-query state for the account-setup onboarding flow.
  *
  * The route's query string is the single source of truth: every screen reads
  * from and writes to it, so each step is deep-linkable, shareable, and gets

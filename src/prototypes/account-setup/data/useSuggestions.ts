@@ -44,7 +44,7 @@ export interface SuggestionSeedState {
 const RESULT_LIMIT = 20
 const LANG = 'en'
 const HISTORY_SEED_LIMIT = 5
-const STORAGE_KEY = 'protowiki:no-distractions:suggestions'
+const STORAGE_KEY = 'protowiki:account-setup:suggestions'
 
 interface StoredSuggestionsCache {
   cacheKey: string

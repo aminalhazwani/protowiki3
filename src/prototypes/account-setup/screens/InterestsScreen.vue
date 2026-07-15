@@ -64,7 +64,7 @@ async function fetchSuggestions(term: string): Promise<void> {
   try {
     const pages = await fetchTitleSearchResults(trimmed, {
       signal: abortController.signal,
-      clientTag: 'no-distractions-interests',
+      clientTag: 'account-setup-interests',
     })
     const existing = new Set(interests.value.map((item) => item.toLowerCase()))
     results.value = pages.filter((page) => !existing.has(page.title.toLowerCase()))

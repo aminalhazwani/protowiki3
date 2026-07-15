@@ -1,5 +1,5 @@
 /**
- * Motion tokens and shared transition classes for the no-distractions
+ * Motion tokens and shared transition classes for the account-setup
  * onboarding flow. Imported once from the flow shell (`index.vue`).
  *
  * Vue `<Transition>` classes MUST live in a plain (non-scoped) stylesheet so

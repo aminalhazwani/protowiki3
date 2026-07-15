@@ -23,7 +23,7 @@ function onCreateAccount(): void {
   <ChromeWrapper
     skin="mobile"
     :last-edited-notice="false"
-    brand-to="/no-distractions"
+    brand-to="/account-setup"
     hide-actions
     @create-account="onCreateAccount"
   >

@@ -1,6 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
 
-const STORAGE_KEY = 'protowiki:no-distractions:configure-settings'
+const STORAGE_KEY = 'protowiki:account-setup:configure-settings'
 
 export interface ConfigureSettings {
   editingHistory: boolean

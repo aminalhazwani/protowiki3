@@ -34,7 +34,7 @@ export interface RecentChangesSeedState {
   cacheKey: string
 }
 
-const STORAGE_KEY = 'protowiki:no-distractions:recent-changes:v3'
+const STORAGE_KEY = 'protowiki:account-setup:recent-changes:v3'
 
 interface StoredRecentChangesCache {
   cacheKey: string

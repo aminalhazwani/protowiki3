@@ -2,7 +2,7 @@ import { computed, type ComputedRef } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 
 /**
- * Brand/logo link target for the no-distractions prototype: the prototype's
+ * Brand/logo link target for the account-setup prototype: the prototype's
  * Main Page, preserving the current session (username, interests, …) while
  * clearing the current article (`title`) and screen. A plain `to="/..."` link
  * would drop the whole query — losing the user's logged-in state and Home.
@@ -20,6 +20,6 @@ export function useBrandTo(): ComputedRef<RouteLocationRaw> {
     }
     delete query.title
     delete query.screen
-    return { path: '/no-distractions', query }
+    return { path: '/account-setup', query }
   })
 }

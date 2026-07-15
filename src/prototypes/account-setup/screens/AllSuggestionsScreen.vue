@@ -45,7 +45,7 @@ function goToInterests() {
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false" brand-to="/no-distractions">
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false" brand-to="/account-setup">
     <div class="all">
       <AllSuggestionsStickyHead :flow="props.flow" @configure="goToInterests" />
 
