@@ -42,6 +42,7 @@ defineEmits(['close'])
   z-index: 100;
   display: flex;
   align-items: flex-end;
+  background-color: var(--background-color-backdrop-light);
 }
 
 .policy-sheet {
