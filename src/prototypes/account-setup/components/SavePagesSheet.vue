@@ -22,8 +22,8 @@ function onCreateAccount(): void {
 }
 
 function onLogIn(): void {
+  // Log in is out of scope for this account-creation prototype — just dismiss.
   open.value = false
-  void props.flow.goTo('home')
 }
 </script>
 
@@ -44,7 +44,7 @@ function onLogIn(): void {
   </CdxPopover>
 </template>
 
-<!-- Teleported popover: match onboarding dashpage CTA sizing (onboarding-layout.css). -->
+<!-- Teleported popover: full-width, larger CTA buttons for the bottom sheet. -->
 <style>
 .save-pages-sheet .cdx-popover__header__title {
   font-family: var(--font-family-base, sans-serif);

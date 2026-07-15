@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { CdxDialog } from '@wikimedia/codex'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
 import CreateAccountForm from '../components/CreateAccountForm.vue'
@@ -7,11 +9,20 @@ import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
-function onSubmit({ username, email }: { username: string; email: string }): void {
-  props.flow.goTo('welcome', {
-    username: username || 'NewEditor',
-    email,
-  })
+// Account creation is a dead end in this prototype: submitting the form doesn't
+// create anything or advance to onboarding. We just confirm with a dialog (and
+// a console line) so testers get clear feedback that the flow reached the end.
+const showCreated = ref(false)
+
+const createdAction = {
+  label: 'Got it',
+  actionType: 'progressive' as const,
+}
+
+function onSubmit(): void {
+  // eslint-disable-next-line no-console
+  console.log('Fictional account created')
+  showCreated.value = true
 }
 
 function onCreateAccount(): void {
@@ -23,7 +34,7 @@ function onCreateAccount(): void {
   <ChromeWrapper
     skin="mobile"
     :last-edited-notice="false"
-    brand-to="/no-distractions"
+    brand-to="/account-setup"
     hide-actions
     @create-account="onCreateAccount"
   >
@@ -31,6 +42,17 @@ function onCreateAccount(): void {
       <h1 class="account__title">Create account</h1>
       <CreateAccountForm @submit="onSubmit" />
     </div>
+
+    <CdxDialog
+      v-model:open="showCreated"
+      title="Fictional account created"
+      close-button-label="Close"
+      :dismissable="true"
+      :primary-action="createdAction"
+      @primary="showCreated = false"
+    >
+      This is a prototype — no real account was created and nothing you entered was saved.
+    </CdxDialog>
   </ChromeWrapper>
 </template>
 

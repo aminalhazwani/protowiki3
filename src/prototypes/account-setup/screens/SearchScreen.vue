@@ -35,7 +35,7 @@ async function fetchSuggestions(term: string): Promise<void> {
   try {
     results.value = await fetchTitleSearchResults(trimmed, {
       signal: abortController.signal,
-      clientTag: 'no-distractions-search',
+      clientTag: 'account-setup-search',
     })
   } catch (error) {
     if ((error as Error).name !== 'AbortError') results.value = []
@@ -60,7 +60,7 @@ function goBack(): void {
   // search pushed a history entry, so stepping back lands on that screen rather
   // than always the main page. Fall back to the main page for a direct deep-link.
   const back = window.history.state?.back
-  if (typeof back === 'string' && back.includes('/no-distractions')) {
+  if (typeof back === 'string' && back.includes('/account-setup')) {
     router.back()
     return
   }

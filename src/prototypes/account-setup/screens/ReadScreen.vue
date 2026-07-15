@@ -7,16 +7,13 @@ import ArticleRenderer from '@/components/article/ArticleRenderer.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
 import SavePagesSheet from '../components/SavePagesSheet.vue'
-import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
 import { useArticleHtml } from '../data/useArticleHtml'
 import { useBrandTo } from '../data/useBrandTo'
-import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
 
 const brandTo = useBrandTo()
-const { dismiss: dismissReturnHomeBanner } = useReturnHomeBanner()
 
 const MAIN_PAGE_TITLE = 'Main Page'
 const effectiveTitle = computed(() => props.flow.title.value.trim() || MAIN_PAGE_TITLE)
@@ -40,12 +37,6 @@ function onSearch(): void {
 function onCreateAccount(): void {
   props.flow.goTo('account')
 }
-
-function onGoHome(): void {
-  // Returning Home via the account menu dismisses the reminder for good.
-  dismissReturnHomeBanner()
-  void props.flow.goTo('home')
-}
 </script>
 
 <template>
@@ -55,9 +46,7 @@ function onGoHome(): void {
     :username="flow.username.value || undefined"
     @search="onSearch"
     @create-account="onCreateAccount"
-    @go-home="onGoHome"
   >
-    <ReturnHomeBanner :flow="props.flow" />
     <article class="article nd-article" data-skin="mobile">
       <ArticleHeader
         v-if="!isMainPage"
