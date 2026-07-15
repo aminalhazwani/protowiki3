@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { CdxDialog } from '@wikimedia/codex'
 
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
@@ -34,6 +35,15 @@ definePage({
 const flow = useFlowState()
 const { user, realUsername, lang } = useConfig()
 const configureSettings = useConfigureSettings()
+
+// Intro dialog shown on every open, orienting Wikimania participants before
+// they start the flow. Purely informational — the single "Got it" action just
+// dismisses it.
+const showIntro = ref(true)
+const introAction = {
+  label: 'Got it',
+  actionType: 'progressive' as const,
+}
 
 // --- Personalisation wizard (welcome -> survey -> interests) ---------------
 // These three steps share one persistent OnboardingShell so the header chrome
@@ -150,6 +160,26 @@ onBeforeUnmount(() => {
 
 <template>
   <MobileWrapper max-width="412px" :show-frame-border="false">
+    <CdxDialog
+      v-model:open="showIntro"
+      title="Account setup prototype"
+      close-button-label="Close"
+      :dismissable="true"
+      :primary-action="introAction"
+      @primary="showIntro = false"
+    >
+      <p class="nd-intro__lead">
+        This is a prototype for testing at Wikimania. Nothing you enter is saved or stored.
+      </p>
+      <p>To try it out:</p>
+      <ol class="nd-intro__steps">
+        <li>Search for an article that interests you.</li>
+        <li>From there, try to create an account.</li>
+        <li>Explore the account setup experience.</li>
+      </ol>
+      <p>Thanks for helping us test!</p>
+    </CdxDialog>
+
     <!--
       Outer region fade (T1): sequential fade-out -> hold -> fade-in between
       screens with unrelated layouts (e.g. Create Account -> Welcome). The whole
@@ -201,5 +231,18 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: clip;
+}
+
+.nd-intro__lead {
+  margin-top: 0;
+}
+
+.nd-intro__steps {
+  margin: var(--spacing-50, 8px) 0;
+  padding-inline-start: var(--spacing-150, 24px);
+}
+
+.nd-intro__steps li {
+  margin-bottom: var(--spacing-25, 4px);
 }
 </style>
