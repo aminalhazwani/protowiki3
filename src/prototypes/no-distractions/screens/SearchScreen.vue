@@ -102,10 +102,11 @@ onBeforeUnmount(() => {
           clearable
         />
       </form>
-    </div>
 
-    <div v-if="loading" class="nd-search__loading">
-      <CdxProgressBar inline aria-label="Loading search results" />
+      <!-- Overlays the bar's bottom edge so results don't shift while loading. -->
+      <div v-if="loading" class="nd-search__loading">
+        <CdxProgressBar inline aria-label="Loading search results" />
+      </div>
     </div>
 
     <div class="nd-search__results">
@@ -129,6 +130,7 @@ onBeforeUnmount(() => {
 }
 
 .nd-search__bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
@@ -156,7 +158,10 @@ onBeforeUnmount(() => {
 }
 
 .nd-search__loading {
-  padding: var(--spacing-50, 8px);
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }
 
 .nd-search__results {
