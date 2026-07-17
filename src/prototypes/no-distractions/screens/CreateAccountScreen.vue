@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
+import { useKeyboardInset } from '@/composables/useKeyboardInset'
 
 import CreateAccountForm from '../components/CreateAccountForm.vue'
 
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+// Keep the email field / submit button reachable when the soft keyboard opens
+// inside in-app WebViews (e.g. Userlytics), which don't shrink the viewport.
+useKeyboardInset()
 
 function onSubmit({ username, email }: { username: string; email: string }): void {
   props.flow.goTo('welcome', {
