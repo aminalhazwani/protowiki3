@@ -4,30 +4,45 @@ import { nextTick, watch, type Ref } from 'vue'
  * Forces the browser to paint content inserted into `el` whenever `source`
  * changes.
  *
- * The problem: some in-app WebViews (e.g. the Userlytics test browser) skip
- * painting DOM that is added *while the soft keyboard is open*. Search results
- * fetched as the user types are inserted but never drawn — they only appear
- * after a layout-invalidating event such as dismissing the keyboard, and then
- * stay visible even if the keyboard reopens. Desktop Chrome (no soft keyboard)
- * never hits this.
+ * The problem: some in-app WebViews (e.g. the Userlytics test browser) only
+ * repaint on real user input events while a text field is focused, and drop the
+ * paint for DOM that JavaScript inserts asynchronously. So search results
+ * fetched as the user types are added to the DOM but never drawn — they appear
+ * only after the *next* input event (typing another character, or dismissing
+ * the keyboard), and then stay visible. Desktop Chrome never hits this.
  *
- * The fix: after Vue patches the DOM for a `source` change, nudge the target so
- * the WebView is forced to relayout + repaint its subtree. Toggling `display`
- * with a forced reflow in between guarantees the freshly-inserted rows are
- * painted immediately, without a visible flicker (both writes happen inside one
- * frame, so only the final state is presented).
+ * The fix: after Vue patches the DOM for a `source` change, force a repaint of
+ * the target subtree with two nudges that between them cover both layout- and
+ * compositor-level paint suppression:
+ *   1. A synchronous `display` toggle with a forced reflow — re-lays-out and
+ *      repaints the subtree in the current frame (no flicker: both writes land
+ *      before the frame is presented).
+ *   2. A one-frame `translateZ(0)` toggle — creates then drops a compositing
+ *      layer, forcing WebViews that suppress paints at the compositor level to
+ *      redraw.
+ *
+ * `el` must be a wrapper that does NOT contain the focused input, so toggling
+ * its `display` can't blur the field and dismiss the keyboard.
  */
 export function useRepaintOnChange(el: Ref<HTMLElement | null>, source: () => unknown): void {
   watch(source, () => {
     void nextTick(() => {
+      const node = el.value
+      if (!node) return
+
+      // 1. Layout-level: hide, read layout (forces reflow), restore.
+      const previousDisplay = node.style.display
+      node.style.display = 'none'
+      void node.offsetHeight
+      node.style.display = previousDisplay
+
+      // 2. Compositor-level: promote to its own layer for one frame, then drop
+      //    it — forces WebViews that only repaint on input events to redraw.
+      const previousTransform = node.style.transform
+      node.style.transform = `${previousTransform} translateZ(0)`.trim()
       requestAnimationFrame(() => {
-        const node = el.value
-        if (!node) return
-        const previous = node.style.display
-        node.style.display = 'none'
-        // Reading layout forces a synchronous reflow between the two writes.
-        void node.offsetHeight
-        node.style.display = previous
+        const current = el.value
+        if (current) current.style.transform = previousTransform
       })
     })
   })
