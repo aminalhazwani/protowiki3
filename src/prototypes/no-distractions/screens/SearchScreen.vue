@@ -7,6 +7,7 @@ import { cdxIconArrowPrevious } from '@wikimedia/codex-icons'
 import TitleSearchResults from '../components/TitleSearchResults.vue'
 import { fetchTitleSearchResults, type TitleSearchResult } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
+import { useRepaintOnChange } from '@/composables/useRepaintOnChange'
 
 const props = defineProps<{ flow: FlowState }>()
 
@@ -16,6 +17,11 @@ const query = ref('')
 const results = ref<TitleSearchResult[]>([])
 const loading = ref(false)
 const root = ref<HTMLElement | null>(null)
+const resultsEl = ref<HTMLElement | null>(null)
+
+// Some in-app WebViews (Userlytics) don't paint results inserted while the soft
+// keyboard is open; force a repaint whenever the result set changes.
+useRepaintOnChange(resultsEl, () => results.value)
 
 let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -109,7 +115,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="nd-search__results">
+    <div ref="resultsEl" class="nd-search__results">
       <TitleSearchResults
         v-if="results.length"
         layout="detached"
