@@ -49,6 +49,14 @@ watch(query, (term) => {
   debounceTimer = setTimeout(() => void fetchSuggestions(term), 200)
 })
 
+// Codex's `v-model` (like Vue's) does not update during IME composition, so on
+// predictive mobile keyboards `query` wouldn't change until the word is
+// committed (space/punctuation). Read the raw input value on every keystroke so
+// search runs as the user types. See emitted `input` event on CdxTextInput.
+function onInput(event: Event): void {
+  query.value = (event.target as HTMLInputElement).value
+}
+
 function read(title: string): void {
   const trimmed = title.trim()
   if (!trimmed.length) return
@@ -98,6 +106,7 @@ onBeforeUnmount(() => {
           class="nd-search__input"
           input-type="search"
           placeholder="Search Wikipedia"
+          @input="onInput"
           aria-label="Search Wikipedia"
           clearable
         />
