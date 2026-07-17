@@ -49,8 +49,8 @@ export function useKeyboardInset(): void {
     setInset(measuredInset())
   }
 
-  function onFocusIn(event: FocusEvent): void {
-    if (!isTextEntry(event.target)) return
+  function applyInsetFor(target: EventTarget | null): void {
+    if (!isTextEntry(target)) return
     // If the viewport already shrank for the keyboard, that measurement wins;
     // otherwise the WebView isn't reporting it, so force a fallback inset.
     if (measuredInset() <= 0) {
@@ -58,10 +58,14 @@ export function useKeyboardInset(): void {
     }
     // Let the padding apply, then bring the focused field into view.
     requestAnimationFrame(() => {
-      if (event.target instanceof HTMLElement) {
-        event.target.scrollIntoView({ block: 'center' })
+      if (target instanceof HTMLElement) {
+        target.scrollIntoView({ block: 'center' })
       }
     })
+  }
+
+  function onFocusIn(event: FocusEvent): void {
+    applyInsetFor(event.target)
   }
 
   function onFocusOut(): void {
@@ -80,6 +84,13 @@ export function useKeyboardInset(): void {
     viewport?.addEventListener('scroll', onViewportChange)
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
+    // A field may already be focused before this listener attached — notably the
+    // autofocused username field, whose focus fires on child mount, before this
+    // parent's onMounted. Apply the inset for it now so the very first field is
+    // reachable, not just the next one the user taps.
+    if (isTextEntry(document.activeElement)) {
+      applyInsetFor(document.activeElement)
+    }
   })
 
   onBeforeUnmount(() => {
