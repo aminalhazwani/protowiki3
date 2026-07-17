@@ -8,6 +8,7 @@ import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
 import SavePagesSheet from '../components/SavePagesSheet.vue'
 import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
+import { resolveArticleLink } from '../data/articleLinks'
 import { useArticleHtml } from '../data/useArticleHtml'
 import { useBrandTo } from '../data/useBrandTo'
 import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
@@ -46,6 +47,37 @@ function onGoHome(): void {
   dismissReturnHomeBanner()
   void props.flow.goTo('home')
 }
+
+// Links inside the rendered article are Wikipedia's own anchors (Parsoid HTML).
+// Keep the reading experience self-contained: open real articles via the same
+// path the search bar uses, and never let a link navigate the window away.
+function onArticleLinkClick(event: MouseEvent): void {
+  const anchor = (event.target as HTMLElement).closest('a')
+  if (!anchor) return
+
+  const target = resolveArticleLink(anchor)
+
+  // Bare in-page fragment: let the browser scroll natively.
+  if (target.kind === 'in-page') return
+
+  // Everything else would navigate the window away from the prototype.
+  event.preventDefault()
+
+  // External links and non-article namespaces (Special:, File:, …) are inert.
+  if (target.kind === 'inert') return
+
+  const sameArticle = target.title.replace(/_/g, ' ') === displayTitle.value
+  if (sameArticle) {
+    // Footnote / section link on the current page: scroll to it in place rather
+    // than reloading the article (Parsoid ships these as `./Title#fragment`).
+    if (target.fragment) {
+      document.getElementById(target.fragment)?.scrollIntoView({ block: 'center' })
+    }
+    return
+  }
+
+  void props.flow.goTo('read', { title: target.title })
+}
 </script>
 
 <template>
@@ -73,7 +105,7 @@ function onGoHome(): void {
         Couldn't load this article: {{ error }}
       </CdxMessage>
 
-      <ArticleRenderer v-if="html !== null" skin="mobile">
+      <ArticleRenderer v-if="html !== null" skin="mobile" @click="onArticleLinkClick">
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div v-html="html" />
       </ArticleRenderer>
