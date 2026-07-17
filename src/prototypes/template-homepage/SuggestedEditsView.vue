@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxInfoChip } from '@wikimedia/codex'
 import {
   cdxIconArrowNext,
   cdxIconChart,
@@ -13,16 +13,7 @@ import {
   cdxIconRobot,
 } from '@wikimedia/codex-icons'
 
-import difficultyEasyIcon from './suggested-edits/data/assets/difficulty-easy.svg'
-import difficultyHardIcon from './suggested-edits/data/assets/difficulty-hard.svg'
-import difficultyMediumIcon from './suggested-edits/data/assets/difficulty-medium.svg'
 import { CHANGE_SIZE_COLORS, type SuggestionDescriptionPart } from './suggested-edits/data/veSuggestions'
-
-const difficultyIcons = {
-  easy: difficultyEasyIcon,
-  medium: difficultyMediumIcon,
-  hard: difficultyHardIcon,
-} as const
 
 interface Props {
   showFilterBar?: boolean
@@ -105,6 +96,25 @@ const showLoadPrompt = computed(() => props.loadPending && !hasPreview.value)
 
 const taskTypeColor = computed(() =>
   props.taskDifficulty ? CHANGE_SIZE_COLORS[props.taskDifficulty] : '#14866d',
+)
+
+const difficultyChipStatus = computed(() => {
+  switch (props.taskDifficulty) {
+    case 'easy':
+      return 'success'
+    case 'medium':
+      return 'warning'
+    case 'hard':
+      return 'error'
+    default:
+      return 'notice'
+  }
+})
+
+const difficultyChipLabel = computed(() =>
+  props.taskDifficulty
+    ? props.taskDifficulty.charAt(0).toUpperCase() + props.taskDifficulty.slice(1)
+    : '',
 )
 
 const hasTaskDescription = computed(
@@ -250,14 +260,13 @@ function onOpenInterests(): void {
               size="small"
               class="suggested-edits-view__task-meta-icon"
             />
-            <img
+            <CdxInfoChip
               v-if="taskDifficulty"
-              class="suggested-edits-view__task-meta-icon suggested-edits-view__task-meta-icon--difficulty"
-              :src="difficultyIcons[taskDifficulty]"
-              :alt="`${taskDifficulty} difficulty`"
-              width="18"
-              height="18"
-            />
+              :status="difficultyChipStatus"
+              class="suggested-edits-view__task-difficulty-chip"
+            >
+              {{ difficultyChipLabel }}
+            </CdxInfoChip>
             <span v-if="taskTimeEstimate" class="suggested-edits-view__task-time">
               {{ taskTimeEstimate }}
             </span>
@@ -609,9 +618,12 @@ function onOpenInterests(): void {
   color: inherit;
 }
 
-.suggested-edits-view__task-meta-icon--difficulty {
-  width: 18px;
-  height: 18px;
+/*
+ * Codex forces a status icon on success/warning/error chips and ignores the
+ * `icon` prop, so hide it here to keep the requested icon-free difficulty chip.
+ */
+.suggested-edits-view__task-difficulty-chip :deep(.cdx-info-chip__icon--vue) {
+  display: none;
 }
 
 .suggested-edits-view__task-time {
