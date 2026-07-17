@@ -78,6 +78,14 @@ watch(search, (term) => {
   debounceTimer = setTimeout(() => void fetchSuggestions(term), 200)
 })
 
+// Codex's `v-model` (like Vue's) does not update during IME composition, so on
+// predictive mobile keyboards `search` wouldn't change until the word is
+// committed (space/punctuation). Read the raw input value on every keystroke so
+// search runs as the user types. See emitted `input` event on CdxSearchInput.
+function onInput(event: Event): void {
+  search.value = (event.target as HTMLInputElement).value
+}
+
 function addInterest(title: string): void {
   const trimmed = title.trim()
   if (!trimmed.length) return
@@ -110,6 +118,7 @@ onBeforeUnmount(() => {
             :class="{ 'interests__input--with-results': results.length > 0 }"
             placeholder="Search articles or topics"
             aria-label="Search articles or topics"
+            @input="onInput"
             @submit="addInterest(search)"
           />
 

@@ -53,6 +53,9 @@ const viewProps = computed(() => {
     editHref: suggestion?.articleTitle
       ? wikiEditUrlFromLang(lang.value, suggestion.articleTitle)
       : undefined,
+    // Research prototype: keep the Edit affordances visible but never send
+    // participants to a live Wikipedia edit page.
+    blockEditNavigation: true,
     loadPending: loadPending.value,
     showRefresh: showRefresh.value,
     refreshing: loading.value,

@@ -14,7 +14,12 @@ import {
 } from '@/lib/fetchUserEditedPageTitles'
 import { DEFAULT_MLT_CUSTOM } from '@/lib/morelikeMlt'
 
-import { resolveTaskForSignals, type TaskColor } from './microtaskCatalog'
+import {
+  DIFFICULTY_RANK,
+  resolveTaskForSignals,
+  type TaskColor,
+  type TaskDifficulty,
+} from './microtaskCatalog'
 
 export interface Suggestion {
   title: string
@@ -23,6 +28,7 @@ export interface Suggestion {
   taskHeading: string
   taskDescription: string
   taskColor: TaskColor
+  taskDifficulty: TaskDifficulty
 }
 
 export interface SuggestionsState {
@@ -181,7 +187,7 @@ function createState(): SuggestionsState {
       { lang, signal },
     )
 
-    return hits.flatMap((hit) => {
+    const assigned = hits.flatMap((hit) => {
       const task = resolveTaskForSignals(signalsByTitle.get(normalizeTitleKey(hit.title)))
       if (!task) return []
 
@@ -193,9 +199,16 @@ function createState(): SuggestionsState {
           taskHeading: task.heading,
           taskDescription: task.description,
           taskColor: task.color,
+          taskDifficulty: task.difficulty,
         },
       ]
     })
+
+    // Order easy → medium → hard so quicker edits surface first. Array.sort is
+    // stable, so same-difficulty tasks keep their relevance (morelike) order.
+    return assigned.sort(
+      (a, b) => DIFFICULTY_RANK[a.taskDifficulty] - DIFFICULTY_RANK[b.taskDifficulty],
+    )
   }
 
   async function resolveSeeds(signal: AbortSignal): Promise<string[] | null> {

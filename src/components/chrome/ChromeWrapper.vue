@@ -145,6 +145,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--background-color-base, #fff);
   color: var(--color-base, #202122);
 }
@@ -155,5 +156,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
   width: 100%;
   margin: 0 auto;
   padding: 0 0;
+  /* Room to scroll fields/button above the soft keyboard in in-app WebViews (see useKeyboardInset). */
+  padding-bottom: var(--keyboard-inset, 0px);
 }
 </style>

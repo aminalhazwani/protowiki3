@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxInfoChip } from '@wikimedia/codex'
 import {
   cdxIconArrowNext,
   cdxIconChart,
@@ -13,16 +13,7 @@ import {
   cdxIconRobot,
 } from '@wikimedia/codex-icons'
 
-import difficultyEasyIcon from './suggested-edits/data/assets/difficulty-easy.svg'
-import difficultyHardIcon from './suggested-edits/data/assets/difficulty-hard.svg'
-import difficultyMediumIcon from './suggested-edits/data/assets/difficulty-medium.svg'
 import { CHANGE_SIZE_COLORS, type SuggestionDescriptionPart } from './suggested-edits/data/veSuggestions'
-
-const difficultyIcons = {
-  easy: difficultyEasyIcon,
-  medium: difficultyMediumIcon,
-  hard: difficultyHardIcon,
-} as const
 
 interface Props {
   showFilterBar?: boolean
@@ -50,6 +41,12 @@ interface Props {
   canGoNext?: boolean
   taskDifficulty?: 'easy' | 'medium' | 'hard'
   editHref?: string
+  /**
+   * When true, the edit card and Edit button render as usual but never
+   * navigate to the real wiki — for research sessions where participants
+   * must not reach live Wikipedia edit pages.
+   */
+  blockEditNavigation?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -78,6 +75,7 @@ const props = withDefaults(defineProps<Props>(), {
   canGoNext: false,
   taskDifficulty: undefined,
   editHref: undefined,
+  blockEditNavigation: false,
 })
 
 const emit = defineEmits<{
@@ -97,6 +95,12 @@ const totalCountLabel = computed(() => {
 
 const taskTitle = computed(() => props.taskHeading ?? props.taskTypeLabel)
 
+// A real, followable edit link only when we have a target AND navigation is
+// not blocked for research. When blocked, the elements still render (identical
+// look) but carry no href/target, so no click, ⌘/middle-click, or context-menu
+// "open in new tab" can reach live Wikipedia.
+const editNavigable = computed(() => !!props.editHref && !props.blockEditNavigation)
+
 const hasPreview = computed(
   () => !!props.articleTitle && (!!taskTitle.value || !!props.emptyMessage),
 )
@@ -105,6 +109,25 @@ const showLoadPrompt = computed(() => props.loadPending && !hasPreview.value)
 
 const taskTypeColor = computed(() =>
   props.taskDifficulty ? CHANGE_SIZE_COLORS[props.taskDifficulty] : '#14866d',
+)
+
+const difficultyChipStatus = computed(() => {
+  switch (props.taskDifficulty) {
+    case 'easy':
+      return 'success'
+    case 'medium':
+      return 'warning'
+    case 'hard':
+      return 'error'
+    default:
+      return 'notice'
+  }
+})
+
+const difficultyChipLabel = computed(() =>
+  props.taskDifficulty
+    ? props.taskDifficulty.charAt(0).toUpperCase() + props.taskDifficulty.slice(1)
+    : '',
 )
 
 const hasTaskDescription = computed(
@@ -204,16 +227,16 @@ function onOpenInterests(): void {
           v-bind="
             editHref
               ? {
-                  href: editHref,
-                  target: '_blank',
-                  rel: 'noreferrer noopener',
+                  href: editNavigable ? editHref : undefined,
+                  target: editNavigable ? '_blank' : undefined,
+                  rel: editNavigable ? 'noreferrer noopener' : undefined,
                   'aria-label': `Edit ${articleTitle}`,
-                  'aria-disabled': refreshing ? 'true' : undefined,
-                  tabindex: refreshing ? -1 : undefined,
+                  'aria-disabled': refreshing || !editNavigable ? 'true' : undefined,
+                  tabindex: refreshing || !editNavigable ? -1 : undefined,
                 }
               : {}
           "
-          @click="editHref && refreshing ? $event.preventDefault() : undefined"
+          @click="editHref && (refreshing || !editNavigable) ? $event.preventDefault() : undefined"
         >
           <div v-if="thumbnailSrc" class="suggested-edits-view__card-image-wrap">
             <img class="suggested-edits-view__card-image" :src="thumbnailSrc" alt="" />
@@ -250,14 +273,13 @@ function onOpenInterests(): void {
               size="small"
               class="suggested-edits-view__task-meta-icon"
             />
-            <img
+            <CdxInfoChip
               v-if="taskDifficulty"
-              class="suggested-edits-view__task-meta-icon suggested-edits-view__task-meta-icon--difficulty"
-              :src="difficultyIcons[taskDifficulty]"
-              :alt="`${taskDifficulty} difficulty`"
-              width="18"
-              height="18"
-            />
+              :status="difficultyChipStatus"
+              class="suggested-edits-view__task-difficulty-chip"
+            >
+              {{ difficultyChipLabel }}
+            </CdxInfoChip>
             <span v-if="taskTimeEstimate" class="suggested-edits-view__task-time">
               {{ taskTimeEstimate }}
             </span>
@@ -303,12 +325,12 @@ function onOpenInterests(): void {
       <a
         v-if="editHref"
         class="suggested-edits-view__edit-link"
-        :href="editHref"
-        target="_blank"
-        rel="noreferrer noopener"
-        :aria-disabled="refreshing ? 'true' : undefined"
-        :tabindex="refreshing ? -1 : undefined"
-        @click="refreshing ? $event.preventDefault() : undefined"
+        :href="editNavigable ? editHref : undefined"
+        :target="editNavigable ? '_blank' : undefined"
+        :rel="editNavigable ? 'noreferrer noopener' : undefined"
+        :aria-disabled="refreshing || !editNavigable ? 'true' : undefined"
+        :tabindex="refreshing || !editNavigable ? -1 : undefined"
+        @click="refreshing || !editNavigable ? $event.preventDefault() : undefined"
       >
         <CdxButton
           action="progressive"
@@ -609,9 +631,12 @@ function onOpenInterests(): void {
   color: inherit;
 }
 
-.suggested-edits-view__task-meta-icon--difficulty {
-  width: 18px;
-  height: 18px;
+/*
+ * Codex forces a status icon on success/warning/error chips and ignores the
+ * `icon` prop, so hide it here to keep the requested icon-free difficulty chip.
+ */
+.suggested-edits-view__task-difficulty-chip :deep(.cdx-info-chip__icon--vue) {
+  display: none;
 }
 
 .suggested-edits-view__task-time {

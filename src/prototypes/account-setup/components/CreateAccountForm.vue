@@ -656,7 +656,12 @@ const confirmPasswordMessage = computed(() => {
   return null
 })
 
-function onUsernameInput() {
+function onUsernameInput(event) {
+  // Codex/Vue `v-model` doesn't update during IME composition, so on predictive
+  // mobile keyboards `form.username` would stay stale until the word is committed
+  // (space/punctuation) — the availability check never starts. Read the raw input
+  // value so validation runs as the user types.
+  if (event?.target) form.username = event.target.value
   applyAutoCapitalize()
   usernameSuggested.value = false
 

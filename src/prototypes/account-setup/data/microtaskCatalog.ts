@@ -186,7 +186,8 @@ export interface SuggestionFilterOption {
   difficulty: TaskDifficulty
 }
 
-const DIFFICULTY_RANK: Record<TaskDifficulty, number> = { easy: 0, medium: 1, hard: 2 }
+/** Sort/group order for task difficulty: easy first, hard last. */
+export const DIFFICULTY_RANK: Record<TaskDifficulty, number> = { easy: 0, medium: 1, hard: 2 }
 
 /**
  * One entry per unique task heading, for the suggested-edits filter sheet.

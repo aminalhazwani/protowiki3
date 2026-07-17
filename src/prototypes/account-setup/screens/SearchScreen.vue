@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { CdxButton, CdxIcon, CdxTextInput } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxProgressBar, CdxTextInput } from '@wikimedia/codex'
 import { cdxIconArrowPrevious } from '@wikimedia/codex-icons'
 
 import TitleSearchResults from '../components/TitleSearchResults.vue'
@@ -49,6 +49,14 @@ watch(query, (term) => {
   debounceTimer = setTimeout(() => void fetchSuggestions(term), 200)
 })
 
+// Codex's `v-model` (like Vue's) does not update during IME composition, so on
+// predictive mobile keyboards `query` wouldn't change until the word is
+// committed (space/punctuation). Read the raw input value on every keystroke so
+// search runs as the user types. See emitted `input` event on CdxTextInput.
+function onInput(event: Event): void {
+  query.value = (event.target as HTMLInputElement).value
+}
+
 function read(title: string): void {
   const trimmed = title.trim()
   if (!trimmed.length) return
@@ -91,16 +99,23 @@ onBeforeUnmount(() => {
         <CdxIcon :icon="cdxIconArrowPrevious" />
       </CdxButton>
 
-      <form class="nd-search__field" @submit.prevent="read(query)">
+      <!-- No-op submit: Enter must not open an article. Users pick a result. -->
+      <form class="nd-search__field" @submit.prevent>
         <CdxTextInput
           v-model="query"
           class="nd-search__input"
           input-type="search"
           placeholder="Search Wikipedia"
+          @input="onInput"
           aria-label="Search Wikipedia"
           clearable
         />
       </form>
+
+      <!-- Overlays the bar's bottom edge so results don't shift while loading. -->
+      <div v-if="loading" class="nd-search__loading">
+        <CdxProgressBar inline aria-label="Loading search results" />
+      </div>
     </div>
 
     <div class="nd-search__results">
@@ -124,6 +139,7 @@ onBeforeUnmount(() => {
 }
 
 .nd-search__bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
@@ -148,6 +164,13 @@ onBeforeUnmount(() => {
 
 .nd-search__input {
   width: 100%;
+}
+
+.nd-search__loading {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }
 
 .nd-search__results {
