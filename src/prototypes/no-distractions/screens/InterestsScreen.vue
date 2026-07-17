@@ -4,7 +4,6 @@ import { CdxButton, CdxIcon, CdxSearchInput, CdxToggleSwitch } from '@wikimedia/
 import { cdxIconSubtract } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
-import { useRepaintOnChange } from '@/composables/useRepaintOnChange'
 import { normalizeTitleKey } from '@/lib/fetchMorelike'
 
 import InterestSuggestions from '../components/InterestSuggestions.vue'
@@ -36,12 +35,6 @@ function thumbFor(title: string): string | undefined {
 
 const search = ref('')
 const results = ref<TitleSearchResult[]>([])
-const resultsEl = ref<HTMLElement | null>(null)
-
-// Some in-app WebViews (Userlytics) don't paint results inserted while the soft
-// keyboard is open; force a repaint whenever the result set changes. Targets the
-// results wrapper only (not the field) so the input keeps focus.
-useRepaintOnChange(resultsEl, () => results.value)
 
 let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -120,14 +113,12 @@ onBeforeUnmount(() => {
             @submit="addInterest(search)"
           />
 
-          <div ref="resultsEl">
-            <TitleSearchResults
-              v-if="results.length"
-              layout="attached"
-              :results="results"
-              @select="addInterest"
-            />
-          </div>
+          <TitleSearchResults
+            v-if="results.length"
+            layout="attached"
+            :results="results"
+            @select="addInterest"
+          />
         </div>
 
         <ul class="interests__chips">
