@@ -89,6 +89,9 @@ const viewProps = computed(() => {
       ? TIME_ESTIMATE_BY_HEADING[suggestion.taskHeading] ?? DEFAULT_TIME_ESTIMATE
       : undefined,
     editHref: suggestion?.title ? wikiEditUrlFromLang(lang.value, suggestion.title) : undefined,
+    // Research prototype: keep the card + Edit affordances visible but never send
+    // usability-test participants to a live Wikipedia edit page.
+    blockEditNavigation: true,
     refreshing: loading.value && !total.value,
     refreshError: error.value,
     emptyMessage:
