@@ -29,10 +29,19 @@ const GIF_START_DELAY_MS = 1000
  * for the animated GIF — the unique query forces the browser to (re)load from
  * frame 1 so it plays once each time Welcome is opened (screens are v-if-mounted).
  * The animated file is preloaded during the hold so the swap doesn't flash.
+ *
+ * When the user prefers reduced motion we never swap: the static poster is the
+ * final state, so no preload or timer is scheduled.
  */
 const heroSrc = ref(POSTER)
 let startTimer: ReturnType<typeof setTimeout> | null = null
 onMounted(() => {
+  const prefersReduced =
+    typeof window !== 'undefined' &&
+    !!window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (prefersReduced) return // keep the static poster, no animation
+
   const animated = `${GLOBE}?t=${Date.now()}`
   new Image().src = animated // warm the cache so the poster -> GIF swap is seamless
   startTimer = setTimeout(() => {
