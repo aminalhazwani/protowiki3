@@ -189,6 +189,58 @@ export interface SuggestionFilterOption {
 /** Sort/group order for task difficulty: easy first, hard last. */
 export const DIFFICULTY_RANK: Record<TaskDifficulty, number> = { easy: 0, medium: 1, hard: 2 }
 
+/** Human labels for the difficulty group headings in the edit-types dialog. */
+export const DIFFICULTY_LABELS: Record<TaskDifficulty, string> = {
+  easy: 'Easy',
+  medium: 'Medium',
+  hard: 'Hard',
+}
+
+export interface EditTypeDialogOption {
+  /** Task heading — the stable key shared with {@link SUGGESTION_FILTER_OPTIONS} and useSuggestionFilters. */
+  heading: string
+  /** Full label shown in the "Select types of edits" dialog. */
+  label: string
+  /** Optional secondary line under the label (e.g. "Machine suggestions"). */
+  subtitle?: string
+  difficulty: TaskDifficulty
+}
+
+/**
+ * Edit types surfaced in the "Select types of edits" dialog, matching the
+ * production UI. `heading` matches a {@link TASK_CATALOG} entry so filtering
+ * stays keyed on the shared heading; `label`/`subtitle` are display-only.
+ */
+export const EDIT_TYPE_DIALOG_OPTIONS: EditTypeDialogOption[] = [
+  {
+    heading: 'Add links between articles',
+    label: 'Add links between articles',
+    subtitle: 'Machine suggestions',
+    difficulty: 'easy',
+  },
+  {
+    heading: 'Revise tone',
+    label: 'Revise tone',
+    subtitle: 'Machine suggestions',
+    difficulty: 'easy',
+  },
+  {
+    heading: 'Find references',
+    label: 'Find references (sources for existing articles)',
+    difficulty: 'medium',
+  },
+  {
+    heading: 'Update articles',
+    label: 'Update articles (bring existing articles up-to-date)',
+    difficulty: 'medium',
+  },
+  {
+    heading: 'Expand short articles',
+    label: 'Expand short articles',
+    difficulty: 'hard',
+  },
+]
+
 /**
  * One entry per unique task heading, for the suggested-edits filter sheet.
  * When several catalog entries share a heading (e.g. the two link task types),

@@ -8,7 +8,10 @@ import SuggestedEditsView from '@/prototypes/template-homepage/SuggestedEditsVie
 import { useConfig } from '@/composables/useConfig'
 import { wikiEditUrlFromLang } from '@/config'
 
+import EditTypesDialog from '../components/EditTypesDialog.vue'
 import { fetchPageviewsLast60Days } from '../data/fetchPageviews'
+import { DIFFICULTY_LABELS, EDIT_TYPE_DIALOG_OPTIONS } from '../data/microtaskCatalog'
+import { useSuggestionFilters } from '../data/useSuggestionFilters'
 import { useSuggestions, type Suggestion } from '../data/useSuggestions'
 import type { FlowState } from '../data/useFlowState'
 
@@ -23,15 +26,34 @@ const props = defineProps<{ flow: FlowState }>()
 const route = useRoute()
 const { lang } = useConfig()
 const { suggestions, loading, error } = useSuggestions()
+const { isEnabled } = useSuggestionFilters()
 
 const currentIndex = ref(0)
+const showEditTypes = ref(false)
 
-const total = computed(() => suggestions.value.length)
-const current = computed<Suggestion | null>(() => suggestions.value[currentIndex.value] ?? null)
+// Suggestions kept enabled in the "Select types of edits" dialog.
+const visibleSuggestions = computed(() =>
+  suggestions.value.filter((suggestion) => isEnabled(suggestion.taskHeading)),
+)
 
-// Keep the index in range as the (async) list settles or shrinks.
+const total = computed(() => visibleSuggestions.value.length)
+const current = computed<Suggestion | null>(
+  () => visibleSuggestions.value[currentIndex.value] ?? null,
+)
+
+// Keep the index in range as the (async) list settles, or the filter shrinks it.
 watch(total, (count) => {
   if (currentIndex.value > count - 1) currentIndex.value = Math.max(0, count - 1)
+})
+
+// Difficulty-cell label: the distinct tiers the user still has enabled.
+const difficultyFilterLabel = computed(() => {
+  const tiers = (['easy', 'medium', 'hard'] as const).filter((difficulty) =>
+    EDIT_TYPE_DIALOG_OPTIONS.some(
+      (option) => option.difficulty === difficulty && isEnabled(option.heading),
+    ),
+  )
+  return tiers.length ? tiers.map((difficulty) => DIFFICULTY_LABELS[difficulty]).join(', ') : 'None'
 })
 
 const DIFFICULTY_BY_COLOR = { green: 'easy', amber: 'medium' } as const
@@ -74,19 +96,19 @@ const viewProps = computed(() => {
   return {
     showFilterBar: true,
     topicFilter: 'Interests',
-    difficultyFilter: 'Easy, Medium',
+    difficultyFilter: difficultyFilterLabel.value,
+    difficultyFilterInteractive: true,
     currentIndex: currentIndex.value,
     totalCount: total.value || 1,
     articleTitle: suggestion?.title,
     articleShortDescription: suggestion?.description,
     thumbnailSrc: suggestion?.thumbnailSrc,
-    pageviewsLabel:
-      views != null ? `${views.toLocaleString()} visits (past 60 days)` : undefined,
+    pageviewsLabel: views != null ? `${views.toLocaleString()} visits (past 60 days)` : undefined,
     taskHeading: suggestion?.taskHeading,
     taskDescription: suggestion?.taskDescription,
     taskDifficulty: suggestion ? DIFFICULTY_BY_COLOR[suggestion.taskColor] : undefined,
     taskTimeEstimate: suggestion
-      ? TIME_ESTIMATE_BY_HEADING[suggestion.taskHeading] ?? DEFAULT_TIME_ESTIMATE
+      ? (TIME_ESTIMATE_BY_HEADING[suggestion.taskHeading] ?? DEFAULT_TIME_ESTIMATE)
       : undefined,
     editHref: suggestion?.title ? wikiEditUrlFromLang(lang.value, suggestion.title) : undefined,
     // Research prototype: keep the card + Edit affordances visible but never send
@@ -96,7 +118,9 @@ const viewProps = computed(() => {
     refreshError: error.value,
     emptyMessage:
       !loading.value && !total.value
-        ? 'No suggestions yet — add an interest to get started.'
+        ? suggestions.value.length > 0
+          ? 'No suggestions match the selected edit types.'
+          : 'No suggestions yet — add an interest to get started.'
         : undefined,
     canGoPrev: currentIndex.value > 0,
     canGoNext: currentIndex.value < total.value - 1,
@@ -131,8 +155,11 @@ function onOpenInterests(): void {
           v-bind="viewProps"
           @navigate="onNavigate"
           @open-interests="onOpenInterests"
+          @open-difficulty="showEditTypes = true"
         />
       </div>
+
+      <EditTypesDialog v-model:open="showEditTypes" />
     </div>
   </TaskFullscreenShell>
 </template>

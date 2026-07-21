@@ -13,7 +13,10 @@ import {
   cdxIconRobot,
 } from '@wikimedia/codex-icons'
 
-import { CHANGE_SIZE_COLORS, type SuggestionDescriptionPart } from './suggested-edits/data/veSuggestions'
+import {
+  CHANGE_SIZE_COLORS,
+  type SuggestionDescriptionPart,
+} from './suggested-edits/data/veSuggestions'
 
 interface Props {
   showFilterBar?: boolean
@@ -47,6 +50,12 @@ interface Props {
    * must not reach live Wikipedia edit pages.
    */
   blockEditNavigation?: boolean
+  /**
+   * When true, the difficulty filter cell becomes a button that emits
+   * `open-difficulty` (for a "Select types of edits" dialog). Defaults to
+   * false, keeping the cell a static, non-interactive label.
+   */
+  difficultyFilterInteractive?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -76,6 +85,7 @@ const props = withDefaults(defineProps<Props>(), {
   taskDifficulty: undefined,
   editHref: undefined,
   blockEditNavigation: false,
+  difficultyFilterInteractive: false,
 })
 
 const emit = defineEmits<{
@@ -83,6 +93,7 @@ const emit = defineEmits<{
   refresh: []
   navigate: [delta: number]
   'open-interests': []
+  'open-difficulty': []
 }>()
 
 const displayIndex = computed(() => (props.currentIndex ?? 0) + 1)
@@ -149,6 +160,10 @@ function onNavigate(delta: number): void {
 function onOpenInterests(): void {
   emit('open-interests')
 }
+
+function onOpenDifficulty(): void {
+  emit('open-difficulty')
+}
 </script>
 
 <template>
@@ -160,7 +175,11 @@ function onOpenInterests(): void {
         aria-label="Suggestion filters"
       >
         <div class="suggested-edits-view__filter">
-          <CdxIcon :icon="cdxIconConfigure" size="small" class="suggested-edits-view__filter-icon" />
+          <CdxIcon
+            :icon="cdxIconConfigure"
+            size="small"
+            class="suggested-edits-view__filter-icon"
+          />
           <button
             type="button"
             class="suggested-edits-view__filter-trigger"
@@ -178,7 +197,25 @@ function onOpenInterests(): void {
         </div>
         <div class="suggested-edits-view__filter">
           <CdxIcon :icon="cdxIconLevelTwo" size="small" class="suggested-edits-view__filter-icon" />
-          <span class="suggested-edits-view__filter-trigger suggested-edits-view__filter-trigger--static">
+          <button
+            v-if="difficultyFilterInteractive"
+            type="button"
+            class="suggested-edits-view__filter-trigger"
+            :aria-label="`Difficulty filter: ${difficultyFilter}. Open edit type settings.`"
+            @click="onOpenDifficulty"
+          >
+            <span class="suggested-edits-view__filter-trigger-label">{{ difficultyFilter }}</span>
+            <CdxIcon
+              :icon="cdxIconDownTriangle"
+              size="small"
+              class="suggested-edits-view__filter-trigger-indicator"
+              aria-hidden="true"
+            />
+          </button>
+          <span
+            v-else
+            class="suggested-edits-view__filter-trigger suggested-edits-view__filter-trigger--static"
+          >
             <span class="suggested-edits-view__filter-trigger-label">{{ difficultyFilter }}</span>
             <CdxIcon
               :icon="cdxIconDownTriangle"

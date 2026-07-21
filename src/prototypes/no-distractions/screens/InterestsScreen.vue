@@ -6,6 +6,7 @@ import { cdxIconSubtract } from '@wikimedia/codex-icons'
 import { useConfig } from '@/composables/useConfig'
 import { normalizeTitleKey } from '@/lib/fetchMorelike'
 
+import DialogShell from '../components/DialogShell.vue'
 import InterestSuggestions from '../components/InterestSuggestions.vue'
 import TitleSearchResults from '../components/TitleSearchResults.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
@@ -40,7 +41,13 @@ let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const interests = computed(() => props.flow.interests.value)
-const configureMode = computed(() => props.flow.returnTo.value !== '')
+// Captured once at mount, deliberately NOT reactive: an instance is created
+// either as the onboarding step (returnTo empty) or as the configure dialog
+// (returnTo set) and keeps that role for its whole life. Reading returnTo live
+// would flip the root element from DialogShell back to the ob-page <section>
+// during the leave transition — `finishInterests` clears returnTo on Done — which
+// strands the outgoing view mid-transition and leaves a blank screen.
+const configureMode = ref(props.flow.returnTo.value !== '')
 const showEditingHistoryToggle = computed(() => configureMode.value && user.value === 'real')
 
 async function finishInterests(): Promise<void> {
@@ -106,10 +113,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="ob-page">
-    <h1 class="ob-title">What are your main interests?</h1>
+  <component
+    :is="configureMode ? DialogShell : 'section'"
+    :class="configureMode ? undefined : 'ob-page'"
+    :title="configureMode ? 'Interests' : undefined"
+    :overlay="configureMode ? false : undefined"
+    @close="finishInterests"
+    @done="finishInterests"
+  >
+    <h1 v-if="!configureMode" class="ob-title">What are your main interests?</h1>
 
-    <div class="ob-body">
+    <div :class="configureMode ? 'interests__configure-body' : 'ob-body'">
       <div class="interests__fields">
         <div class="interests__search">
           <CdxSearchInput
@@ -167,23 +181,20 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="ob-actions">
-        <template v-if="configureMode">
-          <CdxButton action="progressive" weight="primary" @click="finishInterests">
-            Done
-          </CdxButton>
-        </template>
-        <template v-else>
-          <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('home')">
-            Go to your Home
-          </CdxButton>
-        </template>
+      <div v-if="!configureMode" class="ob-actions">
+        <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('home')">
+          Go to your Home
+        </CdxButton>
       </div>
     </div>
-  </div>
+  </component>
 </template>
 
 <style scoped>
+.interests__configure-body {
+  padding: var(--spacing-100, 16px);
+}
+
 .interests__fields {
   display: flex;
   flex-direction: column;
