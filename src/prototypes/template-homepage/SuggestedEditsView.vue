@@ -9,7 +9,9 @@ import {
   cdxIconEdit,
   cdxIconImage,
   cdxIconInfo,
+  cdxIconLevelOne,
   cdxIconLevelTwo,
+  cdxIconLevelThree,
   cdxIconRobot,
 } from '@wikimedia/codex-icons'
 
@@ -56,6 +58,12 @@ interface Props {
    * false, keeping the cell a static, non-interactive label.
    */
   difficultyFilterInteractive?: boolean
+  /**
+   * Difficulty level shown by the filter-cell icon (1 = LevelOne, 2 = LevelTwo,
+   * 3 = LevelThree) — typically the hardest edit type currently selected.
+   * Defaults to LevelTwo when unset.
+   */
+  difficultyLevel?: 1 | 2 | 3
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -86,6 +94,7 @@ const props = withDefaults(defineProps<Props>(), {
   editHref: undefined,
   blockEditNavigation: false,
   difficultyFilterInteractive: false,
+  difficultyLevel: undefined,
 })
 
 const emit = defineEmits<{
@@ -164,6 +173,17 @@ function onOpenInterests(): void {
 function onOpenDifficulty(): void {
   emit('open-difficulty')
 }
+
+const difficultyIcon = computed(() => {
+  switch (props.difficultyLevel) {
+    case 1:
+      return cdxIconLevelOne
+    case 3:
+      return cdxIconLevelThree
+    default:
+      return cdxIconLevelTwo
+  }
+})
 </script>
 
 <template>
@@ -175,17 +195,17 @@ function onOpenDifficulty(): void {
         aria-label="Suggestion filters"
       >
         <div class="suggested-edits-view__filter">
-          <CdxIcon
-            :icon="cdxIconConfigure"
-            size="small"
-            class="suggested-edits-view__filter-icon"
-          />
           <button
             type="button"
             class="suggested-edits-view__filter-trigger"
             :aria-label="`Topic filter: ${topicFilter}. Open interests settings.`"
             @click="onOpenInterests"
           >
+            <CdxIcon
+              :icon="cdxIconConfigure"
+              size="small"
+              class="suggested-edits-view__filter-icon"
+            />
             <span class="suggested-edits-view__filter-trigger-label">{{ topicFilter }}</span>
             <CdxIcon
               :icon="cdxIconDownTriangle"
@@ -196,7 +216,6 @@ function onOpenDifficulty(): void {
           </button>
         </div>
         <div class="suggested-edits-view__filter">
-          <CdxIcon :icon="cdxIconLevelTwo" size="small" class="suggested-edits-view__filter-icon" />
           <button
             v-if="difficultyFilterInteractive"
             type="button"
@@ -204,6 +223,11 @@ function onOpenDifficulty(): void {
             :aria-label="`Difficulty filter: ${difficultyFilter}. Open edit type settings.`"
             @click="onOpenDifficulty"
           >
+            <CdxIcon
+              :icon="difficultyIcon"
+              size="small"
+              class="suggested-edits-view__filter-icon"
+            />
             <span class="suggested-edits-view__filter-trigger-label">{{ difficultyFilter }}</span>
             <CdxIcon
               :icon="cdxIconDownTriangle"
@@ -216,6 +240,11 @@ function onOpenDifficulty(): void {
             v-else
             class="suggested-edits-view__filter-trigger suggested-edits-view__filter-trigger--static"
           >
+            <CdxIcon
+              :icon="difficultyIcon"
+              size="small"
+              class="suggested-edits-view__filter-icon"
+            />
             <span class="suggested-edits-view__filter-trigger-label">{{ difficultyFilter }}</span>
             <CdxIcon
               :icon="cdxIconDownTriangle"
@@ -434,11 +463,8 @@ function onOpenDifficulty(): void {
 
 .suggested-edits-view__filter {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-50, 8px);
   min-width: 0;
   min-height: 3rem;
-  padding-inline: var(--spacing-75, 12px);
 }
 
 .suggested-edits-view__filter + .suggested-edits-view__filter {
@@ -450,15 +476,18 @@ function onOpenDifficulty(): void {
   color: var(--color-subtle, #72777d);
 }
 
+/* The trigger fills the whole cell (icon + label + indicator) so the entire
+   cell is one tap target, not just the label. */
 .suggested-edits-view__filter-trigger {
   position: relative;
   display: flex;
   flex: 1;
   align-items: center;
+  gap: var(--spacing-50, 8px);
   width: 100%;
   min-width: 0;
   height: 3rem;
-  padding: 0 var(--spacing-150, 24px) 0 0;
+  padding: 0 var(--spacing-150, 24px) 0 var(--spacing-75, 12px);
   border: 0;
   border-radius: 0;
   background-color: transparent;
@@ -481,7 +510,7 @@ function onOpenDifficulty(): void {
 
 .suggested-edits-view__filter-trigger-indicator {
   position: absolute;
-  right: 0;
+  right: 8px;
   color: var(--color-subtle, #72777d);
 }
 

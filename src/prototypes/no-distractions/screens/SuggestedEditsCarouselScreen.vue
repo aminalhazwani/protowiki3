@@ -46,14 +46,28 @@ watch(total, (count) => {
   if (currentIndex.value > count - 1) currentIndex.value = Math.max(0, count - 1)
 })
 
-// Difficulty-cell label: the distinct tiers the user still has enabled.
-const difficultyFilterLabel = computed(() => {
-  const tiers = (['easy', 'medium', 'hard'] as const).filter((difficulty) =>
+// Distinct difficulty tiers the user still has enabled (easy → hard).
+const enabledTiers = computed(() =>
+  (['easy', 'medium', 'hard'] as const).filter((difficulty) =>
     EDIT_TYPE_DIALOG_OPTIONS.some(
       (option) => option.difficulty === difficulty && isEnabled(option.heading),
     ),
-  )
-  return tiers.length ? tiers.map((difficulty) => DIFFICULTY_LABELS[difficulty]).join(', ') : 'None'
+  ),
+)
+
+// Difficulty-cell label: the enabled tiers, e.g. "Easy, Medium".
+const difficultyFilterLabel = computed(() =>
+  enabledTiers.value.length
+    ? enabledTiers.value.map((difficulty) => DIFFICULTY_LABELS[difficulty]).join(', ')
+    : 'None',
+)
+
+// Filter-cell icon reflects the hardest tier selected (1/2/3 bars).
+const difficultyLevel = computed<1 | 2 | 3 | undefined>(() => {
+  if (enabledTiers.value.includes('hard')) return 3
+  if (enabledTiers.value.includes('medium')) return 2
+  if (enabledTiers.value.includes('easy')) return 1
+  return undefined
 })
 
 const DIFFICULTY_BY_COLOR = { green: 'easy', amber: 'medium' } as const
@@ -98,6 +112,7 @@ const viewProps = computed(() => {
     topicFilter: 'Interests',
     difficultyFilter: difficultyFilterLabel.value,
     difficultyFilterInteractive: true,
+    difficultyLevel: difficultyLevel.value,
     currentIndex: currentIndex.value,
     totalCount: total.value || 1,
     articleTitle: suggestion?.title,

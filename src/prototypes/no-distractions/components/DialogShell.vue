@@ -79,7 +79,6 @@ const titleId = useId()
   min-height: 0;
   box-sizing: border-box;
   width: 100%;
-  max-width: 412px;
   margin-inline: auto;
   background-color: var(--background-color-base, #fff);
   color: var(--color-base, #202122);
@@ -109,7 +108,6 @@ const titleId = useId()
 
 .dialog-shell__close {
   flex-shrink: 0;
-  margin-inline-start: calc(-1 * var(--spacing-25, 4px));
 }
 
 .dialog-shell__title {
