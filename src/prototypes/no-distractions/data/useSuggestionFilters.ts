@@ -9,18 +9,20 @@ export interface SuggestionFiltersState {
   isEnabled: (heading: string) => boolean
 }
 
-const ALL_HEADINGS = SUGGESTION_FILTER_OPTIONS.map((option) => option.heading)
+const EASY_HEADINGS = SUGGESTION_FILTER_OPTIONS.filter(
+  (option) => option.difficulty === 'easy',
+).map((option) => option.heading)
 
 let shared: SuggestionFiltersState | null = null
 
 /**
  * Shared suggested-edits filter state. Singleton (like {@link useSuggestions})
  * so the filter sheet in the sticky header and the list in AllSuggestionsScreen
- * read and write the same enabled set. All task types start enabled.
+ * read and write the same enabled set. Only easy task types start enabled.
  */
 export function useSuggestionFilters(): SuggestionFiltersState {
   if (!shared) {
-    const enabled = ref<string[]>([...ALL_HEADINGS])
+    const enabled = ref<string[]>([...EASY_HEADINGS])
     shared = {
       enabled,
       isEnabled: (heading: string) => enabled.value.includes(heading),

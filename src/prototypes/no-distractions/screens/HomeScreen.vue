@@ -8,6 +8,7 @@ import PageTabs from '@/components/PageTabs.vue'
 
 import SuggestedEditsModule from '../components/SuggestedEditsModule.vue'
 import { useSuggestions } from '../data/useSuggestions'
+import { useSuggestionFilters } from '../data/useSuggestionFilters'
 import { useBrandTo } from '../data/useBrandTo'
 import type { FlowState } from '../data/useFlowState'
 
@@ -25,7 +26,15 @@ const homeTabs = [
   { id: 'userpage', label: 'User page' },
   { id: 'talk', label: 'Talk' },
 ]
-const { suggestions, loading, error, count } = useSuggestions()
+const { suggestions, loading, error } = useSuggestions()
+const { isEnabled } = useSuggestionFilters()
+
+// Only count/preview suggestions whose edit type is enabled, so the "1 of N"
+// counter matches the carousel and reflects the (easy-by-default) filter.
+const visibleSuggestions = computed(() =>
+  suggestions.value.filter((suggestion) => isEnabled(suggestion.taskHeading)),
+)
+const count = computed(() => visibleSuggestions.value.length)
 
 function scrollToTop() {
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
@@ -60,7 +69,7 @@ onMounted(scrollToTop)
       </header>
 
       <SuggestedEditsModule
-        :suggestions="suggestions"
+        :suggestions="visibleSuggestions"
         :loading="loading"
         :error="error"
         :count="count"
