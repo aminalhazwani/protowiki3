@@ -121,13 +121,16 @@ defineEmits<{
   background-color: var(--background-color-interactive-subtle--hover, #eaecf0);
 }
 
-.interest-suggestions__chip:disabled {
+.interest-suggestions__chip:disabled,
+.interest-suggestions__chip:disabled:hover {
+  border-color: var(--border-color-disabled, #c8ccd1);
+  background-color: var(--background-color-disabled-subtle, #eaecf0);
   cursor: default;
-  opacity: 0.5;
 }
 
-.interest-suggestions__chip:disabled:hover {
-  background-color: var(--background-color-interactive-subtle, #f8f9fa);
+.interest-suggestions__chip:disabled .interest-suggestions__label,
+.interest-suggestions__chip:disabled .interest-suggestions__add {
+  color: var(--color-disabled, #a2a9b1);
 }
 
 .interest-suggestions__thumb {
