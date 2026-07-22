@@ -12,8 +12,9 @@ const props = withDefaults(
     suggestions: MorelikeSearchHit[]
     loading?: boolean
     source?: 'morelike' | 'random'
+    disabled?: boolean
   }>(),
-  { source: 'morelike' },
+  { source: 'morelike', disabled: false },
 )
 
 const heading = computed(() =>
@@ -47,6 +48,7 @@ defineEmits<{
         <button
           type="button"
           class="interest-suggestions__chip"
+          :disabled="disabled"
           :aria-label="`Add ${hit.title}`"
           @click="$emit('add', hit.title)"
         >
@@ -117,6 +119,15 @@ defineEmits<{
 
 .interest-suggestions__chip:hover {
   background-color: var(--background-color-interactive-subtle--hover, #eaecf0);
+}
+
+.interest-suggestions__chip:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.interest-suggestions__chip:disabled:hover {
+  background-color: var(--background-color-interactive-subtle, #f8f9fa);
 }
 
 .interest-suggestions__thumb {

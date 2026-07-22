@@ -52,6 +52,13 @@ let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const interests = computed(() => props.flow.interests.value)
+// The seed article (title param) is pre-populated as interest #1. The button
+// only turns progressive once the reader has picked an interest beyond it.
+const goHomeActive = computed(
+  () => interests.value.filter((t) => t !== props.flow.title.value).length >= 1,
+)
+// 3 is the cap shown in the heading; the seed counts toward it.
+const maxInterestsReached = computed(() => interests.value.length >= 3)
 // Captured once at mount, deliberately NOT reactive: an instance is created
 // either as the onboarding step (returnTo empty) or as the configure dialog
 // (returnTo set) and keeps that role for its whole life. Reading returnTo live
@@ -143,6 +150,7 @@ onBeforeUnmount(() => {
         <div class="interests__search">
           <CdxSearchInput
             v-model="search"
+            :disabled="maxInterestsReached"
             class="interests__input"
             :class="{ 'interests__input--with-results': results.length > 0 }"
             placeholder="Search articles or topics"
@@ -187,6 +195,7 @@ onBeforeUnmount(() => {
           :suggestions="suggestions"
           :loading="suggestionsLoading"
           :source="suggestionsSource"
+          :disabled="maxInterestsReached"
           @add="addInterest"
         />
 
@@ -203,7 +212,11 @@ onBeforeUnmount(() => {
       </div>
 
       <div v-if="!configureMode" class="ob-actions">
-        <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('home')">
+        <CdxButton
+          :action="goHomeActive ? 'progressive' : 'default'"
+          :weight="goHomeActive ? 'primary' : 'quiet'"
+          @click="props.flow.goTo('home')"
+        >
           Go to your Home
         </CdxButton>
       </div>
