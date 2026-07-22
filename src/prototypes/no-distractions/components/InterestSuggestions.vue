@@ -1,13 +1,22 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { CdxIcon } from '@wikimedia/codex'
 import { cdxIconAdd } from '@wikimedia/codex-icons'
 
 import type { MorelikeSearchHit } from '@/lib/fetchMorelike'
 
-defineProps<{
-  suggestions: MorelikeSearchHit[]
-  loading?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    suggestions: MorelikeSearchHit[]
+    loading?: boolean
+    source?: 'morelike' | 'random'
+  }>(),
+  { source: 'morelike' },
+)
+
+const heading = computed(() =>
+  props.source === 'random' ? 'Random articles' : 'Related articles',
+)
 
 defineEmits<{
   add: [title: string]
@@ -16,7 +25,7 @@ defineEmits<{
 
 <template>
   <section v-if="suggestions.length" class="interest-suggestions">
-    <h2 class="interest-suggestions__heading">Related articles</h2>
+    <h2 class="interest-suggestions__heading">{{ heading }}</h2>
     <ul class="interest-suggestions__list">
       <li v-for="hit in suggestions" :key="hit.title">
         <button
@@ -63,15 +72,16 @@ defineEmits<{
 
 .interest-suggestions__list li {
   margin-block: 0;
+  max-width: 100%;
 }
 
 .interest-suggestions__chip {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
+  max-width: 100%;
   min-height: 2.75rem;
-  padding: var(--spacing-50, 8px) var(--spacing-75, 12px) var(--spacing-50, 8px)
-    var(--spacing-100, 16px);
+  padding: var(--spacing-25, 4px) var(--spacing-50, 8px) var(--spacing-25, 4px) 14px;
   border: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
   border-radius: var(--border-radius-pill, 9999px);
   background-color: var(--background-color-interactive-subtle, #f8f9fa);
@@ -103,9 +113,13 @@ defineEmits<{
 }
 
 .interest-suggestions__label {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--font-size-medium, 1rem);
   line-height: var(--line-height-small, 1.375);
   color: var(--color-base);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .interest-suggestions__add {

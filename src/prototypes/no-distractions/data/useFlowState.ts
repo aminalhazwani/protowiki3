@@ -97,7 +97,11 @@ function serializePatch(patch: FlowPatch): Record<string, string | string[] | un
   if ('email' in patch) out.email = patch.email?.trim() || undefined
   if ('interests' in patch) {
     const items = (patch.interests ?? []).map((item) => item.trim()).filter(Boolean)
-    out.interests = items.length ? items : undefined
+    // Empty string (not undefined) keeps `interests=` in the URL as an explicit
+    // "no interests" marker. Dropping the param would let the getter re-derive
+    // interests from the seed `title`, so a removed seed article would spring
+    // back and appear unremovable.
+    out.interests = items.length ? items : ''
   }
   if ('returnTo' in patch) {
     const target = patch.returnTo

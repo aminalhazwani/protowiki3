@@ -20,7 +20,11 @@ const props = defineProps<{ flow: FlowState }>()
 const { user, realUsername, lang } = useConfig()
 const configureSettings = useConfigureSettings()
 
-const { suggestions, loading: suggestionsLoading } = useInterestSuggestions(
+const {
+  suggestions,
+  loading: suggestionsLoading,
+  source: suggestionsSource,
+} = useInterestSuggestions(
   () => props.flow.interests.value,
   () => lang.value,
 )
@@ -121,7 +125,7 @@ onBeforeUnmount(() => {
     @close="finishInterests"
     @done="finishInterests"
   >
-    <h1 v-if="!configureMode" class="ob-title">What are your main interests?</h1>
+    <h1 v-if="!configureMode" class="ob-title">What are 3 of your interests?</h1>
 
     <div :class="configureMode ? 'interests__configure-body' : 'ob-body'">
       <div class="interests__fields">
@@ -166,6 +170,7 @@ onBeforeUnmount(() => {
         <InterestSuggestions
           :suggestions="suggestions"
           :loading="suggestionsLoading"
+          :source="suggestionsSource"
           @add="addInterest"
         />
 
@@ -226,15 +231,16 @@ onBeforeUnmount(() => {
 
 .interests__chips li {
   margin-block: 0;
+  max-width: 100%;
 }
 
 .interests__chip {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
+  max-width: 100%;
   min-height: 2.75rem;
-  padding: var(--spacing-50, 8px) var(--spacing-75, 12px) var(--spacing-50, 8px)
-    var(--spacing-100, 16px);
+  padding: var(--spacing-25, 4px) var(--spacing-50, 8px) var(--spacing-25, 4px) 14px;
   border: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
   border-radius: var(--border-radius-pill, 9999px);
   background-color: var(--background-color-interactive-subtle, #f8f9fa);
@@ -259,9 +265,13 @@ onBeforeUnmount(() => {
 }
 
 .interests__chip-label {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--font-size-medium, 1rem);
   line-height: var(--line-height-small, 1.375);
   color: var(--color-base);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .interests__chip-remove {

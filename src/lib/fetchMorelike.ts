@@ -269,6 +269,59 @@ export async function fetchMorelikeForSingleSeed(
   return fetchMorelikeResults([seedTitle], options)
 }
 
+/** Params for `generator=random` — random mainspace pages with card metadata. */
+function buildRandomPagesParams(limit: number): URLSearchParams {
+  return new URLSearchParams({
+    action: 'query',
+    generator: 'random',
+    grnnamespace: '0',
+    grnlimit: String(limit),
+    prop: 'pageimages|description',
+    piprop: 'thumbnail',
+    pithumbsize: '160',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  })
+}
+
+export interface FetchRandomPagesOptions {
+  /** How many hits to return (default 5). */
+  limit?: number
+  lang?: string
+  signal?: AbortSignal
+}
+
+/**
+ * Fetch random mainspace articles as `MorelikeSearchHit`s. Used as the interests
+ * fallback when there is no seed article (e.g. account creation from the main
+ * page). Over-fetches and prefers hits that have a thumbnail, since random pages
+ * often lack one; falls back to thumbnail-less hits to reach `limit`.
+ */
+export async function fetchRandomPages(
+  options: FetchRandomPagesOptions = {},
+): Promise<MorelikeSearchHit[]> {
+  if (options.signal?.aborted) {
+    throw new MorelikeFetchError('Request aborted', 'aborted')
+  }
+
+  const limit = options.limit ?? 5
+  const lang = normalizeLang(options.lang ?? 'en')
+  const wikiHost = wikiHostFromLang(lang)
+
+  // Ask for more than we need so we can prefer pages that carry a thumbnail.
+  const params = buildRandomPagesParams(Math.max(limit * 2, limit))
+  const requestUrl = `https://${wikiHost}/w/api.php?${params.toString()}`
+
+  const pages = await fetchMorelikeHits(requestUrl, options.signal)
+  const hits = pages.map((page) => mapPageToHit(wikiHost, page))
+
+  const withThumb = hits.filter((hit) => hit.thumbnail?.url)
+  const withoutThumb = hits.filter((hit) => !hit.thumbnail?.url)
+
+  return [...withThumb, ...withoutThumb].slice(0, limit)
+}
+
 interface MetadataPage {
   title: string
   missing?: boolean

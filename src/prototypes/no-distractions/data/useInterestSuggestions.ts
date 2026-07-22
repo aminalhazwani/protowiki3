@@ -2,6 +2,7 @@ import { onBeforeUnmount, ref, watch, type Ref } from 'vue'
 
 import {
   fetchMorelikeResultsBatched,
+  fetchRandomPages,
   MorelikeFetchError,
   normalizeTitleKey,
   sortMorelikeHits,
@@ -17,10 +18,15 @@ const TAKE_PER_ORDER = 3
 const DISPLAY_LIMIT = 5
 const DEBOUNCE_MS = 300
 
+/** Which data source the current suggestions came from. */
+export type InterestSuggestionsSource = 'morelike' | 'random'
+
 export interface InterestSuggestionsState {
   suggestions: Ref<MorelikeSearchHit[]>
   loading: Ref<boolean>
   error: Ref<string>
+  /** `'random'` when seeded from no interests (main-page start), else `'morelike'`. */
+  source: Ref<InterestSuggestionsSource>
 }
 
 /**
@@ -63,6 +69,7 @@ export function useInterestSuggestions(
   const suggestions = ref<MorelikeSearchHit[]>([])
   const loading = ref(false)
   const error = ref('')
+  const source = ref<InterestSuggestionsSource>('morelike')
 
   let abortController: AbortController | null = null
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -71,17 +78,36 @@ export function useInterestSuggestions(
     abortController?.abort()
 
     const seeds = interests.map((title) => title.trim()).filter(Boolean)
-    if (!seeds.length) {
-      suggestions.value = []
-      error.value = ''
-      loading.value = false
-      return
-    }
 
     const controller = new AbortController()
     abortController = controller
     loading.value = true
     error.value = ''
+
+    // No seed article (e.g. account creation from the main page): fall back to
+    // random articles so the block isn't empty.
+    if (!seeds.length) {
+      source.value = 'random'
+      try {
+        suggestions.value = await fetchRandomPages({
+          limit: DISPLAY_LIMIT,
+          lang: getLang(),
+          signal: controller.signal,
+        })
+      } catch (err) {
+        const aborted =
+          (err as Error).name === 'AbortError' ||
+          (err instanceof MorelikeFetchError && err.code === 'aborted')
+        if (aborted) return
+        error.value = (err as Error).message || 'Could not load suggestions'
+        suggestions.value = []
+      } finally {
+        if (abortController === controller) loading.value = false
+      }
+      return
+    }
+
+    source.value = 'morelike'
 
     try {
       const pool = await fetchMorelikeResultsBatched(seeds, {
@@ -124,5 +150,5 @@ export function useInterestSuggestions(
     if (debounceTimer) clearTimeout(debounceTimer)
   })
 
-  return { suggestions, loading, error }
+  return { suggestions, loading, error, source }
 }
