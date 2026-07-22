@@ -21,6 +21,10 @@ const props = defineProps<{ flow: FlowState }>()
 const { user, realUsername, lang } = useConfig()
 const configureSettings = useConfigureSettings()
 
+const interests = computed(() => props.flow.interests.value)
+// 3 is the cap shown in the heading; the seed counts toward it.
+const maxInterestsReached = computed(() => interests.value.length >= 3)
+
 const {
   suggestions,
   loading: suggestionsLoading,
@@ -28,7 +32,18 @@ const {
 } = useInterestSuggestions(
   () => props.flow.interests.value,
   () => lang.value,
+  // Freeze suggestions at the cap: picking the final interest must not swap the
+  // list for a fresh (disabled) set the reader can't act on.
+  () => maxInterestsReached.value,
 )
+
+// Hide already-selected interests from the suggestion list. Matters most once
+// the list is frozen at the cap: the interest the reader just picked would
+// otherwise linger in the now-disabled list.
+const visibleSuggestions = computed(() => {
+  const selected = new Set(interests.value.map((t) => normalizeTitleKey(t)))
+  return suggestions.value.filter((hit) => !selected.has(normalizeTitleKey(hit.title)))
+})
 
 const interestThumbnails = useInterestThumbnails(
   () => props.flow.interests.value,
@@ -51,14 +66,11 @@ const results = ref<TitleSearchResult[]>([])
 let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-const interests = computed(() => props.flow.interests.value)
 // The seed article (title param) is pre-populated as interest #1. The button
 // only turns progressive once the reader has picked an interest beyond it.
 const goHomeActive = computed(
   () => interests.value.filter((t) => t !== props.flow.title.value).length >= 1,
 )
-// 3 is the cap shown in the heading; the seed counts toward it.
-const maxInterestsReached = computed(() => interests.value.length >= 3)
 // Captured once at mount, deliberately NOT reactive: an instance is created
 // either as the onboarding step (returnTo empty) or as the configure dialog
 // (returnTo set) and keeps that role for its whole life. Reading returnTo live
@@ -192,7 +204,7 @@ onBeforeUnmount(() => {
         </ul>
 
         <InterestSuggestions
-          :suggestions="suggestions"
+          :suggestions="visibleSuggestions"
           :loading="suggestionsLoading"
           :source="suggestionsSource"
           :disabled="maxInterestsReached"
