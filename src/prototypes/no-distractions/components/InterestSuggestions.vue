@@ -5,6 +5,8 @@ import { cdxIconAdd } from '@wikimedia/codex-icons'
 
 import type { MorelikeSearchHit } from '@/lib/fetchMorelike'
 
+import { useThumbReveal } from '../data/useThumbReveal'
+
 const props = withDefaults(
   defineProps<{
     suggestions: MorelikeSearchHit[]
@@ -17,6 +19,14 @@ const props = withDefaults(
 const heading = computed(() =>
   props.source === 'random' ? 'Random articles' : 'Related articles',
 )
+
+// The avatar reveal is a one-shot entrance keyed by title: each chip's <img>
+// `@load` marks it loaded and it animates in (staggered within a burst). A
+// freshly mounted chip with a retained loaded key still animates on mount
+// (keyframe entrance), so there's no need to reset state when the list changes —
+// and resetting would strip the class off reused chips whose image is already
+// decoded and would never re-fire `load`.
+const thumbReveal = useThumbReveal()
 
 defineEmits<{
   add: [title: string]
@@ -40,8 +50,13 @@ defineEmits<{
           :aria-label="`Add ${hit.title}`"
           @click="$emit('add', hit.title)"
         >
-          <span v-if="hit.thumbnail?.url" class="interest-suggestions__thumb">
-            <img :src="hit.thumbnail.url" alt="" />
+          <span
+            v-if="hit.thumbnail?.url"
+            class="interest-suggestions__thumb"
+            :class="{ 'interest-suggestions__thumb--loaded': thumbReveal.isLoaded(hit.title) }"
+            :style="thumbReveal.style(hit.title)"
+          >
+            <img :src="hit.thumbnail.url" alt="" @load="thumbReveal.onLoad(hit.title)" />
           </span>
           <span class="interest-suggestions__label">{{ hit.title }}</span>
           <CdxIcon :icon="cdxIconAdd" class="interest-suggestions__add" />
@@ -109,17 +124,64 @@ defineEmits<{
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 2rem;
+  /* Collapsed until the image loads: text-only chip, no reserved avatar space.
+     Width is the only layout-affecting property that animates, isolated to this
+     2rem slot; the negative margin cancels the flex gap while collapsed so the
+     empty slot doesn't nudge the label. */
+  width: 0;
   height: 2rem;
   margin-left: calc(-1 * var(--spacing-50, 8px));
   border-radius: var(--border-radius-circle, 50%);
   overflow: hidden;
 }
 
+/* One-shot entrance on load (keyframes defined in onboarding-motion.css so the
+   reveal plays even when the image is cached — see that file). Static `width`
+   is the resting value the animation lands on; `both` holds the collapsed
+   `from` state through the stagger delay. */
+.interest-suggestions__thumb--loaded {
+  width: 2rem;
+  animation: ob-thumb-slot-in var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
+  animation-delay: var(--thumb-delay, 0ms);
+  will-change: width;
+}
+
 .interest-suggestions__thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform-origin: center;
+  /* Resting state before load: collapsed/invisible so the entrance has
+     somewhere to animate from. */
+  opacity: 0;
+  transform: scale(0);
+}
+
+/* Scale + fade in on the compositor (transform/opacity only, off the layout
+   path). Static values are the resting state after the animation ends. */
+.interest-suggestions__thumb--loaded img {
+  opacity: 1;
+  transform: scale(1);
+  animation: ob-thumb-img-in var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
+  animation-delay: var(--thumb-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep a plain opacity fade only: width snaps (no label slide), no scale. */
+  .interest-suggestions__thumb--loaded {
+    animation: none;
+  }
+
+  .interest-suggestions__thumb img {
+    transform: none;
+  }
+
+  .interest-suggestions__thumb--loaded img {
+    transform: none;
+    animation: ob-thumb-img-fade var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
+    animation-delay: var(--thumb-delay, 0ms);
+  }
 }
 
 .interest-suggestions__label {

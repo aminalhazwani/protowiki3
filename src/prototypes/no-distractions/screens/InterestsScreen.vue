@@ -12,6 +12,7 @@ import TitleSearchResults from '../components/TitleSearchResults.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
 import { useInterestSuggestions } from '../data/useInterestSuggestions'
 import { useInterestThumbnails } from '../data/useInterestThumbnails'
+import { useThumbReveal } from '../data/useThumbReveal'
 import { fetchTitleSearchResults, type TitleSearchResult } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
 
@@ -39,40 +40,10 @@ function thumbFor(title: string): string | undefined {
 }
 
 // `interestThumbnails` tells us a topic *has* an image (the metadata URL
-// resolved); it does not tell us the <img> has actually decoded. Track that
-// separately so the reveal fires on the real `load` event rather than the
-// moment the URL appears — otherwise the chip would animate around an empty
-// circle. Keyed by `normalizeTitleKey` to match the thumbnail map.
-const loadedThumbs = ref(new Set<string>())
-// Per-title entrance delay so a burst of images that decode close together
-// stagger in (~40ms apart) instead of popping simultaneously.
-const thumbDelays = ref(new Map<string, number>())
-
-const THUMB_STAGGER_MS = 40 // per-pill offset within a burst (spec: 30–50ms)
-const THUMB_BURST_WINDOW_MS = 220 // loads within this window count as one burst
-let burstIndex = 0
-let burstResetTimer: ReturnType<typeof setTimeout> | null = null
-
-function onThumbLoad(title: string): void {
-  const key = normalizeTitleKey(title)
-  if (loadedThumbs.value.has(key)) return
-  thumbDelays.value.set(key, burstIndex * THUMB_STAGGER_MS)
-  burstIndex += 1
-  if (burstResetTimer) clearTimeout(burstResetTimer)
-  burstResetTimer = setTimeout(() => {
-    burstIndex = 0
-  }, THUMB_BURST_WINDOW_MS)
-  loadedThumbs.value.add(key)
-}
-
-function isThumbLoaded(title: string): boolean {
-  return loadedThumbs.value.has(normalizeTitleKey(title))
-}
-
-function thumbStyle(title: string): Record<string, string> | undefined {
-  const delay = thumbDelays.value.get(normalizeTitleKey(title))
-  return delay ? { '--thumb-delay': `${delay}ms` } : undefined
-}
+// resolved); it does not tell us the <img> has actually decoded. The shared
+// reveal composable tracks the real `load` event and the per-pill stagger so
+// the avatar animates in rather than popping around an empty circle.
+const thumbReveal = useThumbReveal()
 
 const search = ref('')
 const results = ref<TitleSearchResult[]>([])
@@ -148,20 +119,11 @@ function removeInterest(title: string): void {
 
 // Drop reveal state for topics that are no longer selected, so a topic that is
 // removed and re-added animates in again rather than appearing pre-expanded.
-watch(interests, (list) => {
-  const keys = new Set(list.map((item) => normalizeTitleKey(item)))
-  for (const key of [...loadedThumbs.value]) {
-    if (!keys.has(key)) {
-      loadedThumbs.value.delete(key)
-      thumbDelays.value.delete(key)
-    }
-  }
-})
+watch(interests, (list) => thumbReveal.keep(list))
 
 onBeforeUnmount(() => {
   abortController?.abort()
   if (debounceTimer) clearTimeout(debounceTimer)
-  if (burstResetTimer) clearTimeout(burstResetTimer)
 })
 </script>
 
@@ -203,10 +165,10 @@ onBeforeUnmount(() => {
               <span
                 v-if="thumbFor(title)"
                 class="interests__chip-thumb"
-                :class="{ 'interests__chip-thumb--loaded': isThumbLoaded(title) }"
-                :style="thumbStyle(title)"
+                :class="{ 'interests__chip-thumb--loaded': thumbReveal.isLoaded(title) }"
+                :style="thumbReveal.style(title)"
               >
-                <img :src="thumbFor(title)" alt="" @load="onThumbLoad(title)" />
+                <img :src="thumbFor(title)" alt="" @load="thumbReveal.onLoad(title)" />
               </span>
               <span class="interests__chip-label">{{ title }}</span>
               <button
@@ -314,46 +276,55 @@ onBeforeUnmount(() => {
   margin-left: calc(-1 * var(--spacing-50, 8px));
   border-radius: var(--border-radius-circle, 50%);
   overflow: hidden;
-  transition: width var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out);
-  transition-delay: var(--thumb-delay, 0ms);
-  will-change: width;
 }
 
+/* One-shot entrance on load (keyframes defined in onboarding-motion.css so the
+   reveal plays even when the image is cached — see that file). Static `width`
+   is the resting value the animation lands on; `both` holds the collapsed
+   `from` state through the stagger delay. */
 .interests__chip-thumb--loaded {
   width: 2rem;
+  animation: ob-thumb-slot-in var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
+  animation-delay: var(--thumb-delay, 0ms);
+  will-change: width;
 }
 
 .interests__chip-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Scale + fade in on the compositor. Only transform/opacity animate here, so
-     the reveal stays off the layout path and doesn't jank. */
-  transform: scale(0);
   transform-origin: center;
+  /* Resting state before load: collapsed/invisible so the entrance has
+     somewhere to animate from. */
   opacity: 0;
-  transition:
-    transform var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out),
-    opacity var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out);
-  transition-delay: var(--thumb-delay, 0ms);
-  will-change: transform, opacity;
+  transform: scale(0);
 }
 
+/* Scale + fade in on the compositor (transform/opacity only, off the layout
+   path). Static values are the resting state after the animation ends. */
 .interests__chip-thumb--loaded img {
-  transform: scale(1);
   opacity: 1;
+  transform: scale(1);
+  animation: ob-thumb-img-in var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
+  animation-delay: var(--thumb-delay, 0ms);
+  will-change: transform, opacity;
 }
 
 @media (prefers-reduced-motion: reduce) {
   /* Keep a plain opacity fade only: the width snaps (no label slide) and the
      image doesn't scale. */
-  .interests__chip-thumb {
-    transition: none;
+  .interests__chip-thumb--loaded {
+    animation: none;
   }
 
   .interests__chip-thumb img {
     transform: none;
-    transition: opacity var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out);
+  }
+
+  .interests__chip-thumb--loaded img {
+    transform: none;
+    animation: ob-thumb-img-fade var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
+    animation-delay: var(--thumb-delay, 0ms);
   }
 }
 
