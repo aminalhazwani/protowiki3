@@ -27,6 +27,7 @@ const { user, realUsername, lang } = useConfig()
 const configureSettings = useConfigureSettings()
 
 const interests = computed(() => props.flow.interests.value)
+const hasInterests = computed(() => interests.value.length > 0)
 // 3 is the cap shown in the heading; the seed counts toward it.
 const maxInterestsReached = computed(() => interests.value.length >= MAX_INTERESTS)
 
@@ -191,7 +192,7 @@ onBeforeUnmount(() => {
           :class="{ 'interests__lookup--capped': maxInterestsReached }"
           :menu-items="menuItems"
           :menu-config="menuConfig"
-          separate-input
+          :separate-input="hasInterests"
           placeholder="Search articles or topics"
           aria-label="Search articles or topics"
           @input="onSearchInput"
