@@ -40,7 +40,6 @@ defineEmits<{
              The label carries the accessible name via aria-label so it reads as
              "Add <title>" rather than just the title. -->
         <CdxButton
-          size="large"
           :disabled="disabled"
           :aria-label="`Add ${hit.title}`"
           @click="$emit('add', hit.title)"
