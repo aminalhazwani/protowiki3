@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { CdxButton, CdxRadio } from '@wikimedia/codex'
+import { CdxButton, CdxCard } from '@wikimedia/codex'
 
 import type { FlowState, SurveyChoice } from '../data/useFlowState'
 
@@ -34,6 +34,44 @@ const OPTIONS: { value: SurveyChoice; label: string; description: string }[] = [
 const pending = ref<SurveyChoice | ''>('')
 const selected = computed(() => pending.value || props.flow.survey.value)
 
+// Roving tabindex: Tab lands on the selected card, or the first one when
+// nothing is selected yet. The rest are reached with arrow keys.
+const activeIndex = computed(() => {
+  const i = OPTIONS.findIndex((o) => o.value === selected.value)
+  return i === -1 ? 0 : i
+})
+
+// Card element refs, kept in DOM order so arrow navigation can move focus.
+// CdxCard's template ref is the component instance; `$el` is its root <a>.
+const cards = ref<HTMLElement[]>([])
+
+function setCard(el: unknown, index: number): void {
+  if (el) cards.value[index] = (el as { $el: HTMLElement }).$el
+}
+
+/** Enter/Space activate the focused card, matching native radio behaviour.
+ *  (Space would otherwise scroll the page.) */
+function onActivate(event: KeyboardEvent, value: SurveyChoice): void {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  void choose(value)
+}
+
+/** Radiogroup arrow-key navigation: move focus to the neighbour and select it,
+ *  matching native radio behaviour (selection follows focus). */
+function onArrows(event: KeyboardEvent): void {
+  if (advancing.value) return
+  const forward = event.key === 'ArrowDown' || event.key === 'ArrowRight'
+  const back = event.key === 'ArrowUp' || event.key === 'ArrowLeft'
+  if (!forward && !back) return
+  event.preventDefault()
+
+  const delta = forward ? 1 : -1
+  const next = (activeIndex.value + delta + OPTIONS.length) % OPTIONS.length
+  cards.value[next]?.focus()
+  void choose(OPTIONS[next].value)
+}
+
 let advanceTimer: ReturnType<typeof setTimeout> | null = null
 const advancing = ref(false)
 
@@ -54,11 +92,6 @@ async function choose(value: SurveyChoice): Promise<void> {
   }, SELECTION_HOLD_MS)
 }
 
-/** CdxRadio emits the broad input-value union; narrow it back to SurveyChoice. */
-function onSelect(value: string | number | boolean): void {
-  void choose(value as SurveyChoice)
-}
-
 function skip(): void {
   if (advancing.value) return
   void props.flow.goTo('interests')
@@ -74,27 +107,33 @@ onBeforeUnmount(() => {
     <h1 class="ob-title">What brings you to Wikipedia?</h1>
 
     <div class="ob-body">
-      <!-- Each option is a selectable card wrapping a Codex radio; the whole
-           card is a hit target, while the radio keeps native keyboard/aria
-           semantics. `role="radiogroup"` groups them for assistive tech. -->
-      <div class="survey__options" role="radiogroup" aria-label="What brings you to Wikipedia?">
-        <div
-          v-for="option in OPTIONS"
+      <!-- Each option is a stock Codex Card. Setting `url` makes it a link, so
+           its hover / active / focus states come from Codex's own `--is-link`
+           styling. We reuse that card as the radio itself (role + aria-checked)
+           and prevent the link navigation, so there's a single Tab stop and no
+           nested interactive elements. `role="radiogroup"` groups them; arrow
+           keys move between cards at the group level via a roving tabindex. -->
+      <div
+        class="survey__options"
+        role="radiogroup"
+        aria-label="What brings you to Wikipedia?"
+        @keydown="onArrows"
+      >
+        <CdxCard
+          v-for="(option, index) in OPTIONS"
           :key="option.value"
+          :ref="(el) => setCard(el, index)"
           class="survey__option"
-          :class="{ 'survey__option--selected': selected === option.value }"
-          @click="choose(option.value)"
+          url="#"
+          role="radio"
+          :aria-checked="selected === option.value"
+          :tabindex="activeIndex === index ? 0 : -1"
+          @click.prevent="choose(option.value)"
+          @keydown="onActivate($event, option.value)"
         >
-          <CdxRadio
-            :model-value="selected"
-            :input-value="option.value"
-            name="survey-motivation"
-            @update:model-value="onSelect"
-          >
-            {{ option.label }}
-            <template #description>{{ option.description }}</template>
-          </CdxRadio>
-        </div>
+          <template #title>{{ option.label }}</template>
+          <template #description>{{ option.description }}</template>
+        </CdxCard>
       </div>
 
       <div class="ob-actions">
@@ -105,33 +144,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Hover / active / focus all come from Codex's `--is-link` styling (enabled by
+   the `url` prop), so no custom card styling is needed here. */
 .survey__options {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-75, 12px);
-}
-
-.survey__option {
-  padding: var(--spacing-100, 16px);
-  border: var(--border-width-base, 1px) solid var(--border-color-base, #a2a9b1);
-  border-radius: var(--border-radius-base, 2px);
-  background-color: var(--background-color-base);
-  cursor: pointer;
-  /* Selection is feedback — a quick color change, no movement, so it stays put
-     under reduced motion (movement is what that setting drops, not color). */
-  transition:
-    border-color var(--ob-duration-selection, 140ms) ease,
-    background-color var(--ob-duration-selection, 140ms) ease;
-}
-
-.survey__option--selected {
-  border-color: var(--color-progressive, #36c);
-  background-color: var(--background-color-progressive-subtle, #e8eeff);
-}
-
-/* The card already provides the padding and hit target, so drop the radio's
-   own outer margin and let it fill the card width. */
-.survey__option :deep(.cdx-radio) {
-  margin: 0;
 }
 </style>
