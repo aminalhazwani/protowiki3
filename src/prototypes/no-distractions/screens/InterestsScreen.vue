@@ -38,6 +38,42 @@ function thumbFor(title: string): string | undefined {
   return interestThumbnails.value.get(normalizeTitleKey(title))
 }
 
+// `interestThumbnails` tells us a topic *has* an image (the metadata URL
+// resolved); it does not tell us the <img> has actually decoded. Track that
+// separately so the reveal fires on the real `load` event rather than the
+// moment the URL appears — otherwise the chip would animate around an empty
+// circle. Keyed by `normalizeTitleKey` to match the thumbnail map.
+const loadedThumbs = ref(new Set<string>())
+// Per-title entrance delay so a burst of images that decode close together
+// stagger in (~40ms apart) instead of popping simultaneously.
+const thumbDelays = ref(new Map<string, number>())
+
+const THUMB_STAGGER_MS = 40 // per-pill offset within a burst (spec: 30–50ms)
+const THUMB_BURST_WINDOW_MS = 220 // loads within this window count as one burst
+let burstIndex = 0
+let burstResetTimer: ReturnType<typeof setTimeout> | null = null
+
+function onThumbLoad(title: string): void {
+  const key = normalizeTitleKey(title)
+  if (loadedThumbs.value.has(key)) return
+  thumbDelays.value.set(key, burstIndex * THUMB_STAGGER_MS)
+  burstIndex += 1
+  if (burstResetTimer) clearTimeout(burstResetTimer)
+  burstResetTimer = setTimeout(() => {
+    burstIndex = 0
+  }, THUMB_BURST_WINDOW_MS)
+  loadedThumbs.value.add(key)
+}
+
+function isThumbLoaded(title: string): boolean {
+  return loadedThumbs.value.has(normalizeTitleKey(title))
+}
+
+function thumbStyle(title: string): Record<string, string> | undefined {
+  const delay = thumbDelays.value.get(normalizeTitleKey(title))
+  return delay ? { '--thumb-delay': `${delay}ms` } : undefined
+}
+
 const search = ref('')
 const results = ref<TitleSearchResult[]>([])
 
@@ -110,9 +146,22 @@ function removeInterest(title: string): void {
   props.flow.interests.value = interests.value.filter((item) => item !== title)
 }
 
+// Drop reveal state for topics that are no longer selected, so a topic that is
+// removed and re-added animates in again rather than appearing pre-expanded.
+watch(interests, (list) => {
+  const keys = new Set(list.map((item) => normalizeTitleKey(item)))
+  for (const key of [...loadedThumbs.value]) {
+    if (!keys.has(key)) {
+      loadedThumbs.value.delete(key)
+      thumbDelays.value.delete(key)
+    }
+  }
+})
+
 onBeforeUnmount(() => {
   abortController?.abort()
   if (debounceTimer) clearTimeout(debounceTimer)
+  if (burstResetTimer) clearTimeout(burstResetTimer)
 })
 </script>
 
@@ -151,8 +200,13 @@ onBeforeUnmount(() => {
         <ul class="interests__chips">
           <li v-for="title in interests" :key="title">
             <span class="interests__chip">
-              <span v-if="thumbFor(title)" class="interests__chip-thumb">
-                <img :src="thumbFor(title)" alt="" />
+              <span
+                v-if="thumbFor(title)"
+                class="interests__chip-thumb"
+                :class="{ 'interests__chip-thumb--loaded': isThumbLoaded(title) }"
+                :style="thumbStyle(title)"
+              >
+                <img :src="thumbFor(title)" alt="" @load="onThumbLoad(title)" />
               </span>
               <span class="interests__chip-label">{{ title }}</span>
               <button
@@ -251,17 +305,56 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 2rem;
+  /* Collapsed until the image loads (see spec: text-only, no reserved avatar
+     space). Width is the ONLY layout-affecting property that animates, and it's
+     isolated to this 2rem slot; the negative margin cancels the flex gap while
+     collapsed, so the empty slot doesn't nudge the label. */
+  width: 0;
   height: 2rem;
   margin-left: calc(-1 * var(--spacing-50, 8px));
   border-radius: var(--border-radius-circle, 50%);
   overflow: hidden;
+  transition: width var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out);
+  transition-delay: var(--thumb-delay, 0ms);
+  will-change: width;
+}
+
+.interests__chip-thumb--loaded {
+  width: 2rem;
 }
 
 .interests__chip-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Scale + fade in on the compositor. Only transform/opacity animate here, so
+     the reveal stays off the layout path and doesn't jank. */
+  transform: scale(0);
+  transform-origin: center;
+  opacity: 0;
+  transition:
+    transform var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out),
+    opacity var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out);
+  transition-delay: var(--thumb-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+.interests__chip-thumb--loaded img {
+  transform: scale(1);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep a plain opacity fade only: the width snaps (no label slide) and the
+     image doesn't scale. */
+  .interests__chip-thumb {
+    transition: none;
+  }
+
+  .interests__chip-thumb img {
+    transform: none;
+    transition: opacity var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out);
+  }
 }
 
 .interests__chip-label {
