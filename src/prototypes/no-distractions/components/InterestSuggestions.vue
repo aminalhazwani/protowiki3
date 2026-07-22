@@ -38,7 +38,7 @@ defineEmits<{
   <section v-if="loading || suggestions.length" class="interest-suggestions">
     <h2 class="interest-suggestions__heading">{{ heading }}</h2>
     <CdxProgressBar
-      v-if="!suggestions.length"
+      v-if="loading"
       class="interest-suggestions__progress"
       inline
       :aria-label="`Loading ${heading.toLowerCase()}`"
