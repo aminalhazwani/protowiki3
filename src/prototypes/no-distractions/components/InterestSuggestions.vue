@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CdxButton, CdxIcon, CdxProgressBar } from '@wikimedia/codex'
-import { cdxIconAdd } from '@wikimedia/codex-icons'
+import { CdxCard, CdxProgressBar } from '@wikimedia/codex'
 
 import type { MorelikeSearchHit } from '@/lib/fetchMorelike'
 
@@ -19,9 +18,14 @@ const heading = computed(() =>
   props.source === 'random' ? 'Random articles' : 'Related articles',
 )
 
-defineEmits<{
+const emit = defineEmits<{
   add: [title: string]
 }>()
+
+function onAdd(title: string): void {
+  if (props.disabled) return
+  emit('add', title)
+}
 </script>
 
 <template>
@@ -35,18 +39,23 @@ defineEmits<{
     />
     <ul v-else class="interest-suggestions__list">
       <li v-for="hit in suggestions" :key="hit.title">
-        <!-- Stock Codex button: the neutral (default) weight matches the old
-             chip's subtle fill, and `size="large"` keeps the 44px touch target.
-             The label carries the accessible name via aria-label so it reads as
-             "Add <title>" rather than just the title. -->
-        <CdxButton
-          :disabled="disabled"
+        <!-- Stock Codex Card. Setting `url` is what makes a Card clickable, so
+             it renders as a link with Codex's hover/active affordances; we
+             prevent the navigation and emit `add` instead, adding the article
+             to the lookup's chips. `force-thumbnail` keeps a consistent image
+             slot (placeholder icon) for articles without a thumbnail. The
+             aria-label makes it read as "Add <title>" rather than just a link. -->
+        <CdxCard
+          class="interest-suggestions__card"
+          :class="{ 'interest-suggestions__card--disabled': disabled }"
+          url="#"
+          force-thumbnail
+          :thumbnail="hit.thumbnail ?? null"
           :aria-label="`Add ${hit.title}`"
-          @click="$emit('add', hit.title)"
+          @click.prevent="onAdd(hit.title)"
         >
-          {{ hit.title }}
-          <CdxIcon :icon="cdxIconAdd" />
-        </CdxButton>
+          <template #title>{{ hit.title }}</template>
+        </CdxCard>
       </li>
     </ul>
   </section>
@@ -74,8 +83,8 @@ defineEmits<{
 
 .interest-suggestions__list {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-75, 12px);
+  flex-direction: column;
+  gap: var(--spacing-50, 8px);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -84,5 +93,16 @@ defineEmits<{
 .interest-suggestions__list li {
   margin-block: 0;
   max-width: 100%;
+}
+
+.interest-suggestions__card {
+  width: 100%;
+}
+
+/* At the cap the suggestions are frozen: grey them out and drop pointer events
+   so they read as inactive (onAdd also guards the click). */
+.interest-suggestions__card--disabled {
+  pointer-events: none;
+  opacity: 0.5;
 }
 </style>
