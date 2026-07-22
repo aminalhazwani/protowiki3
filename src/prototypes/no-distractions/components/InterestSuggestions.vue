@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CdxIcon } from '@wikimedia/codex'
+import { CdxIcon, CdxProgressBar } from '@wikimedia/codex'
 import { cdxIconAdd } from '@wikimedia/codex-icons'
 
 import type { MorelikeSearchHit } from '@/lib/fetchMorelike'
@@ -24,9 +24,15 @@ defineEmits<{
 </script>
 
 <template>
-  <section v-if="suggestions.length" class="interest-suggestions">
+  <section v-if="loading || suggestions.length" class="interest-suggestions">
     <h2 class="interest-suggestions__heading">{{ heading }}</h2>
-    <ul class="interest-suggestions__list">
+    <CdxProgressBar
+      v-if="!suggestions.length"
+      class="interest-suggestions__progress"
+      inline
+      :aria-label="`Loading ${heading.toLowerCase()}`"
+    />
+    <ul v-else class="interest-suggestions__list">
       <li v-for="hit in suggestions" :key="hit.title">
         <button
           type="button"
@@ -59,6 +65,10 @@ defineEmits<{
   font-weight: var(--font-weight-bold, 700);
   line-height: var(--line-height-small, 1.375);
   color: var(--color-subtle, #54595d);
+}
+
+.interest-suggestions__progress {
+  margin-top: var(--spacing-25, 4px);
 }
 
 .interest-suggestions__list {

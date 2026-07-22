@@ -139,6 +139,11 @@ export function useInterestSuggestions(
   watch(
     getInterests,
     (interests) => {
+      // Reflect the pending fetch synchronously (before the debounce) so the
+      // section heading + progress bar are visible the instant the view mounts,
+      // and the heading matches the source that runFetch will use.
+      source.value = interests.some((title) => title.trim()) ? 'morelike' : 'random'
+      loading.value = true
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => void runFetch(interests), DEBOUNCE_MS)
     },
