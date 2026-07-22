@@ -133,6 +133,17 @@ defineEmits<{
   color: var(--color-disabled, #a2a9b1);
 }
 
+/* Desaturate the thumbnail so the photo joins the greyed-out palette rather
+   than reading as still-active next to the disabled text. Applied to the
+   wrapper, not the <img>: the img's opacity is driven by the `ob-thumb-img-in`
+   entrance animation, and an animated value outranks a normal declaration in
+   the cascade, so `opacity` set on the img would be ignored. The wrapper's own
+   animation only touches `width`, leaving opacity/filter free here. */
+.interest-suggestions__chip:disabled .interest-suggestions__thumb {
+  filter: grayscale(100%);
+  opacity: 0.55;
+}
+
 .interest-suggestions__thumb {
   display: inline-flex;
   flex-shrink: 0;
