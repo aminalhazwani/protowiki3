@@ -1,20 +1,25 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { CdxButton, CdxIcon, CdxSearchInput, CdxToggleSwitch } from '@wikimedia/codex'
-import { cdxIconSubtract } from '@wikimedia/codex-icons'
+import {
+  CdxButton,
+  CdxMultiselectLookup,
+  CdxToggleSwitch,
+  type ChipInputItem,
+  type MenuItemData,
+  type MenuItemValue,
+} from '@wikimedia/codex'
 
 import { useConfig } from '@/composables/useConfig'
 import { normalizeTitleKey } from '@/lib/fetchMorelike'
 
 import DialogShell from '../components/DialogShell.vue'
 import InterestSuggestions from '../components/InterestSuggestions.vue'
-import TitleSearchResults from '../components/TitleSearchResults.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
 import { useInterestSuggestions } from '../data/useInterestSuggestions'
-import { useInterestThumbnails } from '../data/useInterestThumbnails'
-import { useThumbReveal } from '../data/useThumbReveal'
-import { fetchTitleSearchResults, type TitleSearchResult } from '../data/titleSearch'
+import { fetchTitleSearchResults } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
+
+const MAX_INTERESTS = 3
 
 const props = defineProps<{ flow: FlowState }>()
 
@@ -23,7 +28,7 @@ const configureSettings = useConfigureSettings()
 
 const interests = computed(() => props.flow.interests.value)
 // 3 is the cap shown in the heading; the seed counts toward it.
-const maxInterestsReached = computed(() => interests.value.length >= 3)
+const maxInterestsReached = computed(() => interests.value.length >= MAX_INTERESTS)
 
 const {
   suggestions,
@@ -45,23 +50,46 @@ const visibleSuggestions = computed(() => {
   return suggestions.value.filter((hit) => !selected.has(normalizeTitleKey(hit.title)))
 })
 
-const interestThumbnails = useInterestThumbnails(
-  () => props.flow.interests.value,
-  () => lang.value,
-)
+// MultiselectLookup owns `inputChips` and `selected` through v-model, but
+// `interests` (persisted in the URL, and also mutated by the suggestion buttons
+// and the seed article) is the source of truth. These two watchers keep them in
+// sync both ways; the equality guards stop the updates ping-ponging.
+const inputChips = ref<ChipInputItem[]>([])
+const selected = ref<MenuItemValue[]>([])
 
-function thumbFor(title: string): string | undefined {
-  return interestThumbnails.value.get(normalizeTitleKey(title))
+function sameSet(a: string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i])
 }
 
-// `interestThumbnails` tells us a topic *has* an image (the metadata URL
-// resolved); it does not tell us the <img> has actually decoded. The shared
-// reveal composable tracks the real `load` event and the per-pill stagger so
-// the avatar animates in rather than popping around an empty circle.
-const thumbReveal = useThumbReveal()
+// interests -> component (covers the seed and suggestion-button additions).
+watch(
+  interests,
+  (list) => {
+    if (!sameSet(selected.value.map(String), list)) selected.value = [...list]
+    if (!sameSet(inputChips.value.map((c) => String(c.value)), list)) {
+      inputChips.value = list.map((title) => ({ value: title, label: title }))
+    }
+  },
+  { immediate: true },
+)
 
-const search = ref('')
-const results = ref<TitleSearchResult[]>([])
+// component -> interests. `selected` moves on both menu picks and chip removals,
+// so it's the one canonical path back. Hold the cap by reverting an over-limit
+// selection instead of writing it through.
+watch(selected, (values) => {
+  const titles = values.map(String)
+  if (titles.length > MAX_INTERESTS) {
+    selected.value = [...interests.value]
+    inputChips.value = interests.value.map((title) => ({ value: title, label: title }))
+    return
+  }
+  if (!sameSet(titles, interests.value)) props.flow.interests.value = titles
+})
+
+// Dropdown results for the current query. Codex menu items keep the thumbnail
+// (the chips can't — CdxInputChip is icon-only), plus the article description.
+const menuItems = ref<MenuItemData[]>([])
+const menuConfig = { showThumbnail: true, boldLabel: true }
 
 let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -89,11 +117,12 @@ async function finishInterests(): Promise<void> {
   }
 }
 
-async function fetchSuggestions(term: string): Promise<void> {
+async function fetchMenu(term: string): Promise<void> {
   abortController?.abort()
   const trimmed = term.trim()
-  if (!trimmed.length) {
-    results.value = []
+  // Nothing to search, or already at the cap — offer no options to pick.
+  if (!trimmed.length || maxInterestsReached.value) {
+    menuItems.value = []
     return
   }
 
@@ -104,41 +133,34 @@ async function fetchSuggestions(term: string): Promise<void> {
       clientTag: 'no-distractions-interests',
     })
     const existing = new Set(interests.value.map((item) => item.toLowerCase()))
-    results.value = pages.filter((page) => !existing.has(page.title.toLowerCase()))
+    menuItems.value = pages
+      .filter((page) => !existing.has(page.title.toLowerCase()))
+      .map((page) => ({
+        value: page.title,
+        label: page.title,
+        description: page.description || undefined,
+        thumbnail: page.thumbnailSrc ? { url: page.thumbnailSrc } : null,
+      }))
   } catch (error) {
-    if ((error as Error).name !== 'AbortError') results.value = []
+    if ((error as Error).name !== 'AbortError') menuItems.value = []
   }
 }
 
-watch(search, (term) => {
+// Debounced so search runs as the user types (the `input` event fires on every
+// keystroke, including during IME composition).
+function onSearchInput(value: string | number): void {
   if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => void fetchSuggestions(term), 200)
-})
-
-// Codex's `v-model` (like Vue's) does not update during IME composition, so on
-// predictive mobile keyboards `search` wouldn't change until the word is
-// committed (space/punctuation). Read the raw input value on every keystroke so
-// search runs as the user types. See emitted `input` event on CdxSearchInput.
-function onInput(event: Event): void {
-  search.value = (event.target as HTMLInputElement).value
+  const term = String(value)
+  debounceTimer = setTimeout(() => void fetchMenu(term), 200)
 }
 
+// The suggestion buttons add through the same source of truth.
 function addInterest(title: string): void {
   const trimmed = title.trim()
-  if (!trimmed.length) return
+  if (!trimmed.length || maxInterestsReached.value) return
   if (interests.value.some((item) => item.toLowerCase() === trimmed.toLowerCase())) return
   props.flow.interests.value = [...interests.value, trimmed]
-  search.value = ''
-  results.value = []
 }
-
-function removeInterest(title: string): void {
-  props.flow.interests.value = interests.value.filter((item) => item !== title)
-}
-
-// Drop reveal state for topics that are no longer selected, so a topic that is
-// removed and re-added animates in again rather than appearing pre-expanded.
-watch(interests, (list) => thumbReveal.keep(list))
 
 onBeforeUnmount(() => {
   abortController?.abort()
@@ -159,49 +181,23 @@ onBeforeUnmount(() => {
 
     <div :class="configureMode ? 'interests__configure-body' : 'ob-body'">
       <div class="interests__fields">
-        <div class="interests__search">
-          <CdxSearchInput
-            v-model="search"
-            :disabled="maxInterestsReached"
-            class="interests__input"
-            :class="{ 'interests__input--with-results': results.length > 0 }"
-            placeholder="Search articles or topics"
-            aria-label="Search articles or topics"
-            @input="onInput"
-            @submit="addInterest(search)"
-          />
-
-          <TitleSearchResults
-            v-if="results.length"
-            layout="attached"
-            :results="results"
-            @select="addInterest"
-          />
-        </div>
-
-        <ul class="interests__chips">
-          <li v-for="title in interests" :key="title">
-            <span class="interests__chip">
-              <span
-                v-if="thumbFor(title)"
-                class="interests__chip-thumb"
-                :class="{ 'interests__chip-thumb--loaded': thumbReveal.isLoaded(title) }"
-                :style="thumbReveal.style(title)"
-              >
-                <img :src="thumbFor(title)" alt="" @load="thumbReveal.onLoad(title)" />
-              </span>
-              <span class="interests__chip-label">{{ title }}</span>
-              <button
-                type="button"
-                class="interests__chip-remove"
-                :aria-label="`Remove ${title}`"
-                @click="removeInterest(title)"
-              >
-                <CdxIcon :icon="cdxIconSubtract" />
-              </button>
-            </span>
-          </li>
-        </ul>
+        <!-- Search input, results menu and the selected chips are all the one
+             Codex lookup now. `separate-input` stacks the chips below the input
+             (matching the old layout). Kept in sync with `interests` above. -->
+        <CdxMultiselectLookup
+          v-model:input-chips="inputChips"
+          v-model:selected="selected"
+          class="interests__lookup"
+          :class="{ 'interests__lookup--capped': maxInterestsReached }"
+          :menu-items="menuItems"
+          :menu-config="menuConfig"
+          separate-input
+          placeholder="Search articles or topics"
+          aria-label="Search articles or topics"
+          @input="onSearchInput"
+        >
+          <template #no-results>No results found.</template>
+        </CdxMultiselectLookup>
 
         <InterestSuggestions
           :suggestions="visibleSuggestions"
@@ -247,134 +243,21 @@ onBeforeUnmount(() => {
   gap: var(--spacing-75, 12px);
 }
 
-.interests__search {
-  position: relative;
+/* At the cap the input row goes inactive. With `separate-input` the chips sit
+   in a separate sibling container, so greying and blocking pointer events on
+   just the input wrapper leaves the chips fully interactive — a selection can
+   still be removed. (Typing is already inert at the cap: the menu fetch returns
+   nothing.) The `:not(--disabled)` mirrors Codex's own base-background selector
+   so this override outranks it. */
+.interests__lookup--capped
+  :deep(.cdx-chip-input:not(.cdx-chip-input--disabled) .cdx-chip-input__separate-input) {
+  pointer-events: none;
+  background-color: var(--background-color-disabled-subtle, #eaecf0);
 }
 
-.interests__search :deep(.cdx-text-input__input) {
-  min-height: 2rem;
-}
-
-.interests__input--with-results :deep(.cdx-text-input),
-.interests__input--with-results :deep(.cdx-text-input__input) {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.interests__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-50, 8px);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.interests__chips li {
-  margin-block: 0;
-  max-width: 100%;
-}
-
-.interests__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-50, 8px);
-  max-width: 100%;
-  min-height: 2.75rem;
-  padding: var(--spacing-25, 4px) var(--spacing-50, 8px) var(--spacing-25, 4px) 14px;
-  border: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
-  border-radius: var(--border-radius-pill, 9999px);
-  background-color: var(--background-color-interactive-subtle, #f8f9fa);
-}
-
-.interests__chip-thumb {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  /* Collapsed until the image loads (see spec: text-only, no reserved avatar
-     space). Width is the ONLY layout-affecting property that animates, and it's
-     isolated to this 2rem slot; the negative margin cancels the flex gap while
-     collapsed, so the empty slot doesn't nudge the label. */
-  width: 0;
-  height: 2rem;
-  margin-left: calc(-1 * var(--spacing-50, 8px));
-  border-radius: var(--border-radius-circle, 50%);
-  overflow: hidden;
-}
-
-/* One-shot entrance on load (keyframes defined in onboarding-motion.css so the
-   reveal plays even when the image is cached — see that file). Static `width`
-   is the resting value the animation lands on; `both` holds the collapsed
-   `from` state through the stagger delay. */
-.interests__chip-thumb--loaded {
-  width: 2rem;
-  animation: ob-thumb-slot-in var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
-  animation-delay: var(--thumb-delay, 0ms);
-  will-change: width;
-}
-
-.interests__chip-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform-origin: center;
-  /* Resting state before load: collapsed/invisible so the entrance has
-     somewhere to animate from. */
-  opacity: 0;
-  transform: scale(0);
-}
-
-/* Scale + fade in on the compositor (transform/opacity only, off the layout
-   path). Static values are the resting state after the animation ends. */
-.interests__chip-thumb--loaded img {
-  opacity: 1;
-  transform: scale(1);
-  animation: ob-thumb-img-in var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
-  animation-delay: var(--thumb-delay, 0ms);
-  will-change: transform, opacity;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  /* Keep a plain opacity fade only: the width snaps (no label slide) and the
-     image doesn't scale. */
-  .interests__chip-thumb--loaded {
-    animation: none;
-  }
-
-  .interests__chip-thumb img {
-    transform: none;
-  }
-
-  .interests__chip-thumb--loaded img {
-    transform: none;
-    animation: ob-thumb-img-fade var(--ob-duration-thumb-in, 180ms) var(--ob-ease-out-strong, ease-out) both;
-    animation-delay: var(--thumb-delay, 0ms);
-  }
-}
-
-.interests__chip-label {
-  min-width: 0;
-  overflow: hidden;
-  font-size: var(--font-size-medium, 1rem);
-  line-height: var(--line-height-small, 1.375);
-  color: var(--color-base);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.interests__chip-remove {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-base, #404244);
-  cursor: pointer;
+.interests__lookup--capped :deep(.cdx-chip-input__input) {
+  background-color: transparent;
+  color: var(--color-disabled, #a2a9b1);
 }
 
 .interests__switch-list {
