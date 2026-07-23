@@ -53,6 +53,32 @@
   padding-block: var(--spacing-75, 12px);
 }
 
+/* Sticky CTA footer for the wizard steps: pins to the viewport bottom (page-level
+   scroll) so a long body scrolls behind the button instead of pushing it
+   off-screen. Full-bleed breakout of .ob-body's 16px padding — an explicit
+   widened width is required because a stretched flex item otherwise ignores the
+   negative inline margins for sizing (they'd only shift it left, not widen it).
+   margin-top:auto (above) still bottom-aligns it when the body is short. */
+.ob-actions--footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  width: calc(100% + 2 * var(--spacing-100, 16px));
+  margin-inline: calc(-1 * var(--spacing-100, 16px));
+  margin-bottom: calc(-1 * var(--spacing-100, 16px));
+  padding: var(--spacing-100, 16px) var(--spacing-100, 16px)
+    max(var(--spacing-100, 16px), env(safe-area-inset-bottom));
+  /* Transparent in the resting state so toggling the divider never shifts layout. */
+  border-top: var(--border-width-base, 1px) solid transparent;
+  background-color: var(--background-color-base);
+}
+
+/* Only when the body can scroll — content is passing behind the button. */
+.ob-actions--divided {
+  border-top-color: var(--border-color-muted, #c8ccd1);
+}
+
 /* Welcome footer “Not now” on #101418 — Codex quiet hover breaks on dark surfaces. */
 .ob-skip {
   align-self: center;

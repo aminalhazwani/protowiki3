@@ -16,6 +16,7 @@ import DialogShell from '../components/DialogShell.vue'
 import InterestSuggestions from '../components/InterestSuggestions.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
 import { useInterestSuggestions } from '../data/useInterestSuggestions'
+import { useScrollableFooter } from '../data/useScrollableFooter'
 import { fetchTitleSearchResults } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
 
@@ -91,6 +92,10 @@ watch(selected, (values) => {
 // (the chips can't — CdxInputChip is icon-only), plus the article description.
 const menuItems = ref<MenuItemData[]>([])
 const menuConfig = { showThumbnail: true, boldLabel: true }
+
+// Sticky CTA footer: pinned to the bottom, divider shown only when the body
+// scrolls. `scrollTarget` is bound to `.ob-body` below.
+const { scrollTarget: bodyEl, isScrollable } = useScrollableFooter()
 
 let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -180,7 +185,10 @@ onBeforeUnmount(() => {
   >
     <h1 v-if="!configureMode" class="ob-title">What are 3 of your interests?</h1>
 
-    <div :class="configureMode ? 'interests__configure-body' : 'ob-body'">
+    <div
+      :ref="(el) => { if (!configureMode) bodyEl = el as HTMLElement | null }"
+      :class="configureMode ? 'interests__configure-body' : 'ob-body'"
+    >
       <div class="interests__fields">
         <!-- Search input, results menu and the selected chips are all the one
              Codex lookup now. `separate-input` stacks the chips below the input
@@ -220,7 +228,11 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div v-if="!configureMode" class="ob-actions">
+      <div
+        v-if="!configureMode"
+        class="ob-actions ob-actions--footer"
+        :class="{ 'ob-actions--divided': isScrollable }"
+      >
         <CdxButton
           :action="goHomeActive ? 'progressive' : 'default'"
           :weight="goHomeActive ? 'primary' : 'quiet'"
