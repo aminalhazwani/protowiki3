@@ -27,7 +27,7 @@
   flex: 1 1 auto;
   gap: var(--spacing-75, 12px);
   min-height: 0;
-  padding: var(--spacing-100, 16px);
+  padding: var(--spacing-75, 12px) var(--spacing-100, 16px) var(--spacing-100, 16px) var(--spacing-100, 16px);
 }
 
 .ob-actions {
