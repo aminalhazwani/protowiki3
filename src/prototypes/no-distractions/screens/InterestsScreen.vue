@@ -256,7 +256,7 @@ onBeforeUnmount(() => {
 .interests__fields {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-75, 12px);
+  gap: var(--spacing-150, 24px);
 }
 
 .interests__search {
