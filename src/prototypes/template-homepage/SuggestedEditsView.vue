@@ -1,26 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CdxButton, CdxIcon, CdxSelect } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxInfoChip } from '@wikimedia/codex'
 import {
   cdxIconArrowNext,
   cdxIconChart,
+  cdxIconConfigure,
+  cdxIconDownTriangle,
   cdxIconEdit,
-  cdxIconFunnel,
   cdxIconImage,
   cdxIconInfo,
+  cdxIconLevelOne,
+  cdxIconLevelTwo,
+  cdxIconLevelThree,
   cdxIconRobot,
 } from '@wikimedia/codex-icons'
 
-import difficultyEasyIcon from './suggested-edits/data/assets/difficulty-easy.svg'
-import difficultyHardIcon from './suggested-edits/data/assets/difficulty-hard.svg'
-import difficultyMediumIcon from './suggested-edits/data/assets/difficulty-medium.svg'
-import { CHANGE_SIZE_COLORS, type SuggestionDescriptionPart } from './suggested-edits/data/veSuggestions'
-
-const difficultyIcons = {
-  easy: difficultyEasyIcon,
-  medium: difficultyMediumIcon,
-  hard: difficultyHardIcon,
-} as const
+import {
+  CHANGE_SIZE_COLORS,
+  type SuggestionDescriptionPart,
+} from './suggested-edits/data/veSuggestions'
 
 interface Props {
   showFilterBar?: boolean
@@ -48,11 +46,29 @@ interface Props {
   canGoNext?: boolean
   taskDifficulty?: 'easy' | 'medium' | 'hard'
   editHref?: string
+  /**
+   * When true, the edit card and Edit button render as usual but never
+   * navigate to the real wiki — for research sessions where participants
+   * must not reach live Wikipedia edit pages.
+   */
+  blockEditNavigation?: boolean
+  /**
+   * When true, the difficulty filter cell becomes a button that emits
+   * `open-difficulty` (for a "Select types of edits" dialog). Defaults to
+   * false, keeping the cell a static, non-interactive label.
+   */
+  difficultyFilterInteractive?: boolean
+  /**
+   * Difficulty level shown by the filter-cell icon (1 = LevelOne, 2 = LevelTwo,
+   * 3 = LevelThree) — typically the hardest edit type currently selected.
+   * Defaults to LevelTwo when unset.
+   */
+  difficultyLevel?: 1 | 2 | 3
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showFilterBar: false,
-  topicFilter: 'Music',
+  topicFilter: 'Interests',
   difficultyFilter: 'Easy, Medium',
   currentIndex: 0,
   totalCount: 1,
@@ -76,16 +92,18 @@ const props = withDefaults(defineProps<Props>(), {
   canGoNext: false,
   taskDifficulty: undefined,
   editHref: undefined,
+  blockEditNavigation: false,
+  difficultyFilterInteractive: false,
+  difficultyLevel: undefined,
 })
 
 const emit = defineEmits<{
   load: []
   refresh: []
   navigate: [delta: number]
+  'open-interests': []
+  'open-difficulty': []
 }>()
-
-const topicMenuItems = computed(() => [{ value: 'music', label: props.topicFilter }])
-const difficultyMenuItems = computed(() => [{ value: 'mixed', label: props.difficultyFilter }])
 
 const displayIndex = computed(() => (props.currentIndex ?? 0) + 1)
 
@@ -97,6 +115,12 @@ const totalCountLabel = computed(() => {
 
 const taskTitle = computed(() => props.taskHeading ?? props.taskTypeLabel)
 
+// A real, followable edit link only when we have a target AND navigation is
+// not blocked for research. When blocked, the elements still render (identical
+// look) but carry no href/target, so no click, ⌘/middle-click, or context-menu
+// "open in new tab" can reach live Wikipedia.
+const editNavigable = computed(() => !!props.editHref && !props.blockEditNavigation)
+
 const hasPreview = computed(
   () => !!props.articleTitle && (!!taskTitle.value || !!props.emptyMessage),
 )
@@ -105,6 +129,25 @@ const showLoadPrompt = computed(() => props.loadPending && !hasPreview.value)
 
 const taskTypeColor = computed(() =>
   props.taskDifficulty ? CHANGE_SIZE_COLORS[props.taskDifficulty] : '#14866d',
+)
+
+const difficultyChipStatus = computed(() => {
+  switch (props.taskDifficulty) {
+    case 'easy':
+      return 'success'
+    case 'medium':
+      return 'warning'
+    case 'hard':
+      return 'error'
+    default:
+      return 'notice'
+  }
+})
+
+const difficultyChipLabel = computed(() =>
+  props.taskDifficulty
+    ? props.taskDifficulty.charAt(0).toUpperCase() + props.taskDifficulty.slice(1)
+    : '',
 )
 
 const hasTaskDescription = computed(
@@ -122,6 +165,25 @@ function onRefreshClick(): void {
 function onNavigate(delta: number): void {
   emit('navigate', delta)
 }
+
+function onOpenInterests(): void {
+  emit('open-interests')
+}
+
+function onOpenDifficulty(): void {
+  emit('open-difficulty')
+}
+
+const difficultyIcon = computed(() => {
+  switch (props.difficultyLevel) {
+    case 1:
+      return cdxIconLevelOne
+    case 3:
+      return cdxIconLevelThree
+    default:
+      return cdxIconLevelTwo
+  }
+})
 </script>
 
 <template>
@@ -133,22 +195,64 @@ function onNavigate(delta: number): void {
         aria-label="Suggestion filters"
       >
         <div class="suggested-edits-view__filter">
-          <CdxIcon :icon="cdxIconFunnel" size="small" class="suggested-edits-view__filter-icon" />
-          <CdxSelect
-            :selected="'music'"
-            :menu-items="topicMenuItems"
-            :default-label="topicFilter"
-            disabled
-          />
+          <button
+            type="button"
+            class="suggested-edits-view__filter-trigger"
+            :aria-label="`Topic filter: ${topicFilter}. Open interests settings.`"
+            @click="onOpenInterests"
+          >
+            <CdxIcon
+              :icon="cdxIconConfigure"
+              size="small"
+              class="suggested-edits-view__filter-icon"
+            />
+            <span class="suggested-edits-view__filter-trigger-label">{{ topicFilter }}</span>
+            <CdxIcon
+              :icon="cdxIconDownTriangle"
+              size="small"
+              class="suggested-edits-view__filter-trigger-indicator"
+              aria-hidden="true"
+            />
+          </button>
         </div>
         <div class="suggested-edits-view__filter">
-          <CdxIcon :icon="cdxIconChart" size="small" class="suggested-edits-view__filter-icon" />
-          <CdxSelect
-            :selected="'mixed'"
-            :menu-items="difficultyMenuItems"
-            :default-label="difficultyFilter"
-            disabled
-          />
+          <button
+            v-if="difficultyFilterInteractive"
+            type="button"
+            class="suggested-edits-view__filter-trigger"
+            :aria-label="`Difficulty filter: ${difficultyFilter}. Open edit type settings.`"
+            @click="onOpenDifficulty"
+          >
+            <CdxIcon
+              :icon="difficultyIcon"
+              size="small"
+              class="suggested-edits-view__filter-icon"
+            />
+            <span class="suggested-edits-view__filter-trigger-label">{{ difficultyFilter }}</span>
+            <CdxIcon
+              :icon="cdxIconDownTriangle"
+              size="small"
+              class="suggested-edits-view__filter-trigger-indicator"
+              aria-hidden="true"
+            />
+          </button>
+          <span
+            v-else
+            class="suggested-edits-view__filter-trigger suggested-edits-view__filter-trigger--static"
+          >
+            <CdxIcon
+              :icon="difficultyIcon"
+              size="small"
+              class="suggested-edits-view__filter-icon"
+            />
+            <span class="suggested-edits-view__filter-trigger-label">{{ difficultyFilter }}</span>
+            <CdxIcon
+              :icon="cdxIconDownTriangle"
+              size="small"
+              class="suggested-edits-view__filter-trigger-indicator"
+              aria-hidden="true"
+            />
+          </span>
         </div>
       </div>
 
@@ -167,12 +271,12 @@ function onNavigate(delta: number): void {
         </CdxButton>
       </div>
 
-      <template v-else-if="emptyMessage">
+      <div v-else-if="emptyMessage" class="suggested-edits-view__empty-state">
         <p class="suggested-edits-view__empty">{{ emptyMessage }}</p>
         <CdxButton v-if="showRefresh" weight="quiet" :disabled="refreshing" @click="onRefreshClick">
-          {{ refreshing ? 'Loading…' : 'Try another page' }}
+          {{ refreshing ? 'Loading…' : 'Refresh' }}
         </CdxButton>
-      </template>
+      </div>
 
       <template v-else-if="hasPreview">
         <p class="suggested-edits-view__counter">
@@ -182,7 +286,24 @@ function onNavigate(delta: number): void {
           suggestions
         </p>
 
-        <article class="suggested-edits-view__card">
+        <component
+          :is="editHref ? 'a' : 'article'"
+          class="suggested-edits-view__card"
+          :class="{ 'suggested-edits-view__card--link': !!editHref }"
+          v-bind="
+            editHref
+              ? {
+                  href: editNavigable ? editHref : undefined,
+                  target: editNavigable ? '_blank' : undefined,
+                  rel: editNavigable ? 'noreferrer noopener' : undefined,
+                  'aria-label': `Edit ${articleTitle}`,
+                  'aria-disabled': refreshing || !editNavigable ? 'true' : undefined,
+                  tabindex: refreshing || !editNavigable ? -1 : undefined,
+                }
+              : {}
+          "
+          @click="editHref && (refreshing || !editNavigable) ? $event.preventDefault() : undefined"
+        >
           <div v-if="thumbnailSrc" class="suggested-edits-view__card-image-wrap">
             <img class="suggested-edits-view__card-image" :src="thumbnailSrc" alt="" />
           </div>
@@ -204,7 +325,7 @@ function onNavigate(delta: number): void {
               {{ pageviewsLabel }}
             </p>
           </div>
-        </article>
+        </component>
 
         <section v-if="taskTitle" class="suggested-edits-view__task">
           <p class="suggested-edits-view__task-heading">
@@ -218,14 +339,13 @@ function onNavigate(delta: number): void {
               size="small"
               class="suggested-edits-view__task-meta-icon"
             />
-            <img
+            <CdxInfoChip
               v-if="taskDifficulty"
-              class="suggested-edits-view__task-meta-icon suggested-edits-view__task-meta-icon--difficulty"
-              :src="difficultyIcons[taskDifficulty]"
-              :alt="`${taskDifficulty} difficulty`"
-              width="18"
-              height="18"
-            />
+              :status="difficultyChipStatus"
+              class="suggested-edits-view__task-difficulty-chip"
+            >
+              {{ difficultyChipLabel }}
+            </CdxInfoChip>
             <span v-if="taskTimeEstimate" class="suggested-edits-view__task-time">
               {{ taskTimeEstimate }}
             </span>
@@ -271,12 +391,12 @@ function onNavigate(delta: number): void {
       <a
         v-if="editHref"
         class="suggested-edits-view__edit-link"
-        :href="editHref"
-        target="_blank"
-        rel="noreferrer noopener"
-        :aria-disabled="refreshing ? 'true' : undefined"
-        :tabindex="refreshing ? -1 : undefined"
-        @click="refreshing ? $event.preventDefault() : undefined"
+        :href="editNavigable ? editHref : undefined"
+        :target="editNavigable ? '_blank' : undefined"
+        :rel="editNavigable ? 'noreferrer noopener' : undefined"
+        :aria-disabled="refreshing || !editNavigable ? 'true' : undefined"
+        :tabindex="refreshing || !editNavigable ? -1 : undefined"
+        @click="refreshing || !editNavigable ? $event.preventDefault() : undefined"
       >
         <CdxButton
           action="progressive"
@@ -343,11 +463,8 @@ function onNavigate(delta: number): void {
 
 .suggested-edits-view__filter {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-50, 8px);
   min-width: 0;
   min-height: 3rem;
-  padding-inline: var(--spacing-75, 12px);
 }
 
 .suggested-edits-view__filter + .suggested-edits-view__filter {
@@ -359,39 +476,46 @@ function onNavigate(delta: number): void {
   color: var(--color-subtle, #72777d);
 }
 
-.suggested-edits-view__filter :deep(.cdx-select-vue) {
+/* The trigger fills the whole cell (icon + label + indicator) so the entire
+   cell is one tap target, not just the label. */
+.suggested-edits-view__filter-trigger {
+  position: relative;
+  display: flex;
   flex: 1;
+  align-items: center;
+  gap: var(--spacing-50, 8px);
   width: 100%;
   min-width: 0;
-}
-
-.suggested-edits-view__filter :deep(.cdx-select-vue__handle) {
   height: 3rem;
-  padding: 0 var(--spacing-150, 24px) 0 0;
+  padding: 0 var(--spacing-150, 24px) 0 var(--spacing-75, 12px);
   border: 0;
   border-radius: 0;
   background-color: transparent;
   box-shadow: none;
+  color: var(--color-base--subtle, #54595d);
+  font-family: inherit;
+  font-size: var(--font-size-medium, 1rem);
+  font-weight: var(--font-weight-normal, 400);
+  text-align: start;
+  cursor: pointer;
+}
+
+.suggested-edits-view__filter-trigger-label {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-base--subtle, #54595d);
-  font-size: var(--font-size-medium, 1rem);
-  font-weight: var(--font-weight-normal, 400);
 }
 
-.suggested-edits-view__filter :deep(.cdx-select-vue__indicator) {
-  right: 0;
+.suggested-edits-view__filter-trigger-indicator {
+  position: absolute;
+  right: 8px;
+  color: var(--color-subtle, #72777d);
 }
 
-.suggested-edits-view__filter :deep(.cdx-select-vue--disabled) {
-  opacity: 1;
-}
-
-.suggested-edits-view__filter :deep(.cdx-select-vue--disabled .cdx-select-vue__handle) {
-  color: var(--color-base--subtle, #54595d);
-  opacity: 1;
+.suggested-edits-view__filter-trigger--static {
+  cursor: default;
 }
 
 .suggested-edits-view__filter :deep(.cdx-select-vue--disabled .cdx-select-vue__indicator) {
@@ -412,6 +536,19 @@ function onNavigate(delta: number): void {
   min-height: 40vh;
 }
 
+.suggested-edits-view__empty-state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-100, 16px);
+  min-height: 40vh;
+  padding: var(--spacing-200, 32px) var(--spacing-150, 24px);
+  box-sizing: border-box;
+  text-align: center;
+}
+
 .suggested-edits-view__error {
   margin: 0;
   font-size: var(--font-size-small);
@@ -420,8 +557,9 @@ function onNavigate(delta: number): void {
 
 .suggested-edits-view__empty {
   margin: 0;
-  font-size: var(--font-size-small);
-  line-height: var(--line-height-small);
+  max-width: 20rem;
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-medium, 1.375);
   color: var(--color-base--subtle, #54595d);
 }
 
@@ -440,6 +578,7 @@ function onNavigate(delta: number): void {
 
 .suggested-edits-view__card {
   box-sizing: border-box;
+  display: block;
   width: 100%;
   max-width: var(--suggested-edits-card-width, 17.5rem);
   margin-inline: auto;
@@ -448,6 +587,16 @@ function onNavigate(delta: number): void {
   border-radius: var(--border-radius-base, 2px);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+}
+
+.suggested-edits-view__card--link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.suggested-edits-view__card--link:focus-visible {
+  outline: 2px solid var(--border-color-progressive--focus, #36c);
+  outline-offset: 2px;
 }
 
 .suggested-edits-view__card-image-wrap {
@@ -548,9 +697,12 @@ function onNavigate(delta: number): void {
   color: inherit;
 }
 
-.suggested-edits-view__task-meta-icon--difficulty {
-  width: 18px;
-  height: 18px;
+/*
+ * Codex forces a status icon on success/warning/error chips and ignores the
+ * `icon` prop, so hide it here to keep the requested icon-free difficulty chip.
+ */
+.suggested-edits-view__task-difficulty-chip :deep(.cdx-info-chip__icon--vue) {
+  display: none;
 }
 
 .suggested-edits-view__task-time {
