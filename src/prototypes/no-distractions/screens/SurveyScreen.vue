@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { CdxButton, CdxCard } from '@wikimedia/codex'
+import { CdxCard } from '@wikimedia/codex'
 
-import { useScrollableFooter } from '../data/useScrollableFooter'
 import type { FlowState, SurveyChoice } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
-
-// Sticky CTA footer: pinned to the bottom, divider shown only when the body
-// scrolls. `scrollTarget` is bound to `.ob-body` below.
-const { scrollTarget, isScrollable } = useScrollableFooter()
 
 /** Hold after the selection feedback before auto-advancing (T3). Mirrors
  *  `--ob-delay-selection-hold`; kept in JS since only the timer needs it. */
@@ -97,11 +92,6 @@ async function choose(value: SurveyChoice): Promise<void> {
   }, SELECTION_HOLD_MS)
 }
 
-function skip(): void {
-  if (advancing.value) return
-  void props.flow.goTo('interests')
-}
-
 onBeforeUnmount(() => {
   if (advanceTimer) clearTimeout(advanceTimer)
 })
@@ -111,7 +101,7 @@ onBeforeUnmount(() => {
   <div class="ob-page">
     <h1 class="ob-title">What brings you to Wikipedia?</h1>
 
-    <div ref="scrollTarget" class="ob-body">
+    <div class="ob-body">
       <!-- Each option is a stock Codex Card. Setting `url` makes it a link, so
            its hover / active / focus states come from Codex's own `--is-link`
            styling. We reuse that card as the radio itself (role + aria-checked)
@@ -139,13 +129,6 @@ onBeforeUnmount(() => {
           <template #title>{{ option.label }}</template>
           <template #description>{{ option.description }}</template>
         </CdxCard>
-      </div>
-
-      <div
-        class="ob-actions ob-actions--footer"
-        :class="{ 'ob-actions--divided': isScrollable }"
-      >
-        <CdxButton weight="quiet" @click="skip">Skip</CdxButton>
       </div>
     </div>
   </div>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import {
-  CdxButton,
   CdxMultiselectLookup,
   CdxToggleSwitch,
   type ChipInputItem,
@@ -16,7 +15,6 @@ import DialogShell from '../components/DialogShell.vue'
 import InterestSuggestions from '../components/InterestSuggestions.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
 import { useInterestSuggestions } from '../data/useInterestSuggestions'
-import { useScrollableFooter } from '../data/useScrollableFooter'
 import { fetchTitleSearchResults } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
 
@@ -93,18 +91,9 @@ watch(selected, (values) => {
 const menuItems = ref<MenuItemData[]>([])
 const menuConfig = { showThumbnail: true, boldLabel: true }
 
-// Sticky CTA footer: pinned to the bottom, divider shown only when the body
-// scrolls. `scrollTarget` is bound to `.ob-body` below.
-const { scrollTarget: bodyEl, isScrollable } = useScrollableFooter()
-
 let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-// The seed article (title param) is pre-populated as interest #1. The button
-// only turns progressive once the reader has picked an interest beyond it.
-const goHomeActive = computed(
-  () => interests.value.filter((t) => t !== props.flow.title.value).length >= 1,
-)
 // Captured once at mount, deliberately NOT reactive: an instance is created
 // either as the onboarding step (returnTo empty) or as the configure dialog
 // (returnTo set) and keeps that role for its whole life. Reading returnTo live
@@ -185,10 +174,7 @@ onBeforeUnmount(() => {
   >
     <h1 v-if="!configureMode" class="ob-title">What are 3 of your interests?</h1>
 
-    <div
-      :ref="(el) => { if (!configureMode) bodyEl = el as HTMLElement | null }"
-      :class="configureMode ? 'interests__configure-body' : 'ob-body'"
-    >
+    <div :class="configureMode ? 'interests__configure-body' : 'ob-body'">
       <div class="interests__fields">
         <!-- Search input, results menu and the selected chips are all the one
              Codex lookup now. `separate-input` stacks the chips below the input
@@ -226,20 +212,6 @@ onBeforeUnmount(() => {
             Set a username in prototype settings.
           </p>
         </div>
-      </div>
-
-      <div
-        v-if="!configureMode"
-        class="ob-actions ob-actions--footer"
-        :class="{ 'ob-actions--divided': isScrollable }"
-      >
-        <CdxButton
-          :action="goHomeActive ? 'progressive' : 'default'"
-          :weight="goHomeActive ? 'primary' : 'quiet'"
-          @click="props.flow.goTo('home')"
-        >
-          Go to your Home
-        </CdxButton>
       </div>
     </div>
   </component>

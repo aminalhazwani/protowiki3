@@ -1,33 +1,32 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxDialog, CdxIcon } from '@wikimedia/codex'
 import { cdxIconClose, cdxIconPrevious } from '@wikimedia/codex-icons'
 
 import './onboarding-layout.css'
 
 /**
- * Full-height onboarding shell for the personalisation steps: a header with a
- * navigation button and a step counter (e.g. `1 / 3`) at the top, and a
- * scrollable content area. When screens use inline actions (Figma dashpage
- * pattern), they pin CTAs inside `.ob-body`.
+ * Full-height onboarding shell for the personalisation steps. Now a thin wrapper
+ * around a stock Codex `CdxDialog`: the dialog owns the scrollable body, the fixed
+ * footer, and the auto dividers, so screens no longer hand-roll a sticky footer.
+ *
+ * We fully replace the dialog header via `#header` (a navigation button on the
+ * left and a rolling step counter `1 / 3` on the right) and expose a `footer`
+ * slot for the per-step CTA. The dialog is rendered in place (teleport disabled)
+ * and its viewport-relative sizing is overridden so the card stays inside the
+ * prototype's phone frame rather than covering the whole browser window.
  */
 interface Props {
   /** Active step (1 = welcome, 2 = survey, 3 = interests). 0 = no step highlighted. */
   current?: number
   /** Total number of steps shown in the counter. */
   total?: number
-  /** Hide the progress header entirely (kept for flexibility). */
-  showProgress?: boolean
-  /** Remove padding from the scrollable content area (full-bleed layouts). */
-  flushContent?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   current: 0,
   total: 3,
-  showProgress: true,
-  flushContent: false,
 })
 
 const emit = defineEmits<{ dismiss: [] }>()
@@ -62,44 +61,68 @@ function onNavigate(): void {
     router.back()
   }
 }
+
+/**
+ * Route the dialog's own dismiss (Esc / backdrop) through the same navigation as
+ * the header button, so Esc mirrors it: dismiss on step 1, back on later steps.
+ * `open` is bound constant `true` (visibility is driven by v-if at the route
+ * level), so we never actually flip it — the navigation unmounts the shell.
+ */
+function onDialogClose(value: boolean): void {
+  if (!value) onNavigate()
+}
 </script>
 
 <template>
   <div class="onboarding-shell">
-    <div v-if="props.showProgress" class="onboarding-shell__progress">
-      <CdxButton
-        weight="quiet"
-        size="medium"
-        :aria-label="isFirst ? 'Close' : 'Go back'"
-        @click="onNavigate"
-      >
-        <CdxIcon :icon="isFirst ? cdxIconClose : cdxIconPrevious" />
-      </CdxButton>
-      <!-- Rolling counter: the " / N" stays fixed and only the current digit
-           slides + fades when the step changes (T2). The header stays put. -->
-      <span class="onboarding-shell__counter">
-        <span class="onboarding-shell__counter-current">
-          <Transition :name="counterTransition">
-            <span :key="props.current" class="onboarding-shell__counter-digit">{{
-              props.current
-            }}</span>
-          </Transition>
-        </span>
-        <span class="onboarding-shell__counter-total">&nbsp;/ {{ props.total }}</span>
-      </span>
-    </div>
-
-    <div
-      class="onboarding-shell__content"
-      :class="{ 'onboarding-shell__content--flush': props.flushContent }"
+    <CdxDialog
+      :open="true"
+      :fixed-height="true"
+      render-in-place
+      title="Personalize your Home"
+      @update:open="onDialogClose"
     >
+      <template #header>
+        <div class="onboarding-shell__progress">
+          <CdxButton
+            class="onboarding-shell__nav"
+            weight="quiet"
+            size="medium"
+            :aria-label="isFirst ? 'Close' : 'Go back'"
+            @click="onNavigate"
+          >
+            <CdxIcon :icon="isFirst ? cdxIconClose : cdxIconPrevious" />
+          </CdxButton>
+          <!-- Rolling counter: the " / N" stays fixed and only the current digit
+               slides + fades when the step changes (T2). The header stays put. -->
+          <span class="onboarding-shell__counter">
+            <span class="onboarding-shell__counter-current">
+              <Transition :name="counterTransition">
+                <span :key="props.current" class="onboarding-shell__counter-digit">{{
+                  props.current
+                }}</span>
+              </Transition>
+            </span>
+            <span class="onboarding-shell__counter-total">&nbsp;/ {{ props.total }}</span>
+          </span>
+        </div>
+      </template>
+
       <slot />
-    </div>
+
+      <template #footer>
+        <slot name="footer" />
+      </template>
+    </CdxDialog>
   </div>
 </template>
 
 <style scoped>
 .onboarding-shell {
+  /* Positioning context for the in-place dialog: its backdrop is overridden to
+     `position: absolute` below so it fills this box (the phone column) rather
+     than the whole browser viewport. */
+  position: relative;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -111,12 +134,52 @@ function onNavigate(): void {
   background-color: var(--background-color-base);
 }
 
+/* --- Contain the teleport-disabled dialog inside the phone frame ------------
+   Codex sizes the backdrop/card against the viewport (100vw / 100vh). Inside
+   the fake phone column that would escape the frame, so re-anchor them to this
+   wrapper. `:deep()` reaches the dialog internals because `render-in-place`
+   keeps them in this component's subtree. */
+.onboarding-shell :deep(.cdx-dialog-backdrop) {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.onboarding-shell :deep(.cdx-dialog) {
+  width: calc(100% - 2rem);
+  max-width: none;
+}
+
+.onboarding-shell :deep(.cdx-dialog--fixed-height) {
+  height: calc(100% - 2rem);
+}
+
+/* Codex sizes the body to its content and pushes the footer down with
+   `margin-top:auto`, so a short step leaves the body well short of the dialog
+   height. Make the body grow to fill the available height and lay its content
+   out as a flex column, so the step viewport (and the screen inside it) fills
+   that height — letting a screen's growing element, e.g. Welcome's `h1`, expand
+   and push the rest toward the footer. `min-height:0` keeps it scrollable when
+   content overflows. */
+.onboarding-shell :deep(.cdx-dialog__body) {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+}
+
 .onboarding-shell__progress {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-100, 16px) var(--spacing-100, 16px) var(--spacing-100, 16px)
-    var(--spacing-50, 8px);
+  flex: 1 1 auto;
+}
+
+/* Pull the quiet nav button back by its own inner padding so the icon optically
+   aligns with the header's content edge (mirrors Codex's own close-button
+   `margin-inline-start: -8px`). Logical margin so RTL flips correctly. */
+.onboarding-shell__nav {
+  margin-inline-start: -8px;
 }
 
 .onboarding-shell__counter {
@@ -141,17 +204,5 @@ function onNavigate(): void {
 
 .onboarding-shell__counter-digit {
   display: inline-block;
-}
-
-.onboarding-shell__content {
-  flex: 1 1 auto;
-  min-height: 0;
-  padding: var(--spacing-75, 12px) var(--spacing-100, 16px) var(--spacing-100, 16px);
-}
-
-.onboarding-shell__content--flush {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
 }
 </style>

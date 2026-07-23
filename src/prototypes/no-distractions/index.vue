@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { CdxButton } from '@wikimedia/codex'
 
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
@@ -45,8 +46,24 @@ const WIZARD_STEP: Partial<Record<Screen, number>> = {
   interests: 3,
 }
 
-const isWizard = computed(() => flow.screen.value in WIZARD_STEP)
+// Interests doubles as a reconfigure screen reached from Home (returnTo set);
+// there it renders its own DialogShell, so keep it OUT of the wizard dialog and
+// render it standalone (matching the other routed screens).
+const isConfigureInterests = computed(
+  () => flow.screen.value === 'interests' && flow.returnTo.value !== '',
+)
+
+const isWizard = computed(
+  () => flow.screen.value in WIZARD_STEP && !isConfigureInterests.value,
+)
 const wizardStep = computed(() => WIZARD_STEP[flow.screen.value] ?? 0)
+
+// Drives the interests footer CTA: the seed article (title param) is pre-filled
+// as interest #1, so the button only turns progressive once the reader has
+// picked an interest beyond it. Mirrors the computed formerly in InterestsScreen.
+const goHomeActive = computed(
+  () => flow.interests.value.filter((t) => t !== flow.title.value).length >= 1,
+)
 
 const wizardComponent = computed(() => {
   switch (flow.screen.value) {
@@ -60,13 +77,6 @@ const wizardComponent = computed(() => {
       return null
   }
 })
-
-// Interests doubles as a reconfigure screen reached from Home (returnTo set);
-// there the wizard counter is meaningless, so hide it — matching the previous
-// per-screen `:show-progress="!configureMode"`.
-const showWizardProgress = computed(
-  () => !(flow.screen.value === 'interests' && flow.returnTo.value !== ''),
-)
 
 // Direction for the step slide. Comparing step order (rather than tracking the
 // nav intent) makes the in-app Back button and the browser Back gesture both
@@ -160,8 +170,6 @@ onBeforeUnmount(() => {
         v-if="isWizard"
         key="wizard"
         :current="wizardStep"
-        :show-progress="showWizardProgress"
-        flush-content
         @dismiss="flow.goTo('home')"
       >
         <!--
@@ -173,7 +181,54 @@ onBeforeUnmount(() => {
             <component :is="wizardComponent" :key="flow.screen.value" :flow="flow" />
           </Transition>
         </div>
+
+        <!--
+          Per-step CTA lives in the dialog's fixed footer (no more sticky
+          buttons). All actions are plain route moves; the interests button
+          flips quiet -> progressive-primary once a second interest is added.
+        -->
+        <template #footer>
+          <CdxButton
+            v-if="flow.screen.value === 'welcome'"
+            class="ob-footer-cta"
+            size="large"
+            weight="primary"
+            action="progressive"
+            @click="flow.goTo('survey')"
+          >
+            Personalize your Home
+          </CdxButton>
+          <CdxButton
+            v-else-if="flow.screen.value === 'survey'"
+            class="ob-footer-cta"
+            size="large"
+            weight="quiet"
+            @click="flow.goTo('interests')"
+          >
+            Skip
+          </CdxButton>
+          <CdxButton
+            v-else-if="flow.screen.value === 'interests'"
+            class="ob-footer-cta"
+            size="large"
+            :weight="goHomeActive ? 'primary' : 'quiet'"
+            :action="goHomeActive ? 'progressive' : 'default'"
+            @click="flow.goTo('home')"
+          >
+            Go to your Home
+          </CdxButton>
+        </template>
       </OnboardingShell>
+
+      <!--
+        Reconfigure entry (opened from Home): renders its own DialogShell
+        (overlay=false), which stretches to fill a flex column — the role the
+        wizard's OnboardingShell used to play. Provide that column here now that
+        this path is rendered standalone rather than inside the wizard dialog.
+      -->
+      <div v-else-if="isConfigureInterests" key="interests-configure" class="nd-configure-host">
+        <InterestsScreen :flow="flow" />
+      </div>
 
       <SearchScreen v-else-if="flow.screen.value === 'search'" key="search" :flow="flow" />
       <ReadScreen v-else-if="flow.screen.value === 'read'" key="read" :flow="flow" />
@@ -201,5 +256,19 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: clip;
+}
+
+/* The dialog footer holds a single full-width CTA (size="large" sets height). */
+.ob-footer-cta {
+  width: 100%;
+}
+
+/* Flex column so the standalone reconfigure DialogShell (overlay=false) fills
+   the frame, matching how it stretched inside the wizard shell before. */
+.nd-configure-host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 </style>
