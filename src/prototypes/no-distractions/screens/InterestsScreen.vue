@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
 .interests__fields {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-75, 12px);
+  gap: var(--spacing-200, 32px);
 }
 
 /* At the cap the input row goes inactive. With `separate-input` the chips sit

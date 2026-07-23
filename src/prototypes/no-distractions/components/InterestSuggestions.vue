@@ -69,7 +69,7 @@ function onAdd(title: string): void {
 }
 
 .interest-suggestions__heading {
-  margin: var(--spacing-75, 12px) 0 0 0;
+  margin: 0;
   font-family: inherit;
   font-size: var(--font-size-medium, 1rem);
   font-weight: var(--font-weight-bold, 700);
