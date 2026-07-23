@@ -133,7 +133,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Add an image',
     description: 'Add an image to an unillustrated article.',
     color: 'green',
-    difficulty: 'easy',
+    difficulty: 'medium',
     priority: 6,
     matches: (signals) => weightedTagMatches(signals, /^recommendation\.image\/exists/),
   },
@@ -162,7 +162,7 @@ export const TASK_CATALOG: TaskDefinition[] = [
     heading: 'Add an image to an article section',
     description: 'Add an image to a section of this article.',
     color: 'green',
-    difficulty: 'easy',
+    difficulty: 'medium',
     priority: 9,
     matches: (signals) =>
       weightedTagMatches(signals, /^recommendation\.(image_section|section_image|imagesection)/) &&
@@ -232,6 +232,18 @@ export const EDIT_TYPE_DIALOG_OPTIONS: EditTypeDialogOption[] = [
   {
     heading: 'Update articles',
     label: 'Update articles (bring existing articles up-to-date)',
+    difficulty: 'medium',
+  },
+  {
+    heading: 'Add an image',
+    label: 'Add an image to an unillustrated article',
+    subtitle: 'Machine suggestions',
+    difficulty: 'medium',
+  },
+  {
+    heading: 'Add an image to an article section',
+    label: 'Add an image to an article section',
+    subtitle: 'Machine suggestions',
     difficulty: 'medium',
   },
   {
