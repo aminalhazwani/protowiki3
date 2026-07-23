@@ -5,14 +5,21 @@ import { useKeyboardInset } from '@/composables/useKeyboardInset'
 import CreateAccountForm from '../components/CreateAccountForm.vue'
 
 import type { FlowState } from '../data/useFlowState'
+import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
 
 const props = defineProps<{ flow: FlowState }>()
+
+const { reset: resetReturnHomeBanner } = useReturnHomeBanner()
 
 // Keep the email field / submit button reachable when the soft keyboard opens
 // inside in-app WebViews (e.g. Userlytics), which don't shrink the viewport.
 useKeyboardInset()
 
 function onSubmit({ username, email }: { username: string; email: string }): void {
+  // A new account exists now: re-arm the return-Home banner so this fresh
+  // onboarding shows it again, even if a previous run dismissed it on this
+  // browser (permanent per-browser flag otherwise persists across accounts).
+  resetReturnHomeBanner()
   props.flow.goTo('welcome', {
     username: username || 'NewEditor',
     email,

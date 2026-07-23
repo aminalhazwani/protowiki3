@@ -25,6 +25,15 @@ function readFlag(): boolean {
 
 const dismissed = ref(readFlag())
 
+function resetDismissal(): void {
+  dismissed.value = false
+  try {
+    localStorage.removeItem(DISMISS_KEY)
+  } catch {
+    // Ignore storage failures (private mode, quota); the ref still shows it now.
+  }
+}
+
 export function useReturnHomeBanner() {
   function dismiss(): void {
     dismissed.value = true
@@ -35,18 +44,19 @@ export function useReturnHomeBanner() {
     }
   }
 
-  return { dismissed, dismiss }
+  // Re-arm the banner for a fresh account. Creating a new account clears the
+  // dismissal so every onboarding run (and every usability-test participant on
+  // the same browser) sees the reminder again.
+  function reset(): void {
+    resetDismissal()
+  }
+
+  return { dismissed, dismiss, reset }
 }
 
 // Devtools escape hatch for local testing: `resetReturnHomeBanner()` clears the
 // persisted flag and re-shows the banner immediately.
 if (typeof window !== 'undefined') {
-  ;(window as unknown as { resetReturnHomeBanner?: () => void }).resetReturnHomeBanner = () => {
-    try {
-      localStorage.removeItem(DISMISS_KEY)
-    } catch {
-      // ignore
-    }
-    dismissed.value = false
-  }
+  ;(window as unknown as { resetReturnHomeBanner?: () => void }).resetReturnHomeBanner =
+    resetDismissal
 }
