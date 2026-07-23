@@ -2,9 +2,14 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { CdxButton, CdxRadio } from '@wikimedia/codex'
 
+import { useScrollableFooter } from '../data/useScrollableFooter'
 import type { FlowState, SurveyChoice } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+// Sticky CTA footer: pinned to the bottom, divider shown only when the body
+// scrolls. `scrollTarget` is bound to `.ob-body` below.
+const { scrollTarget, isScrollable } = useScrollableFooter()
 
 /** Hold after the selection feedback before auto-advancing (T3). Mirrors
  *  `--ob-delay-selection-hold`; kept in JS since only the timer needs it. */
@@ -73,7 +78,7 @@ onBeforeUnmount(() => {
   <div class="ob-page">
     <h1 class="ob-title">What brings you to Wikipedia?</h1>
 
-    <div class="ob-body">
+    <div ref="scrollTarget" class="ob-body">
       <!-- Each option is a selectable card wrapping a Codex radio; the whole
            card is a hit target, while the radio keeps native keyboard/aria
            semantics. `role="radiogroup"` groups them for assistive tech. -->
@@ -97,7 +102,10 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="ob-actions">
+      <div
+        class="ob-actions ob-actions--footer"
+        :class="{ 'ob-actions--divided': isScrollable }"
+      >
         <CdxButton weight="quiet" @click="skip">Skip</CdxButton>
       </div>
     </div>

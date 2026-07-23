@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { CdxButton, CdxIcon, CdxSearchInput, CdxToggleSwitch } from '@wikimedia/codex'
 import { cdxIconSubtract } from '@wikimedia/codex-icons'
 
@@ -12,6 +12,7 @@ import TitleSearchResults from '../components/TitleSearchResults.vue'
 import { useConfigureSettings } from '../data/useConfigureSettings'
 import { useInterestSuggestions } from '../data/useInterestSuggestions'
 import { useInterestThumbnails } from '../data/useInterestThumbnails'
+import { useScrollableFooter } from '../data/useScrollableFooter'
 import { useThumbReveal } from '../data/useThumbReveal'
 import { fetchTitleSearchResults, type TitleSearchResult } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
@@ -63,18 +64,9 @@ const thumbReveal = useThumbReveal()
 const search = ref('')
 const results = ref<TitleSearchResult[]>([])
 
-// Sticky footer border: only shown when the page can actually scroll, so a
-// short screen (few suggestions) has no divider. Scroll happens at the page
-// level here (no inner overflow container), so we measure the document.
-const bodyEl = ref<HTMLElement | null>(null)
-const isScrollable = ref(false)
-
-function measure(): void {
-  const el = document.scrollingElement ?? document.documentElement
-  isScrollable.value = el.scrollHeight - el.clientHeight > 1
-}
-
-let resizeObserver: ResizeObserver | null = null
+// Sticky CTA footer: pinned to the bottom, divider shown only when the body
+// scrolls. `scrollTarget` is bound to `.ob-body` below.
+const { scrollTarget: bodyEl, isScrollable } = useScrollableFooter()
 
 let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -153,22 +145,9 @@ function removeInterest(title: string): void {
 // removed and re-added animates in again rather than appearing pre-expanded.
 watch(interests, (list) => thumbReveal.keep(list))
 
-onMounted(() => {
-  measure()
-  window.addEventListener('resize', measure)
-  // The suggestions list loads async and the chip list grows/shrinks, so
-  // recompute whenever the content height changes rather than only on mount.
-  if (bodyEl.value) {
-    resizeObserver = new ResizeObserver(measure)
-    resizeObserver.observe(bodyEl.value)
-  }
-})
-
 onBeforeUnmount(() => {
   abortController?.abort()
   if (debounceTimer) clearTimeout(debounceTimer)
-  window.removeEventListener('resize', measure)
-  resizeObserver?.disconnect()
 })
 </script>
 
@@ -272,36 +251,6 @@ onBeforeUnmount(() => {
 <style scoped>
 .interests__configure-body {
   padding: var(--spacing-100, 16px);
-}
-
-/* Sticky CTA: pins to the viewport bottom (page-level scroll) so a long
-   suggestions list scrolls behind the button instead of pushing it off-screen.
-   Breaks out of .ob-body's 16px padding for a full-bleed background/border,
-   then re-pads internally so the button keeps its side gaps. `margin-top: auto`
-   (inherited from .ob-actions) still bottom-aligns it when content is short. */
-.ob-actions--footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  box-sizing: border-box;
-  /* Full-bleed breakout of .ob-body's 16px padding. An explicit widened width is
-     required: as a stretched flex item the footer otherwise ignores the negative
-     inline margins for sizing (they'd only shift it left, not widen it). */
-  width: calc(100% + 2 * var(--spacing-100, 16px));
-  /* margin-top:auto (from the shared .ob-actions) bottom-aligns the button when
-     content is short; sticky pins it once the list overflows. */
-  margin-top: auto;
-  margin-inline: calc(-1 * var(--spacing-100, 16px));
-  margin-bottom: calc(-1 * var(--spacing-100, 16px));
-  padding: var(--spacing-100, 16px);
-  /* Transparent in the resting state so toggling the divider never shifts layout. */
-  border-top: var(--border-width-base, 1px) solid transparent;
-  background-color: var(--background-color-base);
-}
-
-/* Only when the page can scroll — content is passing behind the button. */
-.ob-actions--divided {
-  border-top-color: var(--border-color-muted, #c8ccd1);
 }
 
 .interests__fields {

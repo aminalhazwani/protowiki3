@@ -2,9 +2,14 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CdxButton } from '@wikimedia/codex'
 
+import { useScrollableFooter } from '../data/useScrollableFooter'
 import type { FlowState } from '../data/useFlowState'
 
 const props = defineProps<{ flow: FlowState }>()
+
+// Sticky CTA footer: pinned to the bottom, divider shown only when the content
+// scrolls. `scrollTarget` is bound to the `.welcome` region below.
+const { scrollTarget, isScrollable } = useScrollableFooter()
 
 const GLOBE = `${import.meta.env.BASE_URL}images/no-distractions-welcome-globe.gif`
 
@@ -66,14 +71,17 @@ const greeting = computed(() => {
     stagger/scale treatment is reserved for this one moment — steps 2/3 stay
     efficient and consistent.
   -->
-  <div class="welcome">
+  <div ref="scrollTarget" class="welcome">
     <h1 class="welcome__title ob-stagger ob-stagger--1">{{ greeting }}</h1>
 
     <div class="welcome__illustration ob-stagger ob-stagger--lead">
       <img class="welcome__hero" :src="heroSrc" alt="" width="480" height="480" />
     </div>
 
-    <div class="welcome__actions ob-stagger ob-stagger--2">
+    <div
+      class="welcome__actions ob-stagger ob-stagger--2"
+      :class="{ 'welcome__actions--divided': isScrollable }"
+    >
       <CdxButton action="progressive" weight="primary" @click="props.flow.goTo('survey')">
         Personalize your Home
       </CdxButton>
@@ -114,11 +122,25 @@ const greeting = computed(() => {
 }
 
 .welcome__actions {
+  /* Sticky CTA: pinned to the viewport bottom (page-level scroll) so the hero
+     scrolls behind the button on short viewports. Already full-bleed as a direct
+     child of .welcome (no breakout margins needed). */
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-75, 12px);
   padding: var(--spacing-100, 16px);
   padding-bottom: max(var(--spacing-100, 16px), env(safe-area-inset-bottom));
+  /* Transparent in the resting state so toggling the divider never shifts layout. */
+  border-top: var(--border-width-base, 1px) solid transparent;
+  background-color: var(--background-color-base);
+}
+
+/* Only when the content can scroll — the hero is passing behind the button. */
+.welcome__actions--divided {
+  border-top-color: var(--border-color-muted, #c8ccd1);
 }
 
 .welcome__actions :deep(.cdx-button) {
