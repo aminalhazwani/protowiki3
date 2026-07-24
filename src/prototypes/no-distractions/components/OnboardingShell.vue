@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { CdxButton, CdxDialog, CdxIcon } from '@wikimedia/codex'
 import { cdxIconClose, cdxIconPrevious } from '@wikimedia/codex-icons'
@@ -63,6 +63,40 @@ function onNavigate(): void {
 }
 
 /**
+ * Scroll dividers. Codex only recomputes its own `--dividers` class when the
+ * dialog body's *box height* changes, but our body is a fixed-height flex child
+ * (so it can fill the frame), and async content (images, suggestions) grows the
+ * body's scrollHeight without changing its box — so Codex never re-measures.
+ * Drive the header/footer borders ourselves instead: observe the body and its
+ * content and toggle a class when the body actually overflows. (Adding the 1px
+ * borders shrinks the body, which only makes an overflowing body overflow more,
+ * so there's no observer feedback loop.)
+ */
+const shellEl = ref<HTMLElement | null>(null)
+const bodyScrolls = ref(false)
+let resizeObserver: ResizeObserver | null = null
+
+function measureScroll(): void {
+  const body = shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body')
+  if (!body) return
+  bodyScrolls.value = body.scrollHeight - body.clientHeight > 1
+}
+
+onMounted(() => {
+  const body = shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body')
+  measureScroll()
+  resizeObserver = new ResizeObserver(() => measureScroll())
+  if (body) {
+    resizeObserver.observe(body)
+    // Observe the content too, so async height growth (images/suggestions
+    // loading) that leaves the body box unchanged still triggers a re-measure.
+    if (body.firstElementChild) resizeObserver.observe(body.firstElementChild)
+  }
+})
+
+onBeforeUnmount(() => resizeObserver?.disconnect())
+
+/**
  * Route the dialog's own dismiss (Esc / backdrop) through the same navigation as
  * the header button, so Esc mirrors it: dismiss on step 1, back on later steps.
  * `open` is bound constant `true` (visibility is driven by v-if at the route
@@ -74,7 +108,7 @@ function onDialogClose(value: boolean): void {
 </script>
 
 <template>
-  <div class="onboarding-shell">
+  <div ref="shellEl" class="onboarding-shell" :class="{ 'onboarding-shell--scrolls': bodyScrolls }">
     <CdxDialog
       :open="true"
       :fixed-height="true"
@@ -166,6 +200,17 @@ function onDialogClose(value: boolean): void {
   flex-direction: column;
   flex-grow: 1;
   min-height: 0;
+}
+
+/* Scroll dividers, driven by our own overflow detection (see `bodyScrolls`).
+   Mirrors Codex's `.cdx-dialog--dividers` borders, which don't fire reliably
+   with our fixed-height body. */
+.onboarding-shell--scrolls :deep(.cdx-dialog__header) {
+  border-bottom: var(--border-width-base, 1px) solid var(--border-color-muted, #c8ccd1);
+}
+
+.onboarding-shell--scrolls :deep(.cdx-dialog__footer) {
+  border-top: var(--border-width-base, 1px) solid var(--border-color-muted, #c8ccd1);
 }
 
 .onboarding-shell__progress {

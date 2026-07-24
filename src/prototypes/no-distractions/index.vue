@@ -187,9 +187,15 @@ onBeforeUnmount(() => {
           buttons). All actions are plain route moves; the interests button
           flips quiet -> progressive-primary once a second interest is added.
         -->
+        <!--
+          Distinct keys so Vue mounts a fresh button per step rather than
+          recycling one element — otherwise the tapped button's sticky
+          focus/hover state (iOS) carries over to the next step's label.
+        -->
         <template #footer>
           <CdxButton
             v-if="flow.screen.value === 'welcome'"
+            key="cta-welcome"
             class="ob-footer-cta"
             size="large"
             weight="primary"
@@ -200,6 +206,7 @@ onBeforeUnmount(() => {
           </CdxButton>
           <CdxButton
             v-else-if="flow.screen.value === 'survey'"
+            key="cta-survey"
             class="ob-footer-cta"
             size="large"
             weight="quiet"
@@ -209,6 +216,7 @@ onBeforeUnmount(() => {
           </CdxButton>
           <CdxButton
             v-else-if="flow.screen.value === 'interests'"
+            key="cta-interests"
             class="ob-footer-cta"
             size="large"
             :weight="goHomeActive ? 'primary' : 'quiet'"
