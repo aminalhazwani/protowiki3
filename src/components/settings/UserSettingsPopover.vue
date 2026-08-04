@@ -4,11 +4,14 @@ import { ref } from 'vue'
 import { CdxPopover } from '@wikimedia/codex'
 
 import UserSettingsPanel from './UserSettingsPanel.vue'
+import { flagEnabled } from '../../urlFlags'
 
 const open = ref(false)
 const anchor = ref<HTMLElement | null>(null)
 
 function toggle(): void {
+  // Gated for usability testing: only opens when ?prototype-user=1 is in the URL.
+  if (!flagEnabled('prototype-user')) return
   open.value = !open.value
 }
 </script>

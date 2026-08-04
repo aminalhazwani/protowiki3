@@ -19,4 +19,16 @@ export default [
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },
+  {
+    // Account-creation form ported verbatim from protowiki2 (authored in JS).
+    // It keeps its plain `<script setup>` so the source stays byte-faithful and
+    // isn't burdened with types the upstream component never had.
+    files: [
+      'src/prototypes/no-distractions/components/CreateAccountForm.vue',
+      'src/prototypes/no-distractions/components/UsernamePolicy.vue',
+    ],
+    rules: {
+      'vue/block-lang': 'off',
+    },
+  },
 ]

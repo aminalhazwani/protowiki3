@@ -1,0 +1,253 @@
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { CdxButton, CdxDialog, CdxIcon } from '@wikimedia/codex'
+import { cdxIconClose, cdxIconPrevious } from '@wikimedia/codex-icons'
+
+import './onboarding-layout.css'
+
+/**
+ * Full-height onboarding shell for the personalisation steps. Now a thin wrapper
+ * around a stock Codex `CdxDialog`: the dialog owns the scrollable body, the fixed
+ * footer, and the auto dividers, so screens no longer hand-roll a sticky footer.
+ *
+ * We fully replace the dialog header via `#header` (a navigation button on the
+ * left and a rolling step counter `1 / 3` on the right) and expose a `footer`
+ * slot for the per-step CTA. The dialog is rendered in place (teleport disabled)
+ * and its viewport-relative sizing is overridden so the card stays inside the
+ * prototype's phone frame rather than covering the whole browser window.
+ */
+interface Props {
+  /** Active step (1 = welcome, 2 = survey, 3 = interests). 0 = no step highlighted. */
+  current?: number
+  /** Total number of steps shown in the counter. */
+  total?: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  current: 0,
+  total: 3,
+})
+
+const emit = defineEmits<{ dismiss: [] }>()
+
+const router = useRouter()
+
+/** Step 1 shows a close button that dismisses; later steps show a back button. */
+const isFirst = computed(() => props.current <= 1)
+
+/**
+ * Rolling counter direction. Only the current digit animates (the " / N" is
+ * fixed); advancing rolls it up (new from the bottom), going back rolls it down
+ * (new from the top) — mirroring the direction-aware content slide. Self-contained
+ * here since the shell owns the counter and already receives `current`.
+ */
+const counterDir = ref<'up' | 'down'>('up')
+watch(
+  () => props.current,
+  (to, from) => {
+    if (to > from) counterDir.value = 'up'
+    else if (to < from) counterDir.value = 'down'
+  },
+)
+const counterTransition = computed(() =>
+  counterDir.value === 'up' ? 'ob-counter-up' : 'ob-counter-down',
+)
+
+function onNavigate(): void {
+  if (isFirst.value) {
+    emit('dismiss')
+  } else {
+    router.back()
+  }
+}
+
+/**
+ * Scroll dividers. Codex only recomputes its own `--dividers` class when the
+ * dialog body's *box height* changes, but our body is a fixed-height flex child
+ * (so it can fill the frame), and async content (images, suggestions) grows the
+ * body's scrollHeight without changing its box — so Codex never re-measures.
+ * Drive the header/footer borders ourselves instead: observe the body and its
+ * content and toggle a class when the body actually overflows. (Adding the 1px
+ * borders shrinks the body, which only makes an overflowing body overflow more,
+ * so there's no observer feedback loop.)
+ */
+const shellEl = ref<HTMLElement | null>(null)
+const bodyScrolls = ref(false)
+let resizeObserver: ResizeObserver | null = null
+
+function measureScroll(): void {
+  const body = shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body')
+  if (!body) return
+  bodyScrolls.value = body.scrollHeight - body.clientHeight > 1
+}
+
+onMounted(() => {
+  const body = shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body')
+  measureScroll()
+  resizeObserver = new ResizeObserver(() => measureScroll())
+  if (body) {
+    resizeObserver.observe(body)
+    // Observe the content too, so async height growth (images/suggestions
+    // loading) that leaves the body box unchanged still triggers a re-measure.
+    if (body.firstElementChild) resizeObserver.observe(body.firstElementChild)
+  }
+})
+
+onBeforeUnmount(() => resizeObserver?.disconnect())
+
+/**
+ * Route the dialog's own dismiss (Esc / backdrop) through the same navigation as
+ * the header button, so Esc mirrors it: dismiss on step 1, back on later steps.
+ * `open` is bound constant `true` (visibility is driven by v-if at the route
+ * level), so we never actually flip it — the navigation unmounts the shell.
+ */
+function onDialogClose(value: boolean): void {
+  if (!value) onNavigate()
+}
+</script>
+
+<template>
+  <div ref="shellEl" class="onboarding-shell" :class="{ 'onboarding-shell--scrolls': bodyScrolls }">
+    <CdxDialog
+      :open="true"
+      :fixed-height="true"
+      render-in-place
+      title="Personalize your Home"
+      @update:open="onDialogClose"
+    >
+      <template #header>
+        <div class="onboarding-shell__progress">
+          <CdxButton
+            class="onboarding-shell__nav"
+            weight="quiet"
+            size="medium"
+            :aria-label="isFirst ? 'Close' : 'Go back'"
+            @click="onNavigate"
+          >
+            <CdxIcon :icon="isFirst ? cdxIconClose : cdxIconPrevious" />
+          </CdxButton>
+          <!-- Rolling counter: the " / N" stays fixed and only the current digit
+               slides + fades when the step changes (T2). The header stays put. -->
+          <span class="onboarding-shell__counter">
+            <span class="onboarding-shell__counter-current">
+              <Transition :name="counterTransition">
+                <span :key="props.current" class="onboarding-shell__counter-digit">{{
+                  props.current
+                }}</span>
+              </Transition>
+            </span>
+            <span class="onboarding-shell__counter-total">&nbsp;/ {{ props.total }}</span>
+          </span>
+        </div>
+      </template>
+
+      <slot />
+
+      <template #footer>
+        <slot name="footer" />
+      </template>
+    </CdxDialog>
+  </div>
+</template>
+
+<style scoped>
+.onboarding-shell {
+  /* Positioning context for the in-place dialog: its backdrop is overridden to
+     `position: absolute` below so it fills this box (the phone column) rather
+     than the whole browser viewport. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* 100vh on iOS Safari uses the largest viewport (toolbar hidden), so the
+     shell ends up taller than what's actually visible and the page scrolls.
+     100dvh tracks the real visible viewport as the toolbar shows/hides. */
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--background-color-base);
+}
+
+/* --- Contain the teleport-disabled dialog inside the phone frame ------------
+   Codex sizes the backdrop/card against the viewport (100vw / 100vh). Inside
+   the fake phone column that would escape the frame, so re-anchor them to this
+   wrapper. `:deep()` reaches the dialog internals because `render-in-place`
+   keeps them in this component's subtree. */
+.onboarding-shell :deep(.cdx-dialog-backdrop) {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.onboarding-shell :deep(.cdx-dialog) {
+  width: calc(100% - 2rem);
+  max-width: none;
+}
+
+.onboarding-shell :deep(.cdx-dialog--fixed-height) {
+  height: calc(100% - 2rem);
+}
+
+/* Codex sizes the body to its content and pushes the footer down with
+   `margin-top:auto`, so a short step leaves the body well short of the dialog
+   height. Make the body grow to fill the available height and lay its content
+   out as a flex column, so the step viewport (and the screen inside it) fills
+   that height — letting a screen's growing element, e.g. Welcome's `h1`, expand
+   and push the rest toward the footer. `min-height:0` keeps it scrollable when
+   content overflows. */
+.onboarding-shell :deep(.cdx-dialog__body) {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+/* Scroll dividers, driven by our own overflow detection (see `bodyScrolls`).
+   Mirrors Codex's `.cdx-dialog--dividers` borders, which don't fire reliably
+   with our fixed-height body. */
+.onboarding-shell--scrolls :deep(.cdx-dialog__header) {
+  border-bottom: var(--border-width-base, 1px) solid var(--border-color-muted, #c8ccd1);
+}
+
+.onboarding-shell--scrolls :deep(.cdx-dialog__footer) {
+  border-top: var(--border-width-base, 1px) solid var(--border-color-muted, #c8ccd1);
+}
+
+.onboarding-shell__progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1 1 auto;
+}
+
+/* Pull the quiet nav button back by its own inner padding so the icon optically
+   aligns with the header's content edge (mirrors Codex's own close-button
+   `margin-inline-start: -8px`). Logical margin so RTL flips correctly. */
+.onboarding-shell__nav {
+  margin-inline-start: -8px;
+}
+
+.onboarding-shell__counter {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-subtle, #54595d);
+}
+
+/* Clipped one-line slot the rolling digit animates within. `position:relative`
+   anchors the leaving digit (absolute) so both share the slot; `min-width: 1ch`
+   keeps the fixed " / N" from shifting while the slot is briefly empty mid-roll. */
+.onboarding-shell__counter-current {
+  position: relative;
+  display: inline-block;
+  min-width: 1ch;
+  overflow: hidden;
+  text-align: center;
+  vertical-align: baseline;
+}
+
+.onboarding-shell__counter-digit {
+  display: inline-block;
+}
+</style>

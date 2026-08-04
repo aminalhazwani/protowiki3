@@ -11,6 +11,7 @@
  * - "Most viewed" rows: top 3 articles by those view counts (not merely the 3 most recent edits).
  */
 import { normalizeWikiUsername, wikimediaApiFetchHeaders, wikiHostFromLang } from '@/config'
+import { formatRelativeTime, parseMediaWikiTimestamp } from '@/lib/mediaWikiTime'
 import type { ImpactData, ImpactMostViewedArticle } from './impactTypes'
 
 const METRICS_HOST = 'wikimedia.org'
@@ -67,16 +68,6 @@ function actionUrl(wikiHost: string, params: Record<string, string>): string {
   return `https://${wikiHost}/w/api.php?${search.toString()}`
 }
 
-/** Parse Action API timestamps (`2026-02-23T09:12:59Z` or `2013-07-31 11:54:03`). */
-function parseMediaWikiTimestamp(timestamp: string): Date {
-  const trimmed = timestamp.trim()
-  if (!trimmed.length) return new Date(Number.NaN)
-  if (trimmed.includes('T')) {
-    return new Date(trimmed.endsWith('Z') ? trimmed : `${trimmed}Z`)
-  }
-  return new Date(trimmed.replace(' ', 'T') + 'Z')
-}
-
 function toPageviewDateParam(date: Date): string {
   const y = date.getUTCFullYear()
   const m = String(date.getUTCMonth() + 1).padStart(2, '0')
@@ -93,26 +84,6 @@ function yesterdayPageviewDate(): string {
 
 function pageviewsArticleSlug(title: string): string {
   return encodeURIComponent(title.replace(/ /g, '_'))
-}
-
-function formatRelativeTime(isoTimestamp: string): string {
-  const then = parseMediaWikiTimestamp(isoTimestamp).getTime()
-  if (Number.isNaN(then)) return '—'
-  const diffMs = Date.now() - then
-  if (diffMs < 0) return 'just now'
-
-  const minutes = Math.floor(diffMs / (1000 * 60))
-  const hours = Math.floor(diffMs / (1000 * 60 * 60))
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`
-  if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`
-  if (days === 1) return '1 day ago'
-  if (days < 30) return `${days} days ago`
-  const months = Math.floor(days / 30)
-  if (months === 1) return '1 month ago'
-  return `${months} months ago`
 }
 
 function formatShortDate(date: Date): string {

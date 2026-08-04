@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, provide } from 'vue'
+import { computed, getCurrentInstance, provide } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 
 import { useConfig } from '@/composables/useConfig'
 import type { ChromeNavTool } from './headerNavTools'
@@ -44,6 +45,13 @@ interface Props {
   mobileWordmarkSrc?: string
   /** Forwarded to **`ChromeHeader`** (desktop tools only). */
   navTools?: ChromeNavTool[]
+  /** Forwarded to **`ChromeHeader`**: router target for the brand/wordmark link. */
+  brandTo?: RouteLocationRaw
+  /**
+   * Forwarded to **`ChromeHeader`**: hide the mobile header action buttons
+   * (search + user/account menu) for focused flows like account creation.
+   */
+  hideActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -58,7 +66,21 @@ const props = withDefaults(defineProps<Props>(), {
   taglineSrc: undefined,
   mobileWordmarkSrc: undefined,
   navTools: undefined,
+  brandTo: undefined,
+  hideActions: false,
 })
+
+const emit = defineEmits<{ search: []; 'create-account': []; 'go-home': [] }>()
+
+// Only turn the chrome search icon into an in-app button when a parent actually
+// listens for `@search`; otherwise the shared default (external Special:Search
+// link) is preserved for every other consumer. Same idea for the account menu:
+// only swap the logged-out avatar/link to the in-app menu when a parent listens
+// for `@create-account`, so every other consumer's chrome is unchanged.
+const instance = getCurrentInstance()
+const hasSearchHandler = computed(() => Boolean(instance?.vnode.props?.onSearch))
+const hasCreateAccountHandler = computed(() => Boolean(instance?.vnode.props?.onCreateAccount))
+const hasGoHomeHandler = computed(() => Boolean(instance?.vnode.props?.onGoHome))
 
 const { displayName } = useConfig()
 
@@ -87,6 +109,14 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :tagline-src="props.taglineSrc"
         :mobile-wordmark-src="props.mobileWordmarkSrc"
         :nav-tools="props.navTools"
+        :brand-to="props.brandTo"
+        :hide-actions="props.hideActions"
+        :internal-search="hasSearchHandler"
+        :account-menu="hasCreateAccountHandler"
+        :home-menu="hasGoHomeHandler"
+        @search="emit('search')"
+        @create-account="emit('create-account')"
+        @go-home="emit('go-home')"
       >
         <template v-if="$slots.menu" #menu>
           <slot name="menu" />
@@ -115,6 +145,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--background-color-base, #fff);
   color: var(--color-base, #202122);
 }
@@ -125,5 +156,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
   width: 100%;
   margin: 0 auto;
   padding: 0 0;
+  /* Room to scroll fields/button above the soft keyboard in in-app WebViews (see useKeyboardInset). */
+  padding-bottom: var(--keyboard-inset, 0px);
 }
 </style>
