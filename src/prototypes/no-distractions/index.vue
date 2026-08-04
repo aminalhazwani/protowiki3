@@ -94,10 +94,16 @@ const stepTransition = computed(() =>
   stepDir.value === 'forward' ? 'ob-step-forward' : 'ob-step-back',
 )
 
+// The interests screen lets the reader pick as many articles as they like, but
+// only the first N seed the suggested-edits pool — picks past that keep
+// refreshing the related-articles list without reshuffling the pool (the cache
+// key derives from these seeds, so no refetch either). The seed article counts.
+const POOL_INTEREST_LIMIT = 10
+
 // Bind once at the route shell; home/all read the shared cache without rebinding.
 useSuggestions(() => {
   const base = resolveSuggestionSeedState(
-    flow.interests.value,
+    flow.interests.value.slice(0, POOL_INTEREST_LIMIT),
     flow.title.value,
     flow.hasExplicitInterests.value,
   )

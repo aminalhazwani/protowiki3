@@ -9,9 +9,8 @@ const props = withDefaults(
     suggestions: MorelikeSearchHit[]
     loading?: boolean
     source?: 'morelike' | 'random'
-    disabled?: boolean
   }>(),
-  { source: 'morelike', disabled: false },
+  { source: 'morelike' },
 )
 
 const heading = computed(() =>
@@ -21,11 +20,6 @@ const heading = computed(() =>
 const emit = defineEmits<{
   add: [title: string]
 }>()
-
-function onAdd(title: string): void {
-  if (props.disabled) return
-  emit('add', title)
-}
 </script>
 
 <template>
@@ -47,12 +41,11 @@ function onAdd(title: string): void {
              aria-label makes it read as "Add <title>" rather than just a link. -->
         <CdxCard
           class="interest-suggestions__card"
-          :class="{ 'interest-suggestions__card--disabled': disabled }"
           url="#"
           force-thumbnail
           :thumbnail="hit.thumbnail ?? null"
           :aria-label="`Add ${hit.title}`"
-          @click.prevent="onAdd(hit.title)"
+          @click.prevent="emit('add', hit.title)"
         >
           <template #title>{{ hit.title }}</template>
         </CdxCard>
@@ -97,12 +90,5 @@ function onAdd(title: string): void {
 
 .interest-suggestions__card {
   width: 100%;
-}
-
-/* At the cap the suggestions are frozen: grey them out and drop pointer events
-   so they read as inactive (onAdd also guards the click). */
-.interest-suggestions__card--disabled {
-  pointer-events: none;
-  opacity: 0.5;
 }
 </style>

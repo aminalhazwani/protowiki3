@@ -65,7 +65,6 @@ function blendHits(
 export function useInterestSuggestions(
   getInterests: () => string[],
   getLang: () => string,
-  isFrozen: () => boolean = () => false,
 ): InterestSuggestionsState {
   const suggestions = ref<MorelikeSearchHit[]>([])
   const loading = ref(false)
@@ -137,17 +136,11 @@ export function useInterestSuggestions(
     }
   }
 
-  let hasFetched = false
   watch(
     getInterests,
     (interests) => {
-      // Once the interest cap is reached, freeze the current suggestions: adding
-      // the final interest must not swap the list for a new set the user can't
-      // act on (the pills are disabled at the cap). Removing an interest drops
-      // below the cap and refetches. The first run always fetches so a direct
-      // load already at the cap isn't left with an empty section.
-      if (hasFetched && isFrozen()) return
-      hasFetched = true
+      // Every change refetches: selection is unlimited, so the list keeps
+      // recomputing against the full set of interests however many there are.
       // Reflect the pending fetch synchronously (before the debounce) so the
       // section heading + progress bar are visible the instant the view mounts,
       // and the heading matches the source that runFetch will use.

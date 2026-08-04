@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import {
+  CdxField,
+  CdxMessage,
   CdxMultiselectLookup,
   CdxToggleSwitch,
   type ChipInputItem,
@@ -18,7 +20,10 @@ import { useInterestSuggestions } from '../data/useInterestSuggestions'
 import { fetchTitleSearchResults } from '../data/titleSearch'
 import type { FlowState } from '../data/useFlowState'
 
-const MAX_INTERESTS = 3
+// Selection is unlimited, but only the first N interests seed the suggested-edits
+// pool (applied where the pool is bound, in the prototype's index.vue) — and
+// reaching N is what confirms the Home is personalized. The seed article counts.
+const POOL_INTEREST_LIMIT = 10
 
 const props = defineProps<{ flow: FlowState }>()
 
@@ -27,8 +32,19 @@ const configureSettings = useConfigureSettings()
 
 const interests = computed(() => props.flow.interests.value)
 const hasInterests = computed(() => interests.value.length > 0)
-// 3 is the cap shown in the heading; the seed counts toward it.
-const maxInterestsReached = computed(() => interests.value.length >= MAX_INTERESTS)
+
+// Latched, not reactive to the current count: once the reader has reached the
+// limit the reassurance stays put. Removing a chip afterwards shouldn't yank it
+// away — they can keep adding, and everything past the limit is simply ignored
+// by the pool. `immediate` covers a direct load that already sits at the limit.
+const poolLimitReached = ref(false)
+watch(
+  () => interests.value.length,
+  (count) => {
+    if (count >= POOL_INTEREST_LIMIT) poolLimitReached.value = true
+  },
+  { immediate: true },
+)
 
 const {
   suggestions,
@@ -37,14 +53,10 @@ const {
 } = useInterestSuggestions(
   () => props.flow.interests.value,
   () => lang.value,
-  // Freeze suggestions at the cap: picking the final interest must not swap the
-  // list for a fresh (disabled) set the reader can't act on.
-  () => maxInterestsReached.value,
 )
 
-// Hide already-selected interests from the suggestion list. Matters most once
-// the list is frozen at the cap: the interest the reader just picked would
-// otherwise linger in the now-disabled list.
+// Hide already-selected interests from the suggestion list, so the interest the
+// reader just picked doesn't linger in the refreshed list.
 const visibleSuggestions = computed(() => {
   const selected = new Set(interests.value.map((t) => normalizeTitleKey(t)))
   return suggestions.value.filter((hit) => !selected.has(normalizeTitleKey(hit.title)))
@@ -74,15 +86,9 @@ watch(
 )
 
 // component -> interests. `selected` moves on both menu picks and chip removals,
-// so it's the one canonical path back. Hold the cap by reverting an over-limit
-// selection instead of writing it through.
+// so it's the one canonical path back.
 watch(selected, (values) => {
   const titles = values.map(String)
-  if (titles.length > MAX_INTERESTS) {
-    selected.value = [...interests.value]
-    inputChips.value = interests.value.map((title) => ({ value: title, label: title }))
-    return
-  }
   if (!sameSet(titles, interests.value)) props.flow.interests.value = titles
 })
 
@@ -115,8 +121,7 @@ async function finishInterests(): Promise<void> {
 async function fetchMenu(term: string): Promise<void> {
   abortController?.abort()
   const trimmed = term.trim()
-  // Nothing to search, or already at the cap — offer no options to pick.
-  if (!trimmed.length || maxInterestsReached.value) {
+  if (!trimmed.length) {
     menuItems.value = []
     return
   }
@@ -152,7 +157,7 @@ function onSearchInput(value: string | number): void {
 // The suggestion buttons add through the same source of truth.
 function addInterest(title: string): void {
   const trimmed = title.trim()
-  if (!trimmed.length || maxInterestsReached.value) return
+  if (!trimmed.length) return
   if (interests.value.some((item) => item.toLowerCase() === trimmed.toLowerCase())) return
   props.flow.interests.value = [...interests.value, trimmed]
 }
@@ -176,29 +181,57 @@ onBeforeUnmount(() => {
 
     <div :class="configureMode ? 'interests__configure-body' : 'ob-body'">
       <div class="interests__fields">
-        <!-- Search input, results menu and the selected chips are all the one
-             Codex lookup now. `separate-input` stacks the chips below the input
-             (matching the old layout). Kept in sync with `interests` above. -->
-        <CdxMultiselectLookup
-          v-model:input-chips="inputChips"
-          v-model:selected="selected"
-          class="interests__lookup"
-          :class="{ 'interests__lookup--capped': maxInterestsReached }"
-          :menu-items="menuItems"
-          :menu-config="menuConfig"
-          :separate-input="hasInterests"
-          placeholder="Search articles or topics"
-          aria-label="Search articles or topics"
-          @input="onSearchInput"
-        >
-          <template #no-results>No results found.</template>
-        </CdxMultiselectLookup>
+        <div class="interests__lookup-group">
+          <!-- The lookup is a Codex field, so the success confirmation below
+               inherits the field's message rhythm. The label is hidden: the step
+               heading (or the dialog title in configure mode) already names it.
+               `messages` stays empty — the confirmation is rendered below so it
+               can animate; `status` only carries the field's success state. -->
+          <CdxField
+            hide-label
+            :status="poolLimitReached ? 'success' : 'default'"
+            :messages="{}"
+          >
+            <template #label>Your interests</template>
+
+            <!-- Search input, results menu and the selected chips are all the one
+                 Codex lookup now. `separate-input` stacks the chips below the input
+                 (matching the old layout). Kept in sync with `interests` above. -->
+            <CdxMultiselectLookup
+              v-model:input-chips="inputChips"
+              v-model:selected="selected"
+              class="interests__lookup"
+              :menu-items="menuItems"
+              :menu-config="menuConfig"
+              :separate-input="hasInterests"
+              placeholder="Search articles or topics"
+              aria-label="Search articles or topics"
+              @input="onSearchInput"
+            >
+              <template #no-results>No results found.</template>
+            </CdxMultiselectLookup>
+          </CdxField>
+
+          <!-- Confirmation once enough interests exist to personalize Home.
+               Picking more stays allowed; they just don't change the pool.
+               Same two-part motion as the account form's username check: the
+               area's max-height opens so the suggestions below slide down
+               instead of jumping, and the message slides into that space. -->
+          <div class="interests__message-area" :class="{ active: poolLimitReached }">
+            <Transition name="interests-message">
+              <div v-show="poolLimitReached" class="interests__message">
+                <CdxMessage type="success" inline>
+                  All set! Your Home is personalized and ready.
+                </CdxMessage>
+              </div>
+            </Transition>
+          </div>
+        </div>
 
         <InterestSuggestions
           :suggestions="visibleSuggestions"
           :loading="suggestionsLoading"
           :source="suggestionsSource"
-          :disabled="maxInterestsReached"
           @add="addInterest"
         />
 
@@ -228,21 +261,53 @@ onBeforeUnmount(() => {
   gap: var(--spacing-150, 24px);
 }
 
-/* At the cap the input row goes inactive. With `separate-input` the chips sit
-   in a separate sibling container, so greying and blocking pointer events on
-   just the input wrapper leaves the chips fully interactive — a selection can
-   still be removed. (Typing is already inert at the cap: the menu fetch returns
-   nothing.) The `:not(--disabled)` mirrors Codex's own base-background selector
-   so this override outranks it. */
-.interests__lookup--capped
-  :deep(.cdx-chip-input:not(.cdx-chip-input--disabled) .cdx-chip-input__separate-input) {
-  pointer-events: none;
-  background-color: var(--background-color-disabled-subtle, #eaecf0);
+/* The field and its confirmation are one unit, so they're grouped inside the
+   24px rhythm of `interests__fields` and spaced by the message's own
+   `margin-top` below (matching Codex's own field validation message). */
+.interests__lookup-group > * {
+  margin: 0;
 }
 
-.interests__lookup--capped :deep(.cdx-chip-input__input) {
-  background-color: transparent;
-  color: var(--color-disabled, #a2a9b1);
+/* Codex renders the field's help-text wrapper unconditionally, and with no help
+   text it still contributes a line box under the input. Drop it so the gap below
+   the field is ours alone. */
+.interests__lookup-group :deep(.cdx-field__help-text:empty) {
+  display: none;
+}
+
+/* Message spacing mirrors `.cdx-field__validation-message` (4px) so the
+   confirmation sits exactly where a Codex field message would. */
+.interests__message {
+  margin-top: var(--spacing-25, 4px);
+}
+
+/* The height animation that keeps the suggestions below from jumping: collapsed
+   to 0 and opened to a height that fits the message wrapping to up to three
+   lines. Timings match the account form's username-check area (see
+   CreateAccountForm.vue) rather than the `--ob-*` step tokens, whose strong
+   ease-out front-loads the open so much that the content below snaps. */
+.interests__message-area {
+  display: grid;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 200ms ease-out;
+}
+
+.interests__message-area.active {
+  max-height: calc(var(--spacing-25, 4px) + var(--line-height-medium, 1.625rem) * 3);
+}
+
+/* Enter only: the confirmation is latched, so it never leaves once shown. Same
+   slide-out-from-behind-the-field as the account form's validation messages. */
+.interests-message-enter-active {
+  transition:
+    opacity 400ms ease-out,
+    transform 200ms ease-out;
+}
+
+.interests-message-enter-from {
+  opacity: 0;
+  transform: translateY(-100%);
 }
 
 .interests__switch-list {
