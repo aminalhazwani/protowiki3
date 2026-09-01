@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { CdxButton, CdxField, CdxIcon, CdxPopover, CdxTextArea } from '@wikimedia/codex'
+import { CdxButton, CdxDialog, CdxIcon, CdxPopover } from '@wikimedia/codex'
 import { cdxIconUserAvatar } from '@wikimedia/codex-icons'
 
 import DashboardModule from '@/components/dashboard/DashboardModule.vue'
 import { useConfig } from '@/composables/useConfig'
-
-/** Same canonical URLs the site footer uses (see `ChromeFooter.vue`). */
-const TERMS_OF_USE_URL =
-  'https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Terms_of_Use'
-const CC_BY_SA_URL = 'https://creativecommons.org/licenses/by-sa/4.0/'
-const GFDL_URL = 'https://www.gnu.org/licenses/fdl-1.3.html'
+import AskMentorBody from './AskMentorBody.vue'
 
 interface Props {
   /** Full-page drill-down — body only, no `DashboardModule` card chrome. */
@@ -43,17 +38,44 @@ const props = withDefaults(defineProps<Props>(), {
   talkPageHref: '#',
 })
 
-// Mobile popover test: the ask button opens an empty popover with a textarea.
-// `useBottomSheet` only takes effect below Codex's mobile breakpoint (<= 639px
-// real viewport width) — above that the same popover floats.
+// Mobile popover test: three triggers render the same body (`AskMentorBody`) in
+// a popover, a dialog, and a full-screen dialog, so they can be compared on a
+// real phone. `useBottomSheet` only takes effect below Codex's mobile
+// breakpoint (<= 639px real viewport width) — above that the popover floats.
 const { displayName } = useConfig()
 
-const askOpen = ref(false)
+const askDraft = ref('')
+
+const popoverOpen = ref(false)
 // Element, not component instance: Codex checks the click target against the
 // anchor element to tell "clicked the trigger" from "clicked outside". A
 // component ref fails that check and the popover closes on its own open click.
-const askAnchor = ref<HTMLElement | null>(null)
-const askDraft = ref('')
+const popoverAnchor = ref<HTMLElement | null>(null)
+
+const dialogOpen = ref(false)
+const fullscreenOpen = ref(false)
+
+// Full-screen dialog height is set in CSS (`100dvh`), not via a numeric
+// `fixedHeight`: Codex applies a numeric value through a `v-bind()` CSS
+// variable, and that variable never reaches the dialog because the dialog is
+// teleported to <body>. The undefined var makes `height` invalid at
+// computed-value time, so it collapses to the content height. The boolean prop
+// is still passed — it is what makes the body scroll instead of the dialog
+// growing past the viewport.
+
+const PUBLISH_ACTION = { label: 'Publish', actionType: 'progressive' } as const
+
+/** Publish is a no-op in this prototype — it just closes the overlay. */
+const closeAll = (): void => {
+  popoverOpen.value = false
+  dialogOpen.value = false
+  fullscreenOpen.value = false
+}
+
+const bodyProps = computed(() => ({
+  displayName: displayName.value,
+  talkPageHref: props.talkPageHref,
+}))
 </script>
 
 <template>
@@ -83,15 +105,31 @@ const askDraft = ref('')
       {{ mentorNote }}
     </blockquote>
 
-    <span ref="askAnchor" class="mentor-module__ask-anchor">
+    <span ref="popoverAnchor" class="mentor-module__ask-anchor">
       <CdxButton
         class="mentor-module__ask-btn mentor-module__ask-btn--standalone"
         weight="normal"
-        @click="askOpen = !askOpen"
+        @click="popoverOpen = !popoverOpen"
       >
-        Ask your mentor a question about editing
+        open popover
       </CdxButton>
     </span>
+
+    <CdxButton
+      class="mentor-module__ask-btn mentor-module__ask-btn--standalone"
+      weight="normal"
+      @click="dialogOpen = true"
+    >
+      open dialog
+    </CdxButton>
+
+    <CdxButton
+      class="mentor-module__ask-btn mentor-module__ask-btn--standalone"
+      weight="normal"
+      @click="fullscreenOpen = true"
+    >
+      open full screen dialog
+    </CdxButton>
 
     <p
       v-if="conversationsHref"
@@ -140,11 +178,19 @@ const askDraft = ref('')
     <blockquote v-if="mentorNote" class="mentor-module__note">
       {{ mentorNote }}
     </blockquote>
-    <span ref="askAnchor" class="mentor-module__ask-anchor">
-      <CdxButton class="mentor-module__ask-btn" weight="normal" @click="askOpen = !askOpen">
-        Ask your mentor a question about editing
+    <span ref="popoverAnchor" class="mentor-module__ask-anchor">
+      <CdxButton class="mentor-module__ask-btn" weight="normal" @click="popoverOpen = !popoverOpen">
+        open popover
       </CdxButton>
     </span>
+
+    <CdxButton class="mentor-module__ask-btn" weight="normal" @click="dialogOpen = true">
+      open dialog
+    </CdxButton>
+
+    <CdxButton class="mentor-module__ask-btn" weight="normal" @click="fullscreenOpen = true">
+      open full screen dialog
+    </CdxButton>
     <p v-if="conversationsHref" class="mentor-module__conversations">
       <a :href="conversationsHref" class="mentor-module__link"
         >View your mentor's other conversations</a
@@ -153,48 +199,42 @@ const askDraft = ref('')
   </DashboardModule>
 
   <CdxPopover
-    v-model:open="askOpen"
-    :anchor="askAnchor"
+    v-model:open="popoverOpen"
+    :anchor="popoverAnchor"
     :use-bottom-sheet="true"
     use-close-button
     stacked-actions
     placement="bottom-start"
     title="Ask your mentor"
-    :primary-action="{ label: 'Publish', actionType: 'progressive' }"
-    @primary="askOpen = false"
+    :primary-action="PUBLISH_ACTION"
+    @primary="closeAll"
   >
-    <div class="mentor-ask" @click.stop>
-      <p class="mentor-ask__intro">
-        When you ask a question, it gets <strong>published publicly</strong> under your username,
-        "{{ displayName }}", to
-        <a :href="talkPageHref" class="mentor-module__link">your mentor's talk page</a>, which is
-        where they can find and respond to your question.
-      </p>
-
-      <CdxField>
-        <template #label>Your question</template>
-
-        <CdxTextArea
-          v-model="askDraft"
-          placeholder="Say hello and ask your question. E.g. How do I create a citation?"
-        />
-
-        <template #help-text>
-          By publishing changes, you agree to the
-          <a :href="TERMS_OF_USE_URL" class="mentor-module__link" rel="noopener noreferrer"
-            >Terms of Use</a
-          >, and you irrevocably agree to release your contribution under the
-          <a :href="CC_BY_SA_URL" class="mentor-module__link" rel="noopener noreferrer"
-            >CC BY-SA 4.0 License</a
-          >
-          and the
-          <a :href="GFDL_URL" class="mentor-module__link" rel="noopener noreferrer">GFDL</a>. You
-          agree that a hyperlink or URL is sufficient attribution under the Creative Commons
-          license.
-        </template>
-      </CdxField>
-    </div>
+    <AskMentorBody v-model="askDraft" v-bind="bodyProps" />
   </CdxPopover>
+
+  <CdxDialog
+    v-model:open="dialogOpen"
+    use-close-button
+    stacked-actions
+    title="Ask your mentor"
+    :primary-action="PUBLISH_ACTION"
+    @primary="closeAll"
+  >
+    <AskMentorBody v-model="askDraft" v-bind="bodyProps" />
+  </CdxDialog>
+
+  <CdxDialog
+    v-model:open="fullscreenOpen"
+    class="mentor-ask-dialog--fullscreen"
+    use-close-button
+    stacked-actions
+    title="Ask your mentor"
+    fixed-height
+    :primary-action="PUBLISH_ACTION"
+    @primary="closeAll"
+  >
+    <AskMentorBody v-model="askDraft" v-bind="bodyProps" />
+  </CdxDialog>
 </template>
 
 <style scoped>
@@ -284,13 +324,6 @@ const askDraft = ref('')
   display: block;
 }
 
-.mentor-ask__intro {
-  margin: 0 0 var(--spacing-100, 16px);
-  font-size: var(--font-size-medium);
-  line-height: var(--line-height-medium);
-  color: var(--color-base, #202122);
-}
-
 .mentor-module__ask-btn {
   margin: 0 0 var(--spacing-100, 16px);
   white-space: normal;
@@ -299,15 +332,7 @@ const askDraft = ref('')
 }
 
 .mentor-module__ask-btn--standalone {
-  display: flex;
   width: 100%;
-  justify-content: center;
-  padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
-  font-size: var(--font-size-medium);
-  font-weight: var(--font-weight-bold, 700);
-  line-height: var(--line-height-medium);
-  background-color: var(--background-color-neutral-subtle, #f8f9fa);
-  border: 1px solid var(--border-color-subtle, #a2a9b1);
 }
 
 .mentor-module__conversations {
@@ -336,5 +361,24 @@ const askDraft = ref('')
   .mentor-module__conversations {
     line-height: var(--line-height-small);
   }
+}
+</style>
+
+<!--
+  Teleported dialog: strip the 1rem inset, border, radius and shadow that keep a
+  Codex dialog floating, so `fixedHeight` fills the viewport edge to edge. Inner
+  header/body/footer padding is left alone.
+-->
+<style>
+.cdx-dialog.mentor-ask-dialog--fullscreen {
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  /* Dynamic viewport height — tracks a collapsing mobile URL bar. */
+  height: 100dvh;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 </style>
