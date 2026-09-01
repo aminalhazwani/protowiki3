@@ -41,6 +41,7 @@ const draft = defineModel<string>({ default: '' })
 
       <CdxTextArea
         v-model="draft"
+        autosize
         placeholder="Say hello and ask your question. E.g. How do I create a citation?"
       />
 
