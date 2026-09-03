@@ -1,1 +1,0 @@
-import{Y as n,j as o}from"./index-437Pol7K.js";let l=null,e=0;function t(a){const{user:u}=o();e===0&&(l=u.value),e++,u.value!==a&&(u.value=a),n(()=>{e=Math.max(0,e-1),e===0&&l!==null&&(u.value=l,l=null)})}export{t as u};
