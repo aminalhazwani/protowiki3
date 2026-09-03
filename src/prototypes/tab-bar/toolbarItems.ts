@@ -74,7 +74,8 @@ export function buildArticleItems(slots: ArticleSlot[]): ToolbarItem[] {
   const items: ToolbarItem[] = [HOME_ITEM]
   for (const slot of slots) {
     if (!slot.feature) continue
-    const feature = ARTICLE_FEATURES[slot.feature]
+    // Keyed by slot id: the same feature may appear in several tabs.
+    const feature: ToolbarItem = { ...ARTICLE_FEATURES[slot.feature], id: slot.id }
     items.push(
       slot.feature === 'more'
         ? { ...feature, menuItems: leftover, disabled: leftover.length === 0 }

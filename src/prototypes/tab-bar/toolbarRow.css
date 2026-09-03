@@ -20,24 +20,10 @@
   font-weight: 700;
 }
 
-/* While dragging, the row floats on a soft glow instead of a sharp white box. */
+/* While dragging, the row goes transparent so it floats over its neighbours. */
 .toolbar-row--dragging {
-  position: relative;
   z-index: 1;
   background-color: transparent;
-}
-
-.toolbar-row--dragging::before {
-  content: '';
-  position: absolute;
-  inset: -12px -20px;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse at center,
-    var(--background-color-base, #fff) 55%,
-    transparent 100%
-  );
 }
 
 .toolbar-row__spacer {

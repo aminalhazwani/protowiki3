@@ -6,7 +6,6 @@ import { cdxIconExpand, cdxIconHome } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
 import ArticleToolbarRow from './ArticleToolbarRow.vue'
-import type { ArticleFeatureId } from './articleFeatures'
 import GlobalToolbarRow from './GlobalToolbarRow.vue'
 import { applyToolbarState, cloneToolbarState, toolbarStore } from './toolbarStore'
 import type { ToolbarState } from './toolbarStore'
@@ -77,13 +76,6 @@ function clearArticle(index: number): void {
   const [row] = draft.value.article.splice(index, 1)
   row.feature = null
   draft.value.article.push(row)
-}
-
-function usedElsewhere(index: number): ArticleFeatureId[] {
-  return draft.value.article
-    .filter((_, i) => i !== index)
-    .map((slot) => slot.feature)
-    .filter((feature): feature is ArticleFeatureId => feature !== null)
 }
 
 function close(): void {
@@ -174,7 +166,6 @@ function onDone(): void {
           v-for="(row, index) in draft.article"
           :key="row.id"
           :row="row"
-          :used-elsewhere="usedElsewhere(index)"
           :dragging="articleDragging === index"
           @update:feature="row.feature = $event"
           @clear="clearArticle(index)"

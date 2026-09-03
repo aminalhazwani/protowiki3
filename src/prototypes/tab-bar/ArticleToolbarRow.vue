@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { CdxButton, CdxIcon, CdxSelect } from '@wikimedia/codex'
 import type { MenuItemValue } from '@wikimedia/codex'
 import { cdxIconClear, cdxIconDraggableVertical } from '@wikimedia/codex-icons'
@@ -10,12 +9,10 @@ import type { ArticleSlot } from './toolbarStore'
 
 interface Props {
   row: ArticleSlot
-  /** Features chosen by the other rows — disabled here to avoid duplicates. */
-  usedElsewhere: ArticleFeatureId[]
   dragging?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   dragging: false,
 })
 
@@ -25,13 +22,6 @@ const emit = defineEmits<{
   gripPointerdown: [event: PointerEvent]
   gripKeydown: [event: KeyboardEvent]
 }>()
-
-const menuItems = computed(() =>
-  ARTICLE_FEATURE_MENU_ITEMS.map((item) => ({
-    ...item,
-    disabled: props.usedElsewhere.includes(item.value as ArticleFeatureId),
-  })),
-)
 
 function onSelected(value: MenuItemValue | null): void {
   emit('update:feature', value === null ? null : (String(value) as ArticleFeatureId))
@@ -53,7 +43,7 @@ function onSelected(value: MenuItemValue | null): void {
     <CdxSelect
       class="toolbar-row__select"
       :selected="row.feature"
-      :menu-items="menuItems"
+      :menu-items="ARTICLE_FEATURE_MENU_ITEMS"
       default-label="Choose a feature"
       @update:selected="onSelected"
     />
