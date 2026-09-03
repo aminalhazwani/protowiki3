@@ -13,6 +13,15 @@
   grid-template-columns: 32px 56px minmax(0, 1fr) 32px;
 }
 
+/* Editable global rows group icon + destination + clear so the icon menu can span them. */
+.toolbar-row__controls {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: var(--spacing-50, 8px);
+}
+
 .toolbar-row--header {
   padding-block: 0;
   font-size: var(--font-medium, 1rem);
