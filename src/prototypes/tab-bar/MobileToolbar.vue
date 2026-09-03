@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
+import type { MenuItemValue } from '@wikimedia/codex'
 
 import { globalSkin, PROTOWIKI_CHROME_SKIN } from '@/theme'
 import type { ToolbarItem } from './toolbarItems'
@@ -18,6 +19,13 @@ const router = useRouter()
 const inheritedSkin = inject(PROTOWIKI_CHROME_SKIN, null)
 const isMobile = computed(() => (inheritedSkin?.value ?? globalSkin.value) === 'mobile')
 
+// Menu items are static in this iteration: picking one just closes the menu.
+const menuSelection = ref<MenuItemValue | null>(null)
+
+function onMenuSelected(): void {
+  menuSelection.value = null
+}
+
 function onClick(item: ToolbarItem): void {
   if (item.to && !item.selected) router.push(item.to)
 }
@@ -31,26 +39,43 @@ function showHomeDot(item: ToolbarItem): boolean {
   <!-- In-flow spacer reserving the bar's height so the footer is never covered. -->
   <div v-if="isMobile" class="mobile-toolbar">
     <nav class="mobile-toolbar__bar" aria-label="Toolbar">
-      <CdxButton
-        v-for="item in items"
-        :key="item.id"
-        class="mobile-toolbar__item"
-        :class="{ 'mobile-toolbar__item--selected': item.selected }"
-        weight="quiet"
-        :action="item.selected ? 'progressive' : 'default'"
-        :aria-label="item.label"
-        :aria-current="item.selected ? 'page' : undefined"
-        @click="onClick(item)"
-      >
-        <span class="mobile-toolbar__glyph">
-          <CdxIcon :icon="item.icon" />
-          <span v-if="item.badge" class="mobile-toolbar__badge" aria-hidden="true">
-            {{ item.badge }}
+      <template v-for="item in items" :key="item.id">
+        <CdxMenuButton
+          v-if="item.menuItems"
+          v-model:selected="menuSelection"
+          class="mobile-toolbar__item mobile-toolbar__item--menu"
+          weight="quiet"
+          :menu-items="item.menuItems"
+          :disabled="item.disabled"
+          :aria-label="item.label"
+          @update:selected="onMenuSelected"
+        >
+          <span class="mobile-toolbar__glyph">
+            <CdxIcon :icon="item.icon" />
           </span>
-          <span v-if="showHomeDot(item)" class="mobile-toolbar__dot" aria-hidden="true" />
-        </span>
-        <span v-if="item.text" class="mobile-toolbar__text">{{ item.text }}</span>
-      </CdxButton>
+        </CdxMenuButton>
+
+        <CdxButton
+          v-else
+          class="mobile-toolbar__item"
+          :class="{ 'mobile-toolbar__item--selected': item.selected }"
+          weight="quiet"
+          :action="item.selected ? 'progressive' : 'default'"
+          :aria-label="item.label"
+          :aria-current="item.selected ? 'page' : undefined"
+          :disabled="item.disabled"
+          @click="onClick(item)"
+        >
+          <span class="mobile-toolbar__glyph">
+            <CdxIcon :icon="item.icon" />
+            <span v-if="item.badge" class="mobile-toolbar__badge" aria-hidden="true">
+              {{ item.badge }}
+            </span>
+            <span v-if="showHomeDot(item)" class="mobile-toolbar__dot" aria-hidden="true" />
+          </span>
+          <span v-if="item.text" class="mobile-toolbar__text">{{ item.text }}</span>
+        </CdxButton>
+      </template>
     </nav>
   </div>
 </template>
@@ -73,8 +98,16 @@ function showHomeDot(item: ToolbarItem): boolean {
   background-color: var(--background-color-base, #fff);
 }
 
+/* The menu item is a wrapper div around its own button; give it the same flex share. */
+.mobile-toolbar__item--menu.cdx-menu-button {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 /* Codex root-class override only: square, full-height, equal-width items. */
-.mobile-toolbar__item.cdx-button {
+.mobile-toolbar__item.cdx-button,
+.mobile-toolbar__item--menu :deep(> .cdx-button) {
   position: relative;
   flex: 1 1 0;
   min-width: 0;

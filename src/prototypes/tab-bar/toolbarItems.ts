@@ -1,22 +1,18 @@
-import {
-  cdxIconBookmarkList,
-  cdxIconChartLine,
-  cdxIconEdit,
-  cdxIconHome,
-  cdxIconLanguage,
-  cdxIconNewspaper,
-  cdxIconSpeechBubbles,
-  cdxIconVerticalEllipsis,
-  cdxIconWatchlist,
-} from '@wikimedia/codex-icons'
+import type { MenuItemData } from '@wikimedia/codex'
+import { cdxIconHome } from '@wikimedia/codex-icons'
 import type { Icon } from '@wikimedia/codex-icons'
 import type { RouteLocationRaw } from 'vue-router'
+
+import { ARTICLE_FEATURE_IDS, ARTICLE_FEATURE_LABELS, ARTICLE_FEATURES } from './articleFeatures'
+import { resolveCodexIcon } from './codexIconCatalog'
+import { labelFromDestination } from './searchDestinations'
+import type { ArticleSlot, GlobalSlot } from './toolbarStore'
 
 /**
  * One button in the mobile toolbar.
  *
- * Shaped so a future “Customize Toolbars” dialog can reorder / remove items by
- * **`id`** and swap **`icon`** / **`to`** without touching the component.
+ * The Customize Toolbars dialog edits **`toolbarStore`** slots; these builders
+ * turn slots into the items **`MobileToolbar`** renders.
  */
 export interface ToolbarItem {
   /** Stable key (also used to derive the Home dot). */
@@ -34,6 +30,9 @@ export interface ToolbarItem {
   selected?: boolean
   /** Always first and not removable (Home). */
   fixed?: boolean
+  /** When set, the item opens a Codex menu with these entries instead of acting as a button. */
+  menuItems?: MenuItemData[]
+  disabled?: boolean
 }
 
 export const HOME_PATH = '/tab-bar/home'
@@ -46,20 +45,41 @@ export const HOME_ITEM: ToolbarItem = {
   fixed: true,
 }
 
-/** Global toolbar — shown on the homepage. */
-export const GLOBAL_TOOLBAR: ToolbarItem[] = [
-  { ...HOME_ITEM, selected: true },
-  { id: 'main-page', icon: cdxIconNewspaper, label: 'Main page' },
-  { id: 'reading-lists', icon: cdxIconBookmarkList, label: 'Reading lists' },
-  { id: 'impact', icon: cdxIconChartLine, label: 'Your impact' },
-  { id: 'watchlist', icon: cdxIconWatchlist, label: 'Watchlist' },
-]
+/** Global toolbar: Home first, then every non-empty slot. */
+export function buildGlobalItems(slots: GlobalSlot[], homeSelected: boolean): ToolbarItem[] {
+  const items: ToolbarItem[] = [{ ...HOME_ITEM, selected: homeSelected }]
+  for (const slot of slots) {
+    if (!slot.icon || !slot.destination) continue
+    const icon = resolveCodexIcon(slot.icon)
+    if (!icon) continue
+    items.push({ id: slot.id, icon, label: labelFromDestination(slot.destination) })
+  }
+  return items
+}
 
-/** Article toolbar — shown on article pages. */
-export const ARTICLE_TOOLBAR: ToolbarItem[] = [
-  HOME_ITEM,
-  { id: 'languages', icon: cdxIconLanguage, label: 'Languages, 38', text: '38' },
-  { id: 'edit', icon: cdxIconEdit, label: 'Edit, 5 suggestions', badge: '5' },
-  { id: 'talk', icon: cdxIconSpeechBubbles, label: 'Talk, 12 topics', text: '12' },
-  { id: 'more', icon: cdxIconVerticalEllipsis, label: 'More' },
-]
+/**
+ * Article toolbar: Home first, then the fixed item for every chosen feature.
+ * “More” opens a menu listing every feature not shown in the other tabs.
+ */
+export function buildArticleItems(slots: ArticleSlot[]): ToolbarItem[] {
+  const chosen = new Set(slots.map((slot) => slot.feature))
+  const leftover: MenuItemData[] = ARTICLE_FEATURE_IDS.filter(
+    (id) => id !== 'more' && !chosen.has(id),
+  ).map((id) => ({
+    value: id,
+    label: ARTICLE_FEATURE_LABELS[id],
+    icon: ARTICLE_FEATURES[id].icon,
+  }))
+
+  const items: ToolbarItem[] = [HOME_ITEM]
+  for (const slot of slots) {
+    if (!slot.feature) continue
+    const feature = ARTICLE_FEATURES[slot.feature]
+    items.push(
+      slot.feature === 'more'
+        ? { ...feature, menuItems: leftover, disabled: leftover.length === 0 }
+        : feature,
+    )
+  }
+  return items
+}

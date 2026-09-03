@@ -1,0 +1,91 @@
+/* Shared layout for Customize Toolbars rows (fixed Home rows, header row and editable rows). */
+
+.toolbar-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: var(--spacing-50, 8px);
+  padding-block-end: var(--spacing-50, 8px);
+  background-color: var(--background-color-base, #fff);
+}
+
+.toolbar-row--global {
+  grid-template-columns: 32px 56px minmax(0, 1fr) 32px;
+}
+
+.toolbar-row--header {
+  padding-block: 0;
+  font-size: var(--font-medium, 1rem);
+  line-height: var(--line-height-small);
+  font-weight: 700;
+}
+
+/* While dragging, the row floats on a soft glow instead of a sharp white box. */
+.toolbar-row--dragging {
+  position: relative;
+  z-index: 1;
+  background-color: transparent;
+}
+
+.toolbar-row--dragging::before {
+  content: '';
+  position: absolute;
+  inset: -12px -20px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    var(--background-color-base, #fff) 55%,
+    transparent 100%
+  );
+}
+
+.toolbar-row__spacer {
+  display: block;
+}
+
+.toolbar-row__grip.cdx-button,
+.toolbar-row__clear.cdx-button {
+  min-width: 32px;
+  width: 32px;
+  padding: 0;
+  color: var(--color-subtle, #54595d);
+}
+
+.toolbar-row__grip.cdx-button {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.toolbar-row--dragging .toolbar-row__grip.cdx-button {
+  cursor: grabbing;
+}
+
+.toolbar-row__icon-button.cdx-button {
+  min-width: 0;
+  width: 56px;
+  padding: 0 var(--spacing-25, 4px);
+  gap: 0;
+  justify-content: space-between;
+}
+
+.toolbar-row__icon-button--empty.cdx-button {
+  justify-content: flex-end;
+}
+
+.toolbar-row__select.cdx-select-vue {
+  min-width: 0;
+  width: 100%;
+}
+
+.toolbar-row__select .cdx-select-vue__handle {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Codex text inputs default to a 256px minimum, which overflows a dialog row. */
+.toolbar-row .cdx-text-input,
+.toolbar-row .cdx-lookup {
+  min-width: 0;
+}

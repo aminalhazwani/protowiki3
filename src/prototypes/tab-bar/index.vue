@@ -21,7 +21,7 @@ import TabBarPage from './TabBarPage.vue'
 <style scoped>
 /* Prototype-only: the bottom toolbar takes over page actions, so hide the header's icon row. */
 :deep(.article-header__toolbar) {
-  padding-top: var(--spacing-100, 16px)!important;
+  padding-top: var(--spacing-100, 16px) !important;
 }
 
 :deep(.article-header__icon-toolbar) {
