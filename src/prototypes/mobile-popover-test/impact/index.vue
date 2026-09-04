@@ -4,6 +4,8 @@ import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconReload } from '@wikimedia/codex-icons'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
+import MobileWrapper from '@/components/MobileWrapper.vue'
+import PhoneFrame from '../PhoneFrame.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
 import { useRealUserImpact } from './data/useRealUserImpact'
@@ -70,24 +72,28 @@ definePage({
 </script>
 
 <template>
-  <ChromeWrapper :last-edited-notice="false">
-    <SpecialPageWrapper :title="null" class="impact-page">
-      <MobileSubpageHeader title="Your impact" :back-to="HOMEPAGE" back-label="Back to homepage">
-        <template v-if="showRealRefresh" #actions>
-          <CdxButton
-            weight="quiet"
-            :icon-only="true"
-            aria-label="Refresh impact data"
-            :disabled="realImpact.loading.value"
-            @click="onRefreshClick"
-          >
-            <CdxIcon :icon="cdxIconReload" />
-          </CdxButton>
-        </template>
-      </MobileSubpageHeader>
-      <ImpactModule standalone v-bind="impactProps" @refresh="onRefreshClick" />
-    </SpecialPageWrapper>
-  </ChromeWrapper>
+  <PhoneFrame>
+    <MobileWrapper>
+      <ChromeWrapper skin="mobile" :last-edited-notice="false">
+        <SpecialPageWrapper :title="null" class="impact-page">
+          <MobileSubpageHeader title="Your impact" :back-to="HOMEPAGE" back-label="Back to homepage">
+            <template v-if="showRealRefresh" #actions>
+              <CdxButton
+                weight="quiet"
+                :icon-only="true"
+                aria-label="Refresh impact data"
+                :disabled="realImpact.loading.value"
+                @click="onRefreshClick"
+              >
+                <CdxIcon :icon="cdxIconReload" />
+              </CdxButton>
+            </template>
+          </MobileSubpageHeader>
+          <ImpactModule standalone v-bind="impactProps" @refresh="onRefreshClick" />
+        </SpecialPageWrapper>
+      </ChromeWrapper>
+    </MobileWrapper>
+  </PhoneFrame>
 </template>
 
 <style scoped>

@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
+import MobileWrapper from '@/components/MobileWrapper.vue'
+import PhoneFrame from './PhoneFrame.vue'
 import Dashboard from '@/components/dashboard/Dashboard.vue'
 import DashboardModule from '@/components/dashboard/DashboardModule.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
@@ -39,75 +41,79 @@ definePage({
 </script>
 
 <template>
-  <ChromeWrapper :last-edited-notice="false">
-    <SpecialPageWrapper :title="pageTitle" help>
-      <div class="prototype-dashpage-shell">
-        <Dashboard>
-          <template #banner>
-            <RouterLink :to="APP_HOME" class="dashboard-mobile-banner__feedback">
-              Share feedback
-            </RouterLink>
-          </template>
+  <PhoneFrame>
+    <MobileWrapper>
+      <ChromeWrapper skin="mobile" :last-edited-notice="false">
+        <SpecialPageWrapper :title="pageTitle" help>
+          <div class="prototype-dashpage-shell">
+            <Dashboard>
+              <template #banner>
+                <RouterLink :to="APP_HOME" class="dashboard-mobile-banner__feedback">
+                  Share feedback
+                </RouterLink>
+              </template>
 
-          <template #mobile>
-            <StructuredTasksModule
-              class="dashboard-slot--mobile-primary"
-              :to="SUGGESTED_EDITS_PAGE"
-              v-bind="STRUCTURED_TASKS"
-            />
+              <template #mobile>
+                <StructuredTasksModule
+                  class="dashboard-slot--mobile-primary"
+                  :to="SUGGESTED_EDITS_PAGE"
+                  v-bind="STRUCTURED_TASKS"
+                />
 
-            <ImpactModule
-              v-if="showLoggedInModules"
-              v-bind="impactMobileProps"
-              @refresh="onImpactRefresh"
-            />
+                <ImpactModule
+                  v-if="showLoggedInModules"
+                  v-bind="impactMobileProps"
+                  @refresh="onImpactRefresh"
+                />
 
-            <MentorModule
-              v-if="showLoggedInModules"
-              compact
-              :to="MENTOR_PAGE"
-              :mentor-name="MENTOR.name"
-              :edit-count="MENTOR.editCount"
-              :last-active-days-ago="MENTOR.lastActiveDaysAgo"
-              :mentor-note="MENTOR.note"
-              :learn-more-href="MENTOR.learnMoreHref"
-              :conversations-href="MENTOR.conversationsHref"
-            />
+                <MentorModule
+                  v-if="showLoggedInModules"
+                  compact
+                  :to="MENTOR_PAGE"
+                  :mentor-name="MENTOR.name"
+                  :edit-count="MENTOR.editCount"
+                  :last-active-days-ago="MENTOR.lastActiveDaysAgo"
+                  :mentor-note="MENTOR.note"
+                  :learn-more-href="MENTOR.learnMoreHref"
+                  :conversations-href="MENTOR.conversationsHref"
+                />
 
-            <HelpModule compact :to="HELP_PAGE" v-bind="HELP_MODULE" />
-          </template>
+                <HelpModule compact :to="HELP_PAGE" v-bind="HELP_MODULE" />
+              </template>
 
-          <template #primary>
-            <StructuredTasksModule
-              class="dashboard-slot--desktop-primary"
-              :to="APP_HOME"
-              v-bind="STRUCTURED_TASKS"
-            />
-          </template>
+              <template #primary>
+                <StructuredTasksModule
+                  class="dashboard-slot--desktop-primary"
+                  :to="APP_HOME"
+                  v-bind="STRUCTURED_TASKS"
+                />
+              </template>
 
-          <template #sidebar>
-            <ImpactModule
-              v-if="showLoggedInModules"
-              v-bind="impactDesktopProps"
-              @refresh="onImpactRefresh"
-            />
+              <template #sidebar>
+                <ImpactModule
+                  v-if="showLoggedInModules"
+                  v-bind="impactDesktopProps"
+                  @refresh="onImpactRefresh"
+                />
 
-            <MentorModule
-              v-if="showLoggedInModules"
-              :mentor-name="MENTOR.name"
-              :edit-count="MENTOR.editCount"
-              :last-active-days-ago="MENTOR.lastActiveDaysAgo"
-              :mentor-note="MENTOR.note"
-              :learn-more-href="MENTOR.learnMoreHref"
-              :conversations-href="MENTOR.conversationsHref"
-            />
+                <MentorModule
+                  v-if="showLoggedInModules"
+                  :mentor-name="MENTOR.name"
+                  :edit-count="MENTOR.editCount"
+                  :last-active-days-ago="MENTOR.lastActiveDaysAgo"
+                  :mentor-note="MENTOR.note"
+                  :learn-more-href="MENTOR.learnMoreHref"
+                  :conversations-href="MENTOR.conversationsHref"
+                />
 
-            <HelpModule :help-links="HELP_LINKS" view-more-href="#" />
-          </template>
-        </Dashboard>
-      </div>
-    </SpecialPageWrapper>
-  </ChromeWrapper>
+                <HelpModule :help-links="HELP_LINKS" view-more-href="#" />
+              </template>
+            </Dashboard>
+          </div>
+        </SpecialPageWrapper>
+      </ChromeWrapper>
+    </MobileWrapper>
+  </PhoneFrame>
 </template>
 
 <style scoped>

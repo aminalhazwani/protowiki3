@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import TaskFullscreenShell from '../TaskFullscreenShell.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import MobileWrapper from '@/components/MobileWrapper.vue'
+import PhoneFrame from '../PhoneFrame.vue'
 import MobileSubpageHeader from '../MobileSubpageHeader.vue'
 import SuggestedEditsView from '../SuggestedEditsView.vue'
 import type { SuggestionDescriptionPart } from './data/veSuggestions'
@@ -99,24 +100,26 @@ definePage({
 </script>
 
 <template>
-  <MobileWrapper>
-    <TaskFullscreenShell skin="mobile">
-      <div class="suggested-edits-layout">
-        <div class="suggested-edits-layout__header">
-          <MobileSubpageHeader
-            title="Suggested edits"
-            :back-to="HOMEPAGE"
-            back-label="Back to homepage"
-            :bleed="false"
-          />
-        </div>
+  <PhoneFrame>
+    <MobileWrapper>
+      <TaskFullscreenShell skin="mobile">
+        <div class="suggested-edits-layout">
+          <div class="suggested-edits-layout__header">
+            <MobileSubpageHeader
+              title="Suggested edits"
+              :back-to="HOMEPAGE"
+              back-label="Back to homepage"
+              :bleed="false"
+            />
+          </div>
 
-        <SpecialPageWrapper :title="null" class="suggested-edits-page">
-          <SuggestedEditsView v-bind="viewProps" @navigate="onSuggestionNavigate" />
-        </SpecialPageWrapper>
-      </div>
-    </TaskFullscreenShell>
-  </MobileWrapper>
+          <SpecialPageWrapper :title="null" class="suggested-edits-page">
+            <SuggestedEditsView v-bind="viewProps" @navigate="onSuggestionNavigate" />
+          </SpecialPageWrapper>
+        </div>
+      </TaskFullscreenShell>
+    </MobileWrapper>
+  </PhoneFrame>
 </template>
 
 <style scoped>

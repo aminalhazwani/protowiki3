@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
+import MobileWrapper from '@/components/MobileWrapper.vue'
+import PhoneFrame from '../PhoneFrame.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import HelpModule from '../HelpModule.vue'
 import MobileSubpageHeader from '../MobileSubpageHeader.vue'
@@ -14,16 +16,20 @@ definePage({
 </script>
 
 <template>
-  <ChromeWrapper :last-edited-notice="false">
-    <SpecialPageWrapper :title="null" class="help-page">
-      <MobileSubpageHeader
-        :title="HELP_MODULE.title"
-        :back-to="HOMEPAGE"
-        back-label="Back to homepage"
-      />
-      <HelpModule standalone :help-links="HELP_LINKS" view-more-href="#" />
-    </SpecialPageWrapper>
-  </ChromeWrapper>
+  <PhoneFrame>
+    <MobileWrapper>
+      <ChromeWrapper skin="mobile" :last-edited-notice="false">
+        <SpecialPageWrapper :title="null" class="help-page">
+          <MobileSubpageHeader
+            :title="HELP_MODULE.title"
+            :back-to="HOMEPAGE"
+            back-label="Back to homepage"
+          />
+          <HelpModule standalone :help-links="HELP_LINKS" view-more-href="#" />
+        </SpecialPageWrapper>
+      </ChromeWrapper>
+    </MobileWrapper>
+  </PhoneFrame>
 </template>
 
 <style scoped>
