@@ -22,7 +22,6 @@ import './settingsPanel.css'
 const {
   user,
   realUsername,
-  apiContact,
   knownLanguagesText,
   lang,
   currentUserPageLists,
@@ -134,14 +133,6 @@ const editedPagesText = computed({
             <CdxTextInput v-model="editedPagesText" class="settings-panel__input" />
           </CdxField>
         </template>
-        <CdxField>
-          <template #label>API contact</template>
-          <CdxTextInput
-            v-model="apiContact"
-            class="settings-panel__input"
-            placeholder="Email or URL for Wikimedia API contact"
-          />
-        </CdxField>
       </template>
     </div>
   </div>
