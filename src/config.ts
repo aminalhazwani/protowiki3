@@ -98,12 +98,13 @@ export const CONFIG_USER_DISPLAY_NAMES: Partial<Record<ConfigUser, string>> = {
   experienced: 'ExperiencedEditor',
 }
 
-export const CONFIG_USER_MENU_ITEMS: { value: ConfigUser; label: string; description?: string }[] = [
-  { value: 'logged-out', label: 'Logged out user' },
-  { value: 'new', label: 'New user' },
-  { value: 'experienced', label: 'Experienced editor' },
-  { value: 'real', label: 'Real user', description: 'Connect to a real account on the wikis' },
-]
+export const CONFIG_USER_MENU_ITEMS: { value: ConfigUser; label: string; description?: string }[] =
+  [
+    { value: 'logged-out', label: 'Logged out user' },
+    { value: 'new', label: 'New user' },
+    { value: 'experienced', label: 'Experienced editor' },
+    { value: 'real', label: 'Real user', description: 'Connect to a real account on the wikis' },
+  ]
 
 export const CONFIG_THEME_MENU_ITEMS: { value: ConfigTheme; label: string }[] = [
   { value: 'system', label: 'Auto' },
