@@ -6,6 +6,7 @@ import OptionSection from './OptionSection.vue'
 definePage({
   meta: {
     title: 'Example: Hard-shadow border',
+    category: 'example',
     description:
       'Compare CSS techniques for the Figma inside-stroke + bottom/right outside-stroke tab border.',
   },
@@ -77,17 +78,15 @@ const techniques = [
     <div class="tab-lab">
       <section class="tab-lab__intro">
         <p>
-          Figma builds this tab border from two strokes on two rounded rectangles: a
-          1px <strong>inside</strong> stroke on all sides, plus a 1px
-          <strong>outside</strong> stroke on the bottom and right only. The result is
-          1px on top/left and ~2px on bottom/right, with the extra weight sitting
-          outside the inner edge.
+          Figma builds this tab border from two strokes on two rounded rectangles: a 1px
+          <strong>inside</strong> stroke on all sides, plus a 1px <strong>outside</strong> stroke on
+          the bottom and right only. The result is 1px on top/left and ~2px on bottom/right, with
+          the extra weight sitting outside the inner edge.
         </p>
         <p>
-          CSS has no single property for “outside stroke on two sides only.” Every
-          technique below simulates the effect with a second paint layer — box-shadow,
-          nested DOM, pseudo-element, or similar. Compare the corner loupes against
-          the reference tabs.
+          CSS has no single property for “outside stroke on two sides only.” Every technique below
+          simulates the effect with a second paint layer — box-shadow, nested DOM, pseudo-element,
+          or similar. Compare the corner loupes against the reference tabs.
         </p>
         <p class="tab-lab__links">
           Related:
@@ -107,16 +106,10 @@ const techniques = [
           :avoid="item.avoid"
         >
           <template #demo>
-            <HardShadowTabTrack
-              :technique="item.id"
-              :show-active="item.showActive"
-            />
+            <HardShadowTabTrack :technique="item.id" :show-active="item.showActive" />
           </template>
           <template #loupe>
-            <HardShadowTabTrack
-              :technique="item.id"
-              :show-active="item.showActive"
-            />
+            <HardShadowTabTrack :technique="item.id" :show-active="item.showActive" />
           </template>
         </OptionSection>
       </div>
@@ -154,8 +147,8 @@ const techniques = [
           </tbody>
         </table>
         <p class="tab-lab__followup">
-          Focus-ring polish per technique is out of scope for this lab — follow up
-          after picking an approach for
+          Focus-ring polish per technique is out of scope for this lab — follow up after picking an
+          approach for
           <code>MusicalGroupTabs.vue</code>.
         </p>
       </section>
