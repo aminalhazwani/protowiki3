@@ -1,8 +1,8 @@
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 
-import { resolveReadingListSavedItems } from '../data/readingListSavedPages'
+import { readingListToSavedItems, resolveReadingListSavedItems } from '../data/readingListSavedPages'
 import {
   loadNextRandomEditSuggestion,
   restoreRandomEditSuggestionsFeed,
@@ -19,10 +19,31 @@ import {
 
 function usePersonalizedHelpWantedPage() {
   const { currentUserPageLists } = useConfig()
+  const { preferencesVersion, interestsVersion } = useWikitaLiteSuggestionPreferencesSingleton()
   const savedItems = ref<HomeSavedItem[]>([])
   const pageActive = ref(false)
   const loadSentinel = ref<HTMLElement | null>(null)
   let fillingViewport = false
+
+  function syncReadingListSavedItems(): void {
+    savedItems.value = currentUserPageLists.value.readingList.length
+      ? resolveReadingListSavedItems(currentUserPageLists.value.readingList)
+      : readingListToSavedItems([])
+  }
+
+  watch(
+    () =>
+      [
+        preferencesVersion.value,
+        interestsVersion.value,
+        currentUserPageLists.value.readingList.join('|'),
+        currentUserPageLists.value.watchlist.join('|'),
+        currentUserPageLists.value.editedPages.join('|'),
+      ] as const,
+    () => {
+      syncReadingListSavedItems()
+    },
+  )
 
   const {
     savedSuggestions,
@@ -78,10 +99,7 @@ function usePersonalizedHelpWantedPage() {
   })
 
   onMounted(async () => {
-    const readingListTitles = currentUserPageLists.value.readingList
-    savedItems.value = readingListTitles.length
-      ? resolveReadingListSavedItems(readingListTitles)
-      : []
+    syncReadingListSavedItems()
     pageActive.value = true
     await nextTick()
     void fillViewport()

@@ -38,6 +38,11 @@ export function getMutableConfigRef(): typeof config {
   return config
 }
 
+/** In-memory config (wikita-lite URL state); falls back to localStorage when unset. */
+export function readActiveConfig(): Config {
+  return config.value
+}
+
 watch(
   () => config.value.theme,
   (preference) => {

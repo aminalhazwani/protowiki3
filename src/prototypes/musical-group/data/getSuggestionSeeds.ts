@@ -1,4 +1,4 @@
-import { loadConfig } from '@/config'
+import { readActiveConfig } from '@/composables/useConfig'
 
 import { listInterests } from './interests'
 import {
@@ -8,12 +8,12 @@ import {
 import type { HomeSavedItem } from './types'
 
 function listEditedPageTitles(): string[] {
-  const config = loadConfig()
+  const config = readActiveConfig()
   return config.userPageLists[config.user]?.editedPages ?? []
 }
 
 function listWatchlistPageTitles(): string[] {
-  const config = loadConfig()
+  const config = readActiveConfig()
   return config.userPageLists[config.user]?.watchlist ?? []
 }
 

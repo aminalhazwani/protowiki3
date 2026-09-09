@@ -90,6 +90,16 @@ function onDialogClose(open: boolean): void {
   box-sizing: border-box;
   min-height: 100vh;
   min-height: 100dvh;
+  --wikita-lite-dialog-safe-area-top: env(safe-area-inset-top, 0px);
+  --wikita-lite-dialog-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --wikita-lite-dialog-top-inset: max(
+    var(--spacing-100, 16px),
+    var(--wikita-lite-dialog-safe-area-top)
+  );
+  --wikita-lite-dialog-bottom-inset: max(
+    var(--spacing-100, 16px),
+    var(--wikita-lite-dialog-safe-area-bottom)
+  );
   background-color: var(--background-color-base);
 }
 
@@ -104,8 +114,11 @@ function onDialogClose(open: boolean): void {
 .wikita-lite-fullscreen-dialog-shell :deep(.cdx-dialog-backdrop) {
   position: absolute;
   inset: 0;
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
+  padding-top: var(--wikita-lite-dialog-top-inset);
+  padding-bottom: var(--wikita-lite-dialog-bottom-inset);
 }
 
 .wikita-lite-fullscreen-dialog-shell :deep(.cdx-dialog) {

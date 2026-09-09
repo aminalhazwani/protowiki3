@@ -357,8 +357,10 @@ export function clearCachedSuggestionFeeds(): void {
   for (const key of Object.keys(entries)) {
     if (
       key === 'helpWanted' ||
+      key === 'recentChanges' ||
       key.startsWith('related:') ||
       key.startsWith('contribute:') ||
+      key.startsWith('activity:') ||
       key === 'homeMentions'
     ) {
       delete entries[key]

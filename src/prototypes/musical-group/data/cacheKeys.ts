@@ -1,4 +1,4 @@
-import { loadConfig } from '@/config'
+import { readActiveConfig } from '@/composables/useConfig'
 
 import { listBookmarks } from './bookmarks'
 import { interestsKey, interestsKeyFrom } from './interests'
@@ -11,7 +11,7 @@ import type { HomeSavedItem } from './types'
 
 /** Stable fingerprint of the active user's edited page titles. */
 export function editedPagesKey(): string {
-  const config = loadConfig()
+  const config = readActiveConfig()
   return (config.userPageLists[config.user]?.editedPages ?? [])
     .map((title) => title.toLowerCase())
     .sort()
@@ -20,7 +20,7 @@ export function editedPagesKey(): string {
 
 /** Stable fingerprint of the active user's watchlist titles. */
 export function watchlistKey(): string {
-  const config = loadConfig()
+  const config = readActiveConfig()
   return (config.userPageLists[config.user]?.watchlist ?? [])
     .map((title) => title.toLowerCase())
     .sort()

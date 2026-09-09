@@ -1,4 +1,4 @@
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 
@@ -18,28 +18,54 @@ import {
   useViewportInfiniteScroll,
 } from './useViewportInfiniteScroll'
 
-function usePersonalizedRecentActivityPage(
-  initialSavedItems: HomeSavedItem[],
-  readingListTitles?: string[],
-) {
-  const { preferences, listInterests } = useWikitaLiteSuggestionPreferencesSingleton()
-  const savedItems = ref<HomeSavedItem[]>(
-    suggestionSeedItems(initialSavedItems, preferences.value, listInterests()),
+function usePersonalizedRecentActivityPage() {
+  const { currentUserPageLists } = useConfig()
+  const { preferences, preferencesVersion, interestsVersion, listInterests } =
+    useWikitaLiteSuggestionPreferencesSingleton()
+
+  const enrichedSavedItems = ref<HomeSavedItem[]>([])
+  const savedItems = ref<HomeSavedItem[]>([])
+  const savedItemsLoading = ref(false)
+
+  function sourceReadingListItems(): HomeSavedItem[] {
+    return readingListToSavedItems(currentUserPageLists.value.readingList)
+  }
+
+  function syncSeedItems(): void {
+    const sourceItems = enrichedSavedItems.value.length
+      ? enrichedSavedItems.value
+      : sourceReadingListItems()
+    savedItems.value = suggestionSeedItems(sourceItems, preferences.value, listInterests())
+  }
+
+  watch(
+    () =>
+      [
+        preferencesVersion.value,
+        interestsVersion.value,
+        currentUserPageLists.value.readingList.join('|'),
+        currentUserPageLists.value.watchlist.join('|'),
+        currentUserPageLists.value.editedPages.join('|'),
+      ] as const,
+    () => {
+      syncSeedItems()
+    },
   )
-  const savedItemsLoading = ref(Boolean(readingListTitles?.length))
 
   onMounted(async () => {
-    if (!readingListTitles?.length) {
-      savedItemsLoading.value = false
+    const titles = currentUserPageLists.value.readingList
+    if (!titles.length) {
+      syncSeedItems()
       return
     }
 
+    savedItemsLoading.value = true
     try {
-      const enriched = await fetchReadingListSummaries(readingListTitles)
-      savedItems.value = suggestionSeedItems(enriched, preferences.value, listInterests())
+      enrichedSavedItems.value = await fetchReadingListSummaries(titles)
     } catch {
-      // Keep synthetic seed items on failure.
+      enrichedSavedItems.value = sourceReadingListItems()
     } finally {
+      syncSeedItems()
       savedItemsLoading.value = false
     }
   })
@@ -175,10 +201,7 @@ export function useWikitaLiteRecentActivityPage() {
     : []
 
   if (hasSuggestionSeeds(savedItems, preferences.value, listInterests())) {
-    return usePersonalizedRecentActivityPage(
-      savedItems,
-      readingListTitles.length ? readingListTitles : undefined,
-    )
+    return usePersonalizedRecentActivityPage()
   }
 
   return useRandomRecentActivityPage()

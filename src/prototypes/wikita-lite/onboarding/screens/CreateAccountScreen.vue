@@ -24,6 +24,7 @@ const { headerRight } = useWikitaLiteChromeHeaderRight({ hideUserMenu: true })
 
 async function onSubmit({ username, email }: { username: string; email: string }): Promise<void> {
   resetReturnHomeBanner()
+  window.scrollTo(0, 0)
   await props.flow.goTo('welcome', {
     username: username || 'NewEditor',
     email,

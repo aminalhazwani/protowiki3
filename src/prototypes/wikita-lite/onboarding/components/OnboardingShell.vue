@@ -83,6 +83,12 @@ function measureScroll(): void {
 }
 
 onMounted(() => {
+  // Account creation scrolls the document (keyboard inset, long forms). Reset
+  // before painting so the fixed shell is not offset by a stale scrollY.
+  if (typeof window !== 'undefined') {
+    window.scrollTo(0, 0)
+  }
+
   const body = shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body')
   measureScroll()
   resizeObserver = new ResizeObserver(() => measureScroll())
@@ -153,19 +159,30 @@ function onDialogClose(value: boolean): void {
 
 <style scoped>
 .onboarding-shell {
-  /* Positioning context for the in-place dialog: its backdrop is overridden to
-     `position: absolute` below so it fills this box (the phone column) rather
-     than the whole browser viewport. */
-  position: relative;
+  /* Pin to the visible viewport — document-flow positioning inherits scrollY
+     from the account-creation screen when the user was scrolled down. */
+  position: fixed;
+  inset: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  /* 100vh on iOS Safari uses the largest viewport (toolbar hidden), so the
-     shell ends up taller than what's actually visible and the page scrolls.
-     100dvh tracks the real visible viewport as the toolbar shows/hides. */
   min-height: 100vh;
   min-height: 100dvh;
+  --onboarding-safe-area-top: env(safe-area-inset-top, 0px);
+  --onboarding-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  /* Keep the 1rem frame on desktop; on notched phones use the larger inset. */
+  --onboarding-top-inset: max(var(--spacing-100, 16px), var(--onboarding-safe-area-top));
+  --onboarding-bottom-inset: max(var(--spacing-100, 16px), var(--onboarding-safe-area-bottom));
   background-color: var(--background-color-base);
+}
+
+@media (min-width: 480px) {
+  .onboarding-shell {
+    inset-inline: 0;
+    margin-inline: auto;
+    width: min(100%, var(--mobile-wrapper-max-width, 412px));
+  }
 }
 
 /* --- Contain the teleport-disabled dialog inside the phone frame ------------
@@ -175,8 +192,11 @@ function onDialogClose(value: boolean): void {
    keeps them in this component's subtree. */
 .onboarding-shell :deep(.cdx-dialog-backdrop) {
   position: absolute;
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
+  padding-top: var(--onboarding-top-inset);
+  padding-bottom: var(--onboarding-bottom-inset);
 }
 
 .onboarding-shell :deep(.cdx-dialog) {

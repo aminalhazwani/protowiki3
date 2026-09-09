@@ -264,10 +264,11 @@ legacy suggestions configure page.
     come from Action API `pageimages` first; when missing, REST `/page/summary`
     is used as fallback. Cards append progressively via `onEach`. No blocking
     `fetchReadingListSummaries` on the home reload path; synthetic saved items
-    from `readingListToSavedItems`.     Preview caches under `dailyReadsPreview` in
+    from `readingListToSavedItems`. Preview caches under `dailyReadsPreview` in
     `homeTabCache` (separate from the paginated related-feed state used by the
-    fullscreen subpage). Cache is valid for the current UTC calendar day only —
-    at most one fetch per day per seed/prefs fingerprint.
+    fullscreen subpage). Cache key is `dailyReadsPreviewCacheKey()` (UTC calendar
+    day only) — at most one home preview fetch per UTC day, even when Personalization
+    toggles or source lists change mid-day. Not cleared by `clearCachedSuggestionFeeds`.
   - **Saved module metadata** — non-blocking enrichment via
     `ensureReadingListSummaries` whenever the reading list has items: on Home
     (when the Saved module is layout-enabled), Explore (`view=read`), and

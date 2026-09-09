@@ -41,6 +41,9 @@ watch(
     if (screen === 'interests' && prev !== 'interests') {
       autoSeedKeys.value = new Set(flow.interests.value.map((title) => title.toLowerCase()))
     }
+    if (screen in WIZARD_STEP && typeof window !== 'undefined') {
+      window.scrollTo(0, 0)
+    }
   },
   { immediate: true },
 )

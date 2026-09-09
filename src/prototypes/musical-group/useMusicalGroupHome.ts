@@ -305,7 +305,6 @@ export function useMusicalGroupHome(options: {
               return
             }
 
-            homeRelatedItems.value = []
             const seedTitles = getSuggestionSeedTitles(
               items,
               preferences.value,
@@ -343,7 +342,8 @@ export function useMusicalGroupHome(options: {
         try {
           const excludeRelated =
             savedPagesSource === 'readingList'
-              ? (getCachedDailyReadsPreview(dailyReadsPreviewCacheKey()) ?? homeRelatedItems.value)
+              ? (getCachedDailyReadsPreview(dailyReadsPreviewCacheKey()) ??
+                homeRelatedItems.value)
               : (getCachedRelatedFeed('home', dependencyKey)?.items ?? [])
           homeMentionsRaw.value = await fetchHomeMentions(items, signal, undefined, excludeRelated)
         } catch (err) {
@@ -991,11 +991,10 @@ export function useMusicalGroupHome(options: {
     () => currentUserPageLists.value.readingList,
     () => {
       if (savedPagesSource !== 'readingList') return
+      // Bookmark saves already bump listsVersion (sync only). A full reload here
+      // aborts in-flight Daily reads / Suggested edits fetches and, combined with
+      // skipFeeds, can leave visible modules empty.
       syncReadingListSavedItems()
-      clearCachedSuggestionFeeds()
-      void reloadBookmarks({
-        skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
-      })
     },
     { deep: true },
   )

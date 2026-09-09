@@ -124,9 +124,11 @@ export function useContributeSuggestionsFeed(
   function previewCacheKeys(): string[] {
     const keys = [
       helpWantedFeedsKey(savedItems.value, preferences.value, listInterests()),
-      bookmarksKey(),
       contributeRandomCacheKey(),
     ]
+    if (preferences.value.useSavedPages) {
+      keys.push(bookmarksKey())
+    }
     return [...new Set(keys.filter(Boolean))]
   }
 
@@ -147,14 +149,16 @@ export function useContributeSuggestionsFeed(
 
       const saved: HomeHelpWanted[] = []
       const related: HomeHelpWanted[] = []
+      const includeSaved = preferences.value.useSavedPages
 
       for (const suggestion of helpCached) {
         const isSaved =
-          savedIdSet.has(suggestion.itemId) ||
-          Boolean(
-            suggestion.enwikiTitle &&
-              savedEnwikiSet.has(normalizeEnwikiTitle(suggestion.enwikiTitle).toLowerCase()),
-          )
+          includeSaved &&
+          (savedIdSet.has(suggestion.itemId) ||
+            Boolean(
+              suggestion.enwikiTitle &&
+                savedEnwikiSet.has(normalizeEnwikiTitle(suggestion.enwikiTitle).toLowerCase()),
+            ))
 
         if (isSaved) {
           saved.push(suggestion)
