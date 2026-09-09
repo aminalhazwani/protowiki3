@@ -521,6 +521,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           <RelatedModule
             v-else-if="homeRelatedItems.length"
             :items="homeRelatedItems"
+            :loading="homeRelatedLoading"
             :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
             :lists-version="listsVersion"
           >
@@ -785,6 +786,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           <RelatedModule
             v-if="homeRelatedItems.length"
             :items="homeRelatedItems"
+            :loading="homeRelatedLoading"
             :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
             :lists-version="listsVersion"
           >

@@ -78,6 +78,8 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
   moreTo: () => props.moreTo,
   hasItems: () => displayItems.value.length > 0,
 })
+
+const saveActionsDisabled = computed(() => !props.standalone && props.loading)
 </script>
 
 <template>
@@ -97,6 +99,7 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
         :action-label="saveLabel(item.title)"
         :action-icon="saveIcon(item.itemId, item.title)"
         :action-active="relatedReadingSaved(item.title)"
+        :action-disabled="saveActionsDisabled"
         @action-click="onRelatedReadingSave(item.itemId, item.title, item.thumbnailUrl)"
       />
 

@@ -28,6 +28,7 @@ interface Props {
   actionLabel: string
   actionIcon?: Icon
   actionActive?: boolean
+  actionDisabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -41,6 +42,7 @@ const props = withDefaults(defineProps<Props>(), {
   forceThumbnail: true,
   actionIcon: undefined,
   actionActive: false,
+  actionDisabled: false,
 })
 
 const injectedSeparation = inject(WIKITA_LITE_CARD_SEPARATION, null)
@@ -131,6 +133,7 @@ function onActionClick(event: MouseEvent) {
       weight="quiet"
       :aria-label="actionLabel"
       :aria-pressed="actionActive"
+      :disabled="actionDisabled"
       @click="onActionClick($event); $emit('action-click', $event)"
     >
       <CdxIcon v-if="actionIcon" :icon="actionIcon" />
