@@ -121,6 +121,12 @@ article the user saved or started account creation from). `?title=` persists
 through account → welcome → survey → interests. `?interests=` is written only
 once the user edits on that step or onboarding completes.
 
+**Save on account creation**: when the user taps bookmark → **Create account**
+on the save sheet, `?saved=` / `?savedTs=` are written to the URL immediately;
+on account form submit the page is added to the in-memory `readingList` for the
+new user (no toast). Not triggered from the account menu alone or **Log in** on
+the save sheet.
+
 ## Dashboard modes
 
 Home module layout is controlled by **`?mode=`** or **`?survey=`** (survey maps

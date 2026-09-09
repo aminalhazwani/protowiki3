@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { nextTick } from 'vue'
+
 import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useKeyboardInset } from '@/composables/useKeyboardInset'
 
 import { useWikitaLiteChromeHeaderRight } from '../../composables/useWikitaLiteChromeHeaderRight'
+import { useWikitaLiteSaveFeedback } from '../../composables/useWikitaLiteSaveFeedback'
+import { useWikitaLiteUrlState } from '../../composables/useWikitaLiteUrlState'
 import CreateAccountForm from '../components/CreateAccountForm.vue'
 import type { FlowState } from '../data/useWikitaLiteOnboardingFlow'
 import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
@@ -11,17 +15,24 @@ import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
 const props = defineProps<{ flow: FlowState }>()
 
 const { reset: resetReturnHomeBanner } = useReturnHomeBanner()
+const { addReadingListTitle } = useWikitaLiteSaveFeedback()
+const { state } = useWikitaLiteUrlState()
 
 useKeyboardInset()
 const { headerRight } = useWikitaLiteChromeHeaderRight({ hideUserMenu: true })
 
-function onSubmit({ username, email }: { username: string; email: string }): void {
+async function onSubmit({ username, email }: { username: string; email: string }): Promise<void> {
   resetReturnHomeBanner()
-  props.flow.goTo('welcome', {
+  await props.flow.goTo('welcome', {
     username: username || 'NewEditor',
     email,
     title: props.flow.title.value,
   })
+  await nextTick()
+  const pendingTitle = state.value.saved[0]
+  if (pendingTitle) {
+    addReadingListTitle(pendingTitle)
+  }
 }
 </script>
 

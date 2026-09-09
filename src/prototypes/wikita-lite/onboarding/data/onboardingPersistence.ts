@@ -1,3 +1,5 @@
+import { getMutableConfigRef } from '@/composables/useConfig'
+
 import { normalizeInterestTitles } from '../../../musical-group/data/interests'
 import { useWikitaLiteUrlState } from '../../composables/useWikitaLiteUrlState'
 import type { OnboardingFlowState, SurveyChoice } from './useWikitaLiteOnboardingFlow'
@@ -43,6 +45,7 @@ export function completeWikitaLiteOnboarding(flow: OnboardingFlowState): void {
   const interests = normalizeInterestTitles(flow.interests.value)
   const username = flow.username.value.trim()
   const survey = flow.survey.value || 'both'
+  const newUserLists = getMutableConfigRef().value.userPageLists.new
 
   void patchState({
     onboarded: true,
@@ -51,6 +54,8 @@ export function completeWikitaLiteOnboarding(flow: OnboardingFlowState): void {
     survey,
     mode: survey,
     interests,
+    saved: [...newUserLists.readingList],
+    savedTs: [...newUserLists.readingListSavedAt],
     screen: 'article',
     title: '',
     username: '',

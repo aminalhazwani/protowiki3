@@ -12,7 +12,11 @@ import { readingListSavedPageId } from '../data/readingListSavedPages'
 import { useWikitaLiteListsSingleton } from './useWikitaLiteLists'
 import { initWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
-export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
+export interface WikitaLiteSaveFeedbackContext extends WikitaSaveFeedbackContext {
+  addReadingListTitle: (title: string) => boolean
+}
+
+export function provideWikitaLiteSaveFeedback(): WikitaLiteSaveFeedbackContext {
   initWikitaLiteUrlState()
   const { currentUserPageLists, setReadingListWithTimestamps } = useConfig()
   const { addPageToList, createList, removePageFromAllLists } = useWikitaLiteListsSingleton()
@@ -34,6 +38,30 @@ export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
     toastPageThumbnailUrl.value = null
   }
 
+  function prependReadingListTitle(title: string): boolean {
+    const normalized = normalizeEnwikiTitle(title)
+    if (!normalized) return false
+
+    const key = normalized.toLowerCase()
+    const current = [...currentUserPageLists.value.readingList]
+    const savedAt = [...currentUserPageLists.value.readingListSavedAt]
+    const exists = current.some(
+      (entry) => normalizeEnwikiTitle(entry).toLowerCase() === key,
+    )
+    if (exists) return false
+
+    current.unshift(normalized)
+    savedAt.unshift(Date.now())
+    setReadingListWithTimestamps(current, savedAt)
+    return true
+  }
+
+  function addReadingListTitle(title: string): boolean {
+    const added = prependReadingListTitle(title)
+    if (added) listsVersion.value += 1
+    return added
+  }
+
   function toggleReadingListTitle(title: string): boolean {
     const normalized = normalizeEnwikiTitle(title)
     if (!normalized) return false
@@ -52,10 +80,7 @@ export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
       return false
     }
 
-    current.unshift(normalized)
-    savedAt.unshift(Date.now())
-    setReadingListWithTimestamps(current, savedAt)
-    return true
+    return prependReadingListTitle(title)
   }
 
   function savePage(pageId: string, pageTitle: string, thumbnailUrl?: string): boolean {
@@ -109,7 +134,7 @@ export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
     closeListsSheet()
   }
 
-  const context: WikitaSaveFeedbackContext = {
+  const context: WikitaLiteSaveFeedbackContext = {
     toastOpen,
     toastPageId,
     toastPageTitle,
@@ -123,13 +148,14 @@ export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
     closeListsSheet,
     addToList,
     createListAndAdd,
+    addReadingListTitle,
   }
 
   provide(WIKITA_SAVE_FEEDBACK_KEY, context)
   return context
 }
 
-export function useWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
+export function useWikitaLiteSaveFeedback(): WikitaLiteSaveFeedbackContext {
   const context = inject(WIKITA_SAVE_FEEDBACK_KEY)
   if (!context) {
     throw new Error(

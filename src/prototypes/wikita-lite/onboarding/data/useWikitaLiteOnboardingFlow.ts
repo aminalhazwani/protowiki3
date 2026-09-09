@@ -1,8 +1,9 @@
 import { computed, type ComputedRef, type WritableComputedRef } from 'vue'
 import { useRoute, useRouter, type LocationQuery, type LocationQueryRaw } from 'vue-router'
 
+import { normalizeEnwikiTitle } from '../../../musical-group/data/enwikiTitle'
 import { mergeWikitaLiteQuery, type WikitaLiteUrlStatePatch } from '../../data/urlStateSchema'
-import { defaultOnboardingInterests } from './defaultOnboardingInterests'
+import { defaultOnboardingInterests, isOnboardingSeedTitle } from './defaultOnboardingInterests'
 
 /**
  * URL-query state for the wikita-lite onboarding flow.
@@ -81,6 +82,8 @@ export interface OnboardingFlowState {
   email: ComputedRef<string>
   patch: (patch: OnboardingFlowPatch) => Promise<void>
   goTo: (screen: OnboardingScreen, patch?: OnboardingFlowPatch) => Promise<void>
+  /** Save sheet → Create account: writes ?saved= / ?savedTs= and opens account. */
+  goToAccountFromSave: (title: string) => Promise<void>
 }
 
 /** @deprecated Alias for ported screen props */
@@ -160,6 +163,23 @@ export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
       .then(() => undefined)
   }
 
+  function goToAccountFromSave(rawTitle: string): Promise<void> {
+    const normalized = normalizeEnwikiTitle(rawTitle.replace(/_/g, ' ').trim())
+    if (!normalized || !isOnboardingSeedTitle(normalized)) {
+      return goTo('account')
+    }
+
+    return router
+      .push({
+        query: mergeQuery(route.query, {
+          screen: 'account',
+          saved: [normalized],
+          savedTs: [String(Date.now())],
+        }),
+      })
+      .then(() => undefined)
+  }
+
   const survey = computed<SurveyChoice | ''>({
     get() {
       const raw = firstString(route.query.survey)
@@ -209,5 +229,6 @@ export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
     email,
     patch,
     goTo,
+    goToAccountFromSave,
   }
 }

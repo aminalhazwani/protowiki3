@@ -34,6 +34,10 @@ function onBookmark(): void {
 
 function onSaveSheetNavigate(screen: OnboardingScreen): void {
   saveSheetVisible.value = false
+  if (screen === 'account') {
+    void props.flow.goToAccountFromSave(effectiveTitle.value)
+    return
+  }
   void props.flow.goTo(screen)
 }
 

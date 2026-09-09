@@ -31,6 +31,9 @@ function hydrateConfigFromState(state: WikitaLiteUrlState): void {
   // During onboarding, WikitaLiteOnboarding owns simulated user state — URL defaults
   // would otherwise reset `user` to `'logged-out'` on every title/search navigation.
   const activeUser = state.onboarded ? state.user : configRef.value.user
+  const existingLists = configRef.value.userPageLists[activeUser]
+  const applySavedFromUrl =
+    state.onboarded || (configRef.value.user === 'new' && patch.readingList.length > 0)
 
   setWikitaLiteConfigSaveSuppressed(true)
   configRef.value = {
@@ -43,9 +46,13 @@ function hydrateConfigFromState(state: WikitaLiteUrlState): void {
     userPageLists: {
       ...configRef.value.userPageLists,
       [activeUser]: {
-        ...configRef.value.userPageLists[activeUser],
-        readingList: [...patch.readingList],
-        readingListSavedAt: [...patch.readingListSavedAt],
+        ...existingLists,
+        readingList: applySavedFromUrl
+          ? [...patch.readingList]
+          : [...existingLists.readingList],
+        readingListSavedAt: applySavedFromUrl
+          ? [...patch.readingListSavedAt]
+          : [...existingLists.readingListSavedAt],
         editedPages: [...patch.editedPages],
         watchlist: [...patch.watchlist],
       },
@@ -130,7 +137,13 @@ function createWikitaLiteUrlState() {
         if (!isWikitaLiteRoute(route.path)) return
         if (syncDebounce) clearTimeout(syncDebounce)
         syncDebounce = setTimeout(() => {
-          void patchState(configToStatePatch(config))
+          const patch = configToStatePatch(config)
+          // Saved pages during onboarding live in config only; flushed on ?onboarded=1.
+          if (!isOnboarded.value) {
+            delete patch.saved
+            delete patch.savedTs
+          }
+          void patchState(patch)
         }, 100)
       },
       { deep: true },
