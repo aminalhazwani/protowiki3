@@ -2,7 +2,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 
-import { suggestionFeedsKey } from '../../musical-group/data/cacheKeys'
+import { helpWantedFeedsKey } from '../../musical-group/data/cacheKeys'
 import { suggestionSeedItems } from '../../musical-group/data/getSuggestionSeeds'
 import { getCachedRelatedFeed } from '../../musical-group/data/homeTabCache'
 import {
@@ -13,13 +13,14 @@ import {
   type RelatedFeedRuntimeState,
 } from '../../musical-group/loadRelatedFeedInitialBatch'
 import type { HomeRelated, HomeSavedItem } from '../../musical-group/data/types'
+import { getCachedDailyReadsPreview } from '../../musical-group/data/homeTabCache'
+import { readingListToSavedItems } from '../data/readingListSavedPages'
 import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSuggestionPreferences'
-import { fetchReadingListSummaries } from '../data/fetchReadingListSummaries'
 import { useViewportInfiniteScroll } from './useViewportInfiniteScroll'
 
 export function useWikitaLiteFurtherReadingPage() {
   const { currentUserPageLists } = useConfig()
-  const { preferences, preferencesVersion, interestsVersion } =
+  const { preferences, preferencesVersion, interestsVersion, listInterests } =
     useWikitaLiteSuggestionPreferencesSingleton()
 
   const savedItems = ref<HomeSavedItem[]>([])
@@ -37,11 +38,11 @@ export function useWikitaLiteFurtherReadingPage() {
   function dependencyKey(): string {
     void preferencesVersion.value
     void interestsVersion.value
-    return suggestionFeedsKey(savedItems.value, preferences.value)
+    return helpWantedFeedsKey(savedItems.value, preferences.value, listInterests())
   }
 
   function seedItems(): HomeSavedItem[] {
-    return suggestionSeedItems(savedItems.value, preferences.value)
+    return suggestionSeedItems(savedItems.value, preferences.value, listInterests())
   }
 
   function applyState(runtime: RelatedFeedRuntimeState) {
@@ -52,10 +53,20 @@ export function useWikitaLiteFurtherReadingPage() {
 
   function restoreFromCache(key: string): boolean {
     const cached = getCachedRelatedFeed('home', key)
-    if (!cached) return false
-    applyState(relatedFeedStateFromCache(cached))
-    loading.value = false
-    return true
+    if (cached) {
+      applyState(relatedFeedStateFromCache(cached))
+      loading.value = false
+      return true
+    }
+
+    const preview = getCachedDailyReadsPreview(key)
+    if (preview?.length) {
+      relatedItems.value = preview
+      loading.value = false
+      return true
+    }
+
+    return false
   }
 
   async function loadMore() {
@@ -145,13 +156,8 @@ export function useWikitaLiteFurtherReadingPage() {
     },
   )
 
-  onMounted(async () => {
-    const titles = currentUserPageLists.value.readingList
-    try {
-      savedItems.value = titles.length ? await fetchReadingListSummaries(titles) : []
-    } catch {
-      savedItems.value = []
-    }
+  onMounted(() => {
+    savedItems.value = readingListToSavedItems(currentUserPageLists.value.readingList)
     pageActive.value = true
   })
 

@@ -4,6 +4,10 @@ import { computed, provide } from 'vue'
 import { globalSkin, globalTheme, PROTOWIKI_CHROME_SKIN, PROTOWIKI_CHROME_THEME } from '@/theme'
 import type { Skin, Theme } from '@/theme'
 
+import { initWikitaLiteUrlState } from '../composables/useWikitaLiteUrlState'
+
+initWikitaLiteUrlState()
+
 interface Props {
   lang?: string
   dir?: 'ltr' | 'rtl'

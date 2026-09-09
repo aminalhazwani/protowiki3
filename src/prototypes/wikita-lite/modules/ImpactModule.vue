@@ -13,7 +13,10 @@ import {
 
 import type { ImpactData } from '../../template-homepage/impact/data/impactTypes'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
+import { useWikitaLiteRoute } from '../composables/useWikitaLiteRoute'
 import { HELP_WANTED_PAGE } from '../routes'
+
+const { wikitaLiteRoute } = useWikitaLiteRoute()
 
 interface Props extends ImpactData {
   standalone?: boolean
@@ -68,7 +71,7 @@ function formatStat(value: number | string | undefined): string {
           your contributions here.
         </p>
       </div>
-      <RouterLink v-slot="{ navigate }" :to="HELP_WANTED_PAGE" custom>
+      <RouterLink v-slot="{ navigate }" :to="wikitaLiteRoute(HELP_WANTED_PAGE)" custom>
         <CdxButton class="impact-module__empty-cta" weight="normal" @click="navigate">
           See all suggestions
         </CdxButton>

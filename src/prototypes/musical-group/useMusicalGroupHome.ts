@@ -4,12 +4,14 @@ import { useRoute } from 'vue-router'
 import { useConfig } from '@/composables/useConfig'
 
 import { WIKITA_SAVE_FEEDBACK_KEY } from './composables/useWikitaSaveFeedback'
+import { fetchDailyReadsPreview } from '../wikita-lite/data/fetchDailyReadsPreview'
 import { fetchReadingListSummaries } from '../wikita-lite/data/fetchReadingListSummaries'
-import { readingListKey } from '../wikita-lite/data/readingListSavedPages'
+import { readingListKey, readingListToSavedItems } from '../wikita-lite/data/readingListSavedPages'
 import { useWikitaLiteSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteSuggestionPreferences'
 import { useWikitaLiteModuleSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteModuleSuggestionPreferences'
 import { listBookmarks } from './data/bookmarks'
-import { bookmarksKey, contributeRandomCacheKey, helpWantedFeedsKey, suggestionFeedsKey, utcDayKey } from './data/cacheKeys'
+import { listInterests as listStoredInterests } from './data/interests'
+import { bookmarksKey, contributeRandomCacheKey, helpWantedFeedsKey, utcDayKey } from './data/cacheKeys'
 import { fetchActiveDiscussions, clearActiveDiscussionsSessionCache } from './data/fetchActiveDiscussions'
 import { fetchFeaturedTabContent, isUsableFeaturedTab } from './data/fetchFeaturedFeed'
 import { fetchHelpWanted } from './data/fetchHelpWanted'
@@ -26,7 +28,7 @@ import {
   fetchTranslationSuggestions,
   translationSuggestionsCacheKey,
 } from './data/fetchTranslationSuggestions'
-import { hasSuggestionSeeds, suggestionSeedItems } from './data/getSuggestionSeeds'
+import { getSuggestionSeedTitles, hasSuggestionSeeds, suggestionSeedItems } from './data/getSuggestionSeeds'
 import {
   clearCachedActiveDiscussions,
   clearCachedFeaturedTab,
@@ -34,6 +36,7 @@ import {
   clearCachedTranslationSuggestions,
   clearCachedTrendingFeed,
   getCachedActiveDiscussions,
+  getCachedDailyReadsPreview,
   getCachedFeaturedTab,
   getCachedHelpWanted,
   getCachedHomeMentions,
@@ -42,11 +45,9 @@ import {
   getCachedSavedSummaries,
   getCachedTranslationSuggestions,
   getCachedTrendingFeed,
+  setCachedDailyReadsPreview,
 } from './data/homeTabCache'
-import {
-  loadRelatedFeedInitialBatch,
-  relatedFeedPreviewQuotaMet,
-} from './loadRelatedFeedInitialBatch'
+import { loadRelatedFeedInitialBatch } from './loadRelatedFeedInitialBatch'
 import type {
   HomeActiveDiscussion,
   HomeFeaturedTab,
@@ -91,10 +92,13 @@ export function useMusicalGroupHome(options: {
   translationLanguages?: () => string[]
   getBookmarkChangeSkipFeeds?: () => PersonalizedFeedId[]
   savedPagesSource?: SavedPagesSource
+  /** Interest titles for global Daily reads / suggestion seeds (default: localStorage). */
+  listInterests?: () => string[]
 } = {}) {
   const helpWantedLimit = options.helpWantedLimit ?? 2
   const translationCountPerLanguage = options.translationCountPerLanguage ?? 2
   const savedPagesSource = options.savedPagesSource ?? 'bookmarks'
+  const listInterests = options.listInterests ?? listStoredInterests
   const route = useRoute()
   const { knownLanguages, currentUserPageLists } = useConfig()
   const saveFeedback = inject(WIKITA_SAVE_FEEDBACK_KEY, null)
@@ -156,8 +160,16 @@ export function useMusicalGroupHome(options: {
   )
 
   const suggestionSeedsAvailable = computed(() =>
-    hasSuggestionSeeds(savedItems.value, preferences.value),
+    hasSuggestionSeeds(savedItems.value, preferences.value, listInterests()),
   )
+
+  function globalSuggestionFeedsKey(items: HomeSavedItem[] = savedItems.value): string {
+    return helpWantedFeedsKey(items, preferences.value, listInterests())
+  }
+
+  function globalSuggestionSeedItems(items: HomeSavedItem[] = savedItems.value): HomeSavedItem[] {
+    return suggestionSeedItems(items, preferences.value, listInterests())
+  }
 
   const suggestedEditsModuleSeedsAvailable = computed(() =>
     hasModuleSuggestionSeeds(SUGGESTED_EDITS_MODULE_ID, savedItems.value),
@@ -191,6 +203,7 @@ export function useMusicalGroupHome(options: {
 
   let abort: AbortController | null = null
   let bookmarkAbort: AbortController | null = null
+  let savedSummariesAbort: AbortController | null = null
   let lastTranslationDependencyKey: string | null = null
 
   function currentTranslationDependencyKey(): string {
@@ -201,9 +214,16 @@ export function useMusicalGroupHome(options: {
     dependencyKey: string,
     helpWantedKey: string = dependencyKey,
   ): void {
-    const cachedRelated = getCachedRelatedFeed('home', dependencyKey)
-    if (cachedRelated) {
-      homeRelatedItems.value = cachedRelated.items
+    if (savedPagesSource === 'readingList') {
+      const cachedPreview = getCachedDailyReadsPreview(dependencyKey)
+      if (cachedPreview?.length) {
+        homeRelatedItems.value = cachedPreview
+      }
+    } else {
+      const cachedRelated = getCachedRelatedFeed('home', dependencyKey)
+      if (cachedRelated) {
+        homeRelatedItems.value = cachedRelated.items
+      }
     }
 
     const cachedHelp = getCachedHelpWanted(helpWantedKey)
@@ -222,9 +242,11 @@ export function useMusicalGroupHome(options: {
     const cachedSummaries = getCachedSavedSummaries(dependencyKey)
     if (cachedSummaries) {
       savedItems.value = cachedSummaries
+    } else if (savedPagesSource === 'readingList') {
+      savedItems.value = readingListToSavedItems([...currentUserPageLists.value.readingList])
     }
 
-    const feedKey = suggestionFeedsKey(savedItems.value)
+    const feedKey = globalSuggestionFeedsKey(savedItems.value)
     hydratePersonalizedFeedsFromCache(feedKey, helpWantedDependencyKey(savedItems.value))
 
     if (preferences.value.useSavedPages) {
@@ -241,7 +263,7 @@ export function useMusicalGroupHome(options: {
     signal: AbortSignal,
     skipFeeds: Set<PersonalizedFeedId>,
   ): Promise<void> {
-    const seedItems = suggestionSeedItems(items, preferences.value)
+    const seedItems = globalSuggestionSeedItems(items)
     const helpWantedPrefs = effectiveSuggestionPreferences(SUGGESTED_EDITS_MODULE_ID)
     const helpWantedInterests = effectiveModuleInterests(SUGGESTED_EDITS_MODULE_ID)
     const helpWantedKey = helpWantedFeedsKey(items, helpWantedPrefs, helpWantedInterests)
@@ -249,12 +271,11 @@ export function useMusicalGroupHome(options: {
     const includeSavedSuggestions = helpWantedPrefs.useSavedPages && items.length > 0
 
     const cachedHelp = getCachedHelpWanted(helpWantedKey)
-    const cachedRelated = getCachedRelatedFeed('home', dependencyKey)
     const needsRelatedFetch =
       !skipFeeds.has('related') &&
-      (!cachedRelated ||
-        (savedPagesSource === 'readingList' &&
-          !relatedFeedPreviewQuotaMet('home', dependencyKey, seedItems, 3)))
+      (savedPagesSource === 'readingList'
+        ? !getCachedDailyReadsPreview(dependencyKey)?.length
+        : !getCachedRelatedFeed('home', dependencyKey))
     const needsMentionsFetch =
       preferences.value.useSavedPages &&
       !skipFeeds.has('mentions') &&
@@ -280,15 +301,39 @@ export function useMusicalGroupHome(options: {
       (async () => {
         if (!needsRelatedFetch) return
         try {
-          homeRelatedItems.value = await loadRelatedFeedInitialBatch(
-            'home',
-            seedItems,
-            dependencyKey,
-            signal,
-            savedPagesSource === 'readingList'
-              ? { minItemsPerSeed: 3, maxExtraBatches: 8 }
-              : undefined,
-          )
+          if (savedPagesSource === 'readingList') {
+            const cachedPreview = getCachedDailyReadsPreview(dependencyKey)
+            if (cachedPreview?.length) {
+              homeRelatedItems.value = cachedPreview
+              return
+            }
+
+            homeRelatedItems.value = []
+            const seedTitles = getSuggestionSeedTitles(
+              items,
+              preferences.value,
+              listInterests(),
+            )
+            const collected: HomeRelated[] = []
+            await fetchDailyReadsPreview({
+              seedTitles,
+              signal,
+              onEach: (card) => {
+                collected.push(card)
+                homeRelatedItems.value = [...collected]
+              },
+            })
+            if (collected.length) {
+              setCachedDailyReadsPreview(dependencyKey, collected)
+            }
+          } else {
+            homeRelatedItems.value = await loadRelatedFeedInitialBatch(
+              'home',
+              seedItems,
+              dependencyKey,
+              signal,
+            )
+          }
         } catch (err) {
           if (isAbort(err)) return
           homeRelatedItems.value = []
@@ -299,7 +344,10 @@ export function useMusicalGroupHome(options: {
       (async () => {
         if (!needsMentionsFetch) return
         try {
-          const excludeRelated = getCachedRelatedFeed('home', dependencyKey)?.items ?? []
+          const excludeRelated =
+            savedPagesSource === 'readingList'
+              ? (getCachedDailyReadsPreview(dependencyKey) ?? homeRelatedItems.value)
+              : (getCachedRelatedFeed('home', dependencyKey)?.items ?? [])
           homeMentionsRaw.value = await fetchHomeMentions(items, signal, undefined, excludeRelated)
         } catch (err) {
           if (isAbort(err)) return
@@ -523,8 +571,8 @@ export function useMusicalGroupHome(options: {
       }
 
       contributeSeedItems.value = []
-      const seedItems = suggestionSeedItems([], preferences.value)
-      const dependencyKey = suggestionFeedsKey(seedItems)
+      const seedItems = globalSuggestionSeedItems([])
+      const dependencyKey = globalSuggestionFeedsKey(seedItems)
       hydratePersonalizedFeedsFromCache(dependencyKey, helpWantedDependencyKey([]))
 
       if (!seedItems.length) {
@@ -545,26 +593,27 @@ export function useMusicalGroupHome(options: {
     contributeSeedItems.value = []
 
     hydrateBookmarksFromCache()
-    const dependencyKey = suggestionFeedsKey(savedItems.value)
-
-    if (!getCachedSavedSummaries(savedPagesCacheKey()) && !savedItems.value.length) {
-      savedItemsLoading.value = true
-    }
 
     let items: HomeSavedItem[]
-    try {
-      items =
-        savedPagesSource === 'readingList'
-          ? await fetchReadingListSummaries(readingListTitles, signal)
-          : await fetchSavedItemSummaries(entries, signal)
-      if (signal.aborted) return
+    if (savedPagesSource === 'readingList') {
+      items = readingListToSavedItems(readingListTitles)
       savedItems.value = items
-    } catch (err) {
-      if (isAbort(err)) return
-      clearPersonalizedFeeds()
-      return
-    } finally {
-      savedItemsLoading.value = false
+    } else {
+      if (!getCachedSavedSummaries(savedPagesCacheKey()) && !savedItems.value.length) {
+        savedItemsLoading.value = true
+      }
+
+      try {
+        items = await fetchSavedItemSummaries(entries, signal)
+        if (signal.aborted) return
+        savedItems.value = items
+      } catch (err) {
+        if (isAbort(err)) return
+        clearPersonalizedFeeds()
+        return
+      } finally {
+        savedItemsLoading.value = false
+      }
     }
 
     if (!items.length) {
@@ -611,11 +660,38 @@ export function useMusicalGroupHome(options: {
     }
 
     await Promise.all([
-      loadPersonalizedSuggestionFeeds(items, suggestionFeedsKey(items), signal, skipFeeds),
+      loadPersonalizedSuggestionFeeds(items, globalSuggestionFeedsKey(items), signal, skipFeeds),
       reloadTranslationForBookmarks(signal),
     ])
 
     if (signal.aborted) return
+  }
+
+  async function ensureReadingListSummaries(): Promise<void> {
+    if (savedPagesSource !== 'readingList') return
+
+    const titles = [...currentUserPageLists.value.readingList]
+    if (!titles.length) return
+
+    const cacheKey = readingListKey()
+    const cached = getCachedSavedSummaries(cacheKey)
+    if (cached?.length) {
+      savedItems.value = cached
+      return
+    }
+
+    savedSummariesAbort?.abort()
+    savedSummariesAbort = new AbortController()
+    const { signal } = savedSummariesAbort
+    savedItemsLoading.value = true
+
+    try {
+      savedItems.value = await fetchReadingListSummaries(titles, signal)
+    } catch (err) {
+      if (isAbort(err)) return
+    } finally {
+      savedItemsLoading.value = false
+    }
   }
 
   async function reloadTranslationForBookmarks(signal: AbortSignal): Promise<void> {
@@ -820,10 +896,10 @@ export function useMusicalGroupHome(options: {
   }
 
   function primeHomeRelatedLoading(): void {
-    if (!hasSuggestionSeeds(savedItems.value, preferences.value)) return
+    if (!hasSuggestionSeeds(savedItems.value, preferences.value, listInterests())) return
 
-    const seedItems = suggestionSeedItems(savedItems.value, preferences.value)
-    const dependencyKey = suggestionFeedsKey(seedItems)
+    const seedItems = globalSuggestionSeedItems(savedItems.value)
+    const dependencyKey = globalSuggestionFeedsKey(seedItems)
     hydratePersonalizedFeedsFromCache(dependencyKey, helpWantedDependencyKey(savedItems.value))
 
     if (homeRelatedItems.value.length > 0) return
@@ -997,5 +1073,6 @@ export function useMusicalGroupHome(options: {
     helpWantedLoading,
     recentChangesLoading,
     reloadBookmarks,
+    ensureReadingListSummaries,
   }
 }

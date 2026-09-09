@@ -9,7 +9,9 @@ import { useWikitaLiteCardBordersSingleton } from '../composables/useWikitaLiteC
 import { useWikitaLiteCardRadiusSingleton } from '../composables/useWikitaLiteCardRadius'
 import { useWikitaLiteHideTabBarSingleton } from '../composables/useWikitaLiteHideTabBar'
 import { useWikitaLiteModuleMenuModeSingleton } from '../composables/useWikitaLiteModuleMenuMode'
+import { useWikitaLiteRoute } from '../composables/useWikitaLiteRoute'
 import { resetWikitaLiteOnboarding } from '../onboarding/data/onboardingPersistence'
+import { WIKITA_LITE_HOME } from '../routes'
 
 interface Props {
   size?: ButtonSize
@@ -23,6 +25,7 @@ const { useLargeRadius, toggleLargeRadius } = useWikitaLiteCardRadiusSingleton()
 const { hideCardBorders, toggleHideCardBorders } = useWikitaLiteCardBordersSingleton()
 const { hideTabBar, toggleHideTabBar } = useWikitaLiteHideTabBarSingleton()
 const { useModuleMenuMode, toggleModuleMenuMode } = useWikitaLiteModuleMenuModeSingleton()
+const { replaceRoute } = useWikitaLiteRoute()
 
 const menuSelected = ref<MenuItemValue | null>(null)
 
@@ -48,19 +51,13 @@ const menuItems = computed(() => [
     icon: hideTabBar.value ? cdxIconCheck : undefined,
   },
   { value: 'reset-onboarding', label: 'Reset onboarding' },
-  { value: 'clear-local-storage', label: 'Clear local storage' },
+  { value: 'reset-url-state', label: 'Reset URL state' },
 ])
 
-function clearLocalStorage(): void {
-  if (typeof window === 'undefined') return
-
-  try {
-    window.localStorage.clear()
-  } catch {
-    // Private mode or blocked storage — ignore.
-  }
-
-  window.location.reload()
+async function resetUrlState(): Promise<void> {
+  resetWikitaLiteOnboarding()
+  await replaceRoute(WIKITA_LITE_HOME)
+  window.location.assign(`${import.meta.env.BASE_URL}wikita-lite`)
 }
 
 watch(menuSelected, (value) => {
@@ -88,15 +85,8 @@ watch(menuSelected, (value) => {
     return
   }
 
-  if (value === 'reset-onboarding') {
-    resetWikitaLiteOnboarding()
-    window.location.assign(`${import.meta.env.BASE_URL}wikita-lite`)
-    menuSelected.value = null
-    return
-  }
-
-  if (value === 'clear-local-storage') {
-    clearLocalStorage()
+  if (value === 'reset-onboarding' || value === 'reset-url-state') {
+    void resetUrlState()
     menuSelected.value = null
   }
 })

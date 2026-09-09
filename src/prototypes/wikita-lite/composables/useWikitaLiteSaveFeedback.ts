@@ -7,10 +7,13 @@ import {
   type WikitaSaveFeedbackContext,
 } from '../../musical-group/composables/useWikitaSaveFeedback'
 import { normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
-import { addPageToList, createList, removePageFromAllLists } from '../../musical-group/data/lists'
+import { useWikitaLiteListsSingleton } from './useWikitaLiteLists'
+import { initWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
 export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
+  initWikitaLiteUrlState()
   const { currentUserPageLists, setCurrentUserPageList } = useConfig()
+  const { addPageToList, createList, removePageFromAllLists } = useWikitaLiteListsSingleton()
 
   const toastOpen = ref(false)
   const toastPageId = ref<string | null>(null)

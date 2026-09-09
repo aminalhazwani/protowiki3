@@ -1,5 +1,4 @@
 import { computed, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 
 import {
   DEFAULT_WIKITA_LITE_VIEW,
@@ -8,10 +7,10 @@ import {
   WIKITA_LITE_HOME,
   type WikitaLiteView,
 } from '../routes'
+import { useWikitaLiteRoute } from './useWikitaLiteRoute'
 
 export function useWikitaLiteView() {
-  const route = useRoute()
-  const router = useRouter()
+  const { route, router, wikitaLiteRoute, replaceQuery } = useWikitaLiteRoute()
 
   const isHome = computed(
     () => route.path === WIKITA_LITE_HOME || route.path === `${WIKITA_LITE_HOME}/`,
@@ -40,8 +39,8 @@ export function useWikitaLiteView() {
 
     const destination =
       view === DEFAULT_WIKITA_LITE_VIEW
-        ? { path: WIKITA_LITE_HOME }
-        : { path: WIKITA_LITE_HOME, query: { view } }
+        ? wikitaLiteRoute(WIKITA_LITE_HOME, { view: null })
+        : wikitaLiteRoute(WIKITA_LITE_HOME, { view })
 
     await router.push(destination)
 
@@ -55,7 +54,7 @@ export function useWikitaLiteView() {
       return
     }
 
-    await router.push({ path: WIKITA_LITE_HOME })
+    await router.push(wikitaLiteRoute(WIKITA_LITE_HOME))
 
     await nextTick()
     scrollToTop()
@@ -68,5 +67,6 @@ export function useWikitaLiteView() {
     selectView,
     goHome,
     scrollToTop,
+    replaceQuery,
   }
 }

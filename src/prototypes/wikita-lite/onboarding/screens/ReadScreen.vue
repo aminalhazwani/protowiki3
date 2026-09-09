@@ -4,19 +4,17 @@ import { CdxMessage, CdxProgressBar } from '@wikimedia/codex'
 
 import ArticleHeader from '@/components/article/ArticleHeader.vue'
 import ArticleRenderer from '@/components/article/ArticleRenderer.vue'
+import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
+import type { HeaderItem } from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
-import OnboardingChromeHeader from '../components/OnboardingChromeHeader.vue'
 import SavePagesSheet from '../components/SavePagesSheet.vue'
 import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
 import { resolveArticleLink } from '../data/articleLinks'
 import { useArticleHtml } from '../data/useArticleHtml'
-import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
 import type { FlowState } from '../data/useWikitaLiteOnboardingFlow'
 
 const props = defineProps<{ flow: FlowState }>()
-
-const { dismiss: dismissReturnHomeBanner } = useReturnHomeBanner()
 
 const MAIN_PAGE_TITLE = 'Main Page'
 const effectiveTitle = computed(() => props.flow.title.value.trim() || MAIN_PAGE_TITLE)
@@ -31,17 +29,14 @@ function onBookmark(): void {
 }
 
 function onSearch(): void {
-  props.flow.goTo('search')
+  void props.flow.goTo('search')
 }
 
-function onCreateAccount(): void {
-  props.flow.goTo('account')
-}
-
-function onGoHome(): void {
-  dismissReturnHomeBanner()
-  void props.flow.goTo('home')
-}
+const headerRight: HeaderItem[] = [
+  { type: 'button', icon: 'search', label: 'Search', onClick: onSearch },
+  { type: 'button', icon: 'bell-outline', label: 'Notifications' },
+  { type: 'button', icon: 'user-avatar-outline', label: 'User menu' },
+]
 
 function onArticleLinkClick(event: MouseEvent): void {
   const anchor = (event.target as HTMLElement).closest('a')
@@ -68,13 +63,7 @@ function onArticleLinkClick(event: MouseEvent): void {
 <template>
   <ChromeWrapper skin="mobile" :last-edited-notice="false">
     <template #header>
-      <OnboardingChromeHeader
-        mode="read"
-        :username="flow.username.value || undefined"
-        @search="onSearch"
-        @create-account="onCreateAccount"
-        @go-home="onGoHome"
-      />
+      <ChromeHeader skin="mobile" :right="headerRight" />
     </template>
 
     <ReturnHomeBanner :flow="props.flow" />

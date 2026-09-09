@@ -7,7 +7,10 @@ import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 
 import { useWikitaLiteCardBordersSingleton } from '../composables/useWikitaLiteCardBorders'
 import { useWikitaLiteCardRadiusSingleton } from '../composables/useWikitaLiteCardRadius'
+import { initWikitaLiteUrlState } from '../composables/useWikitaLiteUrlState'
 import { useWikitaLiteView } from '../composables/useWikitaLiteView'
+
+initWikitaLiteUrlState()
 import { SHOW_WIKITA_LITE_FLOATING_NAV } from '../routes'
 import '../wikita-lite-shell.css'
 import WikitaLiteChromeMenuPopover from './WikitaLiteChromeMenuPopover.vue'

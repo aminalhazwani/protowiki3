@@ -1,73 +1,67 @@
-import { saveInterests } from '../../../musical-group/data/interests'
+import { normalizeInterestTitles } from '../../../musical-group/data/interests'
+import { useWikitaLiteUrlState } from '../../composables/useWikitaLiteUrlState'
 import type { OnboardingFlowState, SurveyChoice } from './useWikitaLiteOnboardingFlow'
 
+/** @deprecated Onboarding completion is stored in URL ?onboarded=1 */
 export const ONBOARDING_COMPLETE_KEY = 'wikita-lite-onboarding-complete'
+/** @deprecated Stored as ?displayName= */
 export const ONBOARDING_SURVEY_KEY = 'wikita-lite-onboarding-survey'
+/** @deprecated Stored as ?displayName= */
 export const ONBOARDING_USERNAME_KEY = 'wikita-lite-onboarding-username'
 
 export function isWikitaLiteOnboardingComplete(): boolean {
-  if (typeof window === 'undefined') return true
   try {
-    return window.localStorage.getItem(ONBOARDING_COMPLETE_KEY) === '1'
+    const { state } = useWikitaLiteUrlState()
+    return state.value.onboarded
   } catch {
-    return true
+    return false
   }
 }
 
 export function getWikitaLiteOnboardingUsername(): string {
-  if (typeof window === 'undefined') return ''
   try {
-    return window.localStorage.getItem(ONBOARDING_USERNAME_KEY)?.trim() ?? ''
+    const { state } = useWikitaLiteUrlState()
+    return state.value.displayName || state.value.username
   } catch {
     return ''
   }
 }
 
 export function resetWikitaLiteOnboarding(): void {
-  if (typeof window === 'undefined') return
   try {
-    window.localStorage.removeItem(ONBOARDING_COMPLETE_KEY)
-    window.localStorage.removeItem(ONBOARDING_SURVEY_KEY)
-    window.localStorage.removeItem(ONBOARDING_USERNAME_KEY)
+    const { resetState } = useWikitaLiteUrlState()
+    void resetState()
   } catch {
-    // Private mode — ignore.
+    // URL state not initialized — ignore.
   }
 }
 
-function writeStorage(key: string, value: string): void {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(key, value)
-  } catch {
-    // Private mode — ignore.
-  }
-}
-
-/** Persist flow outputs into wikita-lite stores, then mark onboarding complete. */
+/** Persist flow outputs into URL state, then mark onboarding complete. */
 export function completeWikitaLiteOnboarding(flow: OnboardingFlowState): void {
-  const interests = flow.interests.value
-  if (interests.length) {
-    saveInterests(interests)
-  }
+  const { patchState } = useWikitaLiteUrlState()
 
+  const interests = normalizeInterestTitles(flow.interests.value)
   const username = flow.username.value.trim()
-  if (username) {
-    writeStorage(ONBOARDING_USERNAME_KEY, username)
-  }
-
   const survey = flow.survey.value
-  if (survey) {
-    writeStorage(ONBOARDING_SURVEY_KEY, survey)
-  }
 
-  writeStorage(ONBOARDING_COMPLETE_KEY, '1')
+  void patchState({
+    onboarded: true,
+    displayName: username || undefined,
+    survey: survey || '',
+    interests,
+    screen: 'read',
+    title: '',
+    username: '',
+    email: '',
+    returnTo: '',
+    ...(survey ? { mode: survey } : {}),
+  })
 }
 
 export function loadStoredSurveyChoice(): SurveyChoice | '' {
-  if (typeof window === 'undefined') return ''
   try {
-    const raw = window.localStorage.getItem(ONBOARDING_SURVEY_KEY) ?? ''
-    return raw === 'read' || raw === 'edit' || raw === 'both' ? raw : ''
+    const { state } = useWikitaLiteUrlState()
+    return state.value.survey
   } catch {
     return ''
   }

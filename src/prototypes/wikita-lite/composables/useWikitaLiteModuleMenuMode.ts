@@ -1,17 +1,17 @@
-import { ref, watch } from 'vue'
+import { computed } from 'vue'
 
-import {
-  loadModuleMenuModePreference,
-  saveModuleMenuModePreference,
-} from '../data/moduleMenuMode'
-
-const useModuleMenuMode = ref(loadModuleMenuModePreference().useModuleMenuMode)
-
-watch(useModuleMenuMode, (value) => {
-  saveModuleMenuModePreference({ useModuleMenuMode: value })
-})
+import { useWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
 export function useWikitaLiteModuleMenuMode() {
+  const { state, patchState } = useWikitaLiteUrlState()
+
+  const useModuleMenuMode = computed({
+    get: () => state.value.useModuleMenuMode,
+    set: (value: boolean) => {
+      void patchState({ useModuleMenuMode: value })
+    },
+  })
+
   function toggleModuleMenuMode(): void {
     useModuleMenuMode.value = !useModuleMenuMode.value
   }
@@ -22,7 +22,6 @@ export function useWikitaLiteModuleMenuMode() {
   }
 }
 
-/** Module-level singleton so shell and menu share the same reactive state. */
 let singleton: ReturnType<typeof useWikitaLiteModuleMenuMode> | null = null
 
 export function useWikitaLiteModuleMenuModeSingleton() {

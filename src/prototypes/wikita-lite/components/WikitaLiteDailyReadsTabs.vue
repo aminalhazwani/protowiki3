@@ -4,11 +4,15 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import { CdxToggleButton } from '@wikimedia/codex'
 
 import { scrollTabIntoTrackView } from '../../musical-group/scrollTabIntoTrackView'
-import type { DailyReadsTab } from '../composables/useWikitaLiteDailyReadsTabs'
+
+interface FilterTab {
+  id: string
+  label: string
+}
 
 const props = withDefaults(
   defineProps<{
-    tabs: DailyReadsTab[]
+    tabs: FilterTab[]
     ariaLabel?: string
   }>(),
   {

@@ -1,6 +1,8 @@
 import { computed, type ComputedRef, type WritableComputedRef } from 'vue'
 import { useRoute, useRouter, type LocationQuery, type LocationQueryRaw } from 'vue-router'
 
+import { mergeWikitaLiteQuery, type WikitaLiteUrlStatePatch } from '../../data/urlStateSchema'
+
 /**
  * URL-query state for the wikita-lite onboarding flow.
  *
@@ -67,36 +69,31 @@ export type Screen = OnboardingScreen
 /** @deprecated Alias for ported screen props */
 export type FlowPatch = OnboardingFlowPatch
 
-function serializePatch(patch: OnboardingFlowPatch): Record<string, string | string[] | undefined> {
-  const out: Record<string, string | string[] | undefined> = {}
-  if ('title' in patch) out.title = patch.title?.trim() || undefined
-  if ('username' in patch) out.username = patch.username?.trim() || undefined
-  if ('survey' in patch) out.survey = patch.survey || undefined
-  if ('email' in patch) out.email = patch.email?.trim() || undefined
+function onboardingPatchToUrlPatch(patch: OnboardingFlowPatch): WikitaLiteUrlStatePatch {
+  const out: WikitaLiteUrlStatePatch = {}
+  if ('title' in patch) out.title = patch.title?.trim() || ''
+  if ('username' in patch) out.username = patch.username?.trim() || ''
+  if ('survey' in patch) out.survey = patch.survey || ''
+  if ('email' in patch) out.email = patch.email?.trim() || ''
   if ('interests' in patch) {
-    const items = (patch.interests ?? []).map((item) => item.trim()).filter(Boolean)
-    out.interests = items.length ? items : ''
+    out.interests = (patch.interests ?? []).map((item) => item.trim()).filter(Boolean)
   }
   if ('returnTo' in patch) {
     const target = patch.returnTo
-    out.returnTo = target && isScreen(target) ? target : undefined
+    out.returnTo = target && isScreen(target) ? target : ''
   }
   return out
 }
 
 function mergeQuery(
   current: LocationQuery,
-  updates: Record<string, string | string[] | undefined>,
+  updates: WikitaLiteUrlStatePatch & { screen?: OnboardingScreen | undefined },
 ): LocationQueryRaw {
-  const next: LocationQueryRaw = { ...current }
-  for (const [key, value] of Object.entries(updates)) {
-    if (value === undefined) {
-      delete next[key]
-    } else {
-      next[key] = value
-    }
+  const urlPatch: WikitaLiteUrlStatePatch = { ...updates }
+  if ('screen' in updates) {
+    urlPatch.screen = updates.screen ?? DEFAULT_SCREEN
   }
-  return next
+  return mergeWikitaLiteQuery(current, urlPatch)
 }
 
 export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
@@ -113,13 +110,21 @@ export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
   const email = computed(() => firstString(route.query.email).trim())
 
   function patch(next: OnboardingFlowPatch): Promise<void> {
-    return router.replace({ query: mergeQuery(route.query, serializePatch(next)) }).then(() => undefined)
+    return router
+      .replace({ query: mergeWikitaLiteQuery(route.query, onboardingPatchToUrlPatch(next)) })
+      .then(() => undefined)
   }
 
   function goTo(target: OnboardingScreen, next?: OnboardingFlowPatch): Promise<void> {
-    const updates = next ? serializePatch(next) : {}
-    updates.screen = target === DEFAULT_SCREEN ? undefined : target
-    return router.push({ query: mergeQuery(route.query, updates) }).then(() => undefined)
+    const updates = next ? onboardingPatchToUrlPatch(next) : {}
+    return router
+      .push({
+        query: mergeQuery(route.query, {
+          ...updates,
+          screen: target === DEFAULT_SCREEN ? undefined : target,
+        }),
+      })
+      .then(() => undefined)
   }
 
   const survey = computed<SurveyChoice | ''>({

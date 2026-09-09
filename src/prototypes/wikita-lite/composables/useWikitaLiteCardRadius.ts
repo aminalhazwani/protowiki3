@@ -1,17 +1,17 @@
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 
-import {
-  loadCardRadiusPreference,
-  saveCardRadiusPreference,
-} from '../data/cardRadius'
-
-const useLargeRadius = ref(loadCardRadiusPreference().useLargeRadius)
-
-watch(useLargeRadius, (value) => {
-  saveCardRadiusPreference({ useLargeRadius: value })
-})
+import { useWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
 export function useWikitaLiteCardRadius() {
+  const { state, patchState } = useWikitaLiteUrlState()
+
+  const useLargeRadius = computed({
+    get: () => state.value.useLargeRadius,
+    set: (value: boolean) => {
+      void patchState({ useLargeRadius: value })
+    },
+  })
+
   const cardRadiusStyle = computed(() => ({
     '--wikita-lite-card-radius': useLargeRadius.value
       ? 'var(--spacing-25)'
@@ -29,7 +29,6 @@ export function useWikitaLiteCardRadius() {
   }
 }
 
-/** Module-level singleton so shell and menu share the same reactive state. */
 let singleton: ReturnType<typeof useWikitaLiteCardRadius> | null = null
 
 export function useWikitaLiteCardRadiusSingleton() {

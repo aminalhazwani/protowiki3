@@ -17,13 +17,11 @@ import {
   formatRelatedToLabel,
 } from '../../musical-group/data/relatedToLabel'
 import type { HomeRelated } from '../../musical-group/data/types'
-import WikitaLiteDailyReadsTabs from '../components/WikitaLiteDailyReadsTabs.vue'
 import {
   externalArticleHref,
   useWikitaLiteSaveActions,
 } from '../composables/useWikitaLiteCardActions'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
-import { useWikitaLiteDailyReadsTabs } from '../composables/useWikitaLiteDailyReadsTabs'
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
 import WikitaLiteCardWithAction from '../components/WikitaLiteCardWithAction.vue'
@@ -55,15 +53,9 @@ const { currentUserPageLists } = useConfig()
 const { relatedReadingSaved, relatedReadingInList, onRelatedReadingSave } =
   useWikitaLiteSaveActions(listsVersionRef)
 
-const { tabs, activeTabId, showTabs, filteredItems } = useWikitaLiteDailyReadsTabs({
-  items: () => props.items,
-  listsVersion: () => props.listsVersion,
-})
-
-const displayItems = computed(() => {
-  const filtered = filteredItems.value
-  return props.standalone ? filtered : filtered.slice(0, props.previewLimit)
-})
+const displayItems = computed(() =>
+  props.standalone ? props.items : props.items.slice(0, props.previewLimit),
+)
 
 function relatedLabel(relatedToTitle: string): string {
   const savedTitles = currentUserPageLists.value.readingList.map((title) => ({ title }))
@@ -90,12 +82,6 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
 
 <template>
   <div class="related-module">
-    <WikitaLiteDailyReadsTabs
-      v-if="showTabs"
-      v-model:active-tab-id="activeTabId"
-      :tabs="tabs"
-    />
-
     <div :class="['related-module__cards', groupClass]">
       <template v-for="item in displayItems" :key="`${item.relatedToTitle}-${item.title}`">
       <WikitaLiteCardWithAction

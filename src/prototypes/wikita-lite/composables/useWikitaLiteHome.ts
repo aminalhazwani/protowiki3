@@ -4,6 +4,7 @@ import {
   useMusicalGroupHome,
   type PersonalizedFeedId,
 } from '../../musical-group/useMusicalGroupHome'
+import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSuggestionPreferences'
 
 /** Home preview only needs a few cards. */
 export const WIKITA_LITE_HELP_WANTED_HOME_LIMIT = 3
@@ -18,6 +19,7 @@ export function useWikitaLiteHome(options?: {
   getBookmarkChangeSkipFeeds?: () => PersonalizedFeedId[]
 }) {
   const { knownLanguages } = useConfig()
+  const { listInterests } = useWikitaLiteSuggestionPreferencesSingleton()
 
   return useMusicalGroupHome({
     helpWantedLimit: options?.helpWantedLimit ?? WIKITA_LITE_HELP_WANTED_HOME_LIMIT,
@@ -31,5 +33,6 @@ export function useWikitaLiteHome(options?: {
       }),
     getBookmarkChangeSkipFeeds: options?.getBookmarkChangeSkipFeeds,
     savedPagesSource: 'readingList',
+    listInterests,
   })
 }

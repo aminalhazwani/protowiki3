@@ -5,7 +5,7 @@ import { useConfig } from '@/composables/useConfig'
 import { useWikitaSaveFeedback } from '../../musical-group/composables/useWikitaSaveFeedback'
 import { enwikiArticleUrl, normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
 import { isEditThanked, toggleEditThank } from '../../musical-group/data/editThanks'
-import { isPageInAnyList } from '../../musical-group/data/lists'
+import { useWikitaLiteListsSingleton } from './useWikitaLiteLists'
 
 export interface ArticleLinkFields {
   articleUrl?: string
@@ -37,6 +37,7 @@ function savedTitleKey(title: string): string {
 export function useWikitaLiteSaveActions(listsVersion: Ref<number>) {
   const { savePage, listsVersion: saveListsVersion } = useWikitaSaveFeedback()
   const { currentUserPageLists } = useConfig()
+  const { isPageInAnyList } = useWikitaLiteListsSingleton()
 
   function relatedReadingSaved(title: string): boolean {
     void listsVersion.value

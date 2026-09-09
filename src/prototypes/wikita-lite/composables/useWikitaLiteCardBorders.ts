@@ -1,17 +1,17 @@
-import { ref, watch } from 'vue'
+import { computed } from 'vue'
 
-import {
-  loadCardBordersPreference,
-  saveCardBordersPreference,
-} from '../data/cardBorders'
-
-const hideCardBorders = ref(loadCardBordersPreference().hideCardBorders)
-
-watch(hideCardBorders, (value) => {
-  saveCardBordersPreference({ hideCardBorders: value })
-})
+import { useWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
 export function useWikitaLiteCardBorders() {
+  const { state, patchState } = useWikitaLiteUrlState()
+
+  const hideCardBorders = computed({
+    get: () => state.value.hideCardBorders,
+    set: (value: boolean) => {
+      void patchState({ hideCardBorders: value })
+    },
+  })
+
   function toggleHideCardBorders(): void {
     hideCardBorders.value = !hideCardBorders.value
   }
@@ -22,7 +22,6 @@ export function useWikitaLiteCardBorders() {
   }
 }
 
-/** Module-level singleton so shell and menu share the same reactive state. */
 let singleton: ReturnType<typeof useWikitaLiteCardBorders> | null = null
 
 export function useWikitaLiteCardBordersSingleton() {

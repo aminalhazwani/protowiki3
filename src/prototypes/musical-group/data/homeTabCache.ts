@@ -292,6 +292,22 @@ export function setCachedHomeMentions(dependencyKey: string, data: HomeMention[]
   setEntry('homeMentions', { dependencyKey, data, fetchedAt: Date.now() })
 }
 
+interface CachedDailyReadsPreviewEntry {
+  dependencyKey: string
+  data: HomeRelated[]
+  fetchedAt: number
+}
+
+export function getCachedDailyReadsPreview(dependencyKey: string): HomeRelated[] | null {
+  const data = getEntry<CachedDailyReadsPreviewEntry>('dailyReadsPreview', dependencyKey)?.data
+  if (!data?.length) return null
+  return data
+}
+
+export function setCachedDailyReadsPreview(dependencyKey: string, data: HomeRelated[]): void {
+  setEntry('dailyReadsPreview', { dependencyKey, data, fetchedAt: Date.now() })
+}
+
 export function relatedFeedCacheKey(tab: RelatedFeedTabId, dependencyKey: string): string {
   return `related:${tab}:${dependencyKey}`
 }
@@ -339,6 +355,7 @@ export function clearCachedSuggestionFeeds(): void {
   for (const key of Object.keys(entries)) {
     if (
       key === 'helpWanted' ||
+      key === 'dailyReadsPreview' ||
       key.startsWith('related:') ||
       key.startsWith('contribute:') ||
       key === 'homeMentions'

@@ -33,29 +33,52 @@ Subpages use `WikitaLiteShell` + `MobileSubpageHeader` + a module with
 | `src/prototypes/wikita-lite/WikitaLiteOnboarding.vue` | First-run flow orchestrator |
 | `src/prototypes/wikita-lite/onboarding/` | Onboarding screens, shell, data (ported from protowiki3 `no-distractions`) |
 
+## URL-driven state
+
+**All wikita-lite prototype state lives in flat URL query params** (sparse
+encoding — defaults are omitted). API feed caches (`musical-group-home-cache`,
+`protowiki-impact-cache-v1`, thumbnail/summary caches) stay in `localStorage`.
+
+Central hub: `data/urlStateSchema.ts` (parse / serialize / merge) +
+`composables/useWikitaLiteUrlState.ts` (hydrates in-memory `useConfig` while on
+wikita-lite routes; does **not** write back to `protowiki-prototype-user-config`).
+
+**Every navigation must preserve query params.** Use
+`useWikitaLiteRoute().wikitaLiteRoute(path)` for `RouterLink :to` and
+`router.push` — never bare path strings.
+
+| Group | Params | Notes |
+| --- | --- | --- |
+| Navigation | `view`, `mode` | `view`: `read`, `contribute` (Home = omit). `mode`: `both` (omit), `read`, `edit`, `advanced` |
+| Onboarding | `onboarded`, `screen`, `title`, `username`, `email`, `survey`, `interests`, `returnTo` | `onboarded=1` when complete |
+| User / chrome | `user`, `realUser`, `theme`, `skin`, `platform`, `langs`, `displayName` | Mirrors `useConfig` fields |
+| Page lists | `saved`, `edited`, `watchlist` | Repeated params (Wikipedia titles) |
+| Interests | `interests` | Repeated params, max 10 |
+| Suggestion prefs | `prefSaved`, `prefHistory`, `prefInterests` | `1` / `0` (omit when default `1`) |
+| Help-wanted overrides | `hwDefault`, `hwPrefSaved`, `hwPrefHistory`, `hwPrefInterests`, `hwInterests` | Suggested edits module only |
+| Dismissals | `dismiss_<moduleId>` | Restore-at epoch ms |
+| Pins | `pinsHome`, `pinsExplore`, `pinsContribute` | Comma-separated module IDs |
+| Dev chrome | `cardRadius`, `hideBorders`, `hideTabBar`, `moduleMenus`, `bannerDismissed` | |
+| Lists sheet | `list` | Repeated `name\|QID1\|QID2` entries |
+
+Dev menu **Reset URL state** clears params and reloads `/wikita-lite`.
+
 ## Onboarding (first visit)
 
-On first visit to `/wikita-lite`, **`index.vue`** shows the onboarding flow
-instead of the tabbed dashboard until completion. Query params on `/wikita-lite`
-drive the active step (deep-linkable): `screen`, `title`, `username`, `survey`,
-`interests`, `email`.
+On first visit to `/wikita-lite` (no `?onboarded=1`), **`index.vue`** shows the
+onboarding flow instead of the tabbed dashboard. Query params drive the active
+step (deep-linkable).
 
 Flow: **read article** → **create account** → **welcome** → **survey** →
-**interests** → normal **`WikitaLiteHome`**.
+**interests** → **`?onboarded=1`** → **`WikitaLiteHome`**.
 
-| Key | Purpose |
-| --- | --- |
-| `wikita-lite-onboarding-complete` | `'1'` when the reader finished onboarding |
-| `wikita-lite-onboarding-username` | Display name captured during account setup |
-| `wikita-lite-onboarding-survey` | Survey choice (`read` / `edit` / `both`) |
-
-Interests persist to `wikita-lite-interests` on completion. Dev menu (**Reset
-onboarding**) clears the completion flag and reloads `/wikita-lite`.
+On completion, transient keys (`screen`, `title`, `username`, `email`, …) are
+stripped; `survey`, `interests`, and `displayName` remain in the URL.
 
 ## Dashboard modes
 
-Home module layout is controlled by **`?mode=`** on `/wikita-lite` and by the
-onboarding survey (stored in `wikita-lite-onboarding-survey`).
+Home module layout is controlled by **`?mode=`** or **`?survey=`** (survey maps
+1:1 to simplified mode when `mode` is omitted).
 
 | Mode | Source | Home modules (order) |
 | --- | --- | --- |
@@ -64,10 +87,9 @@ onboarding survey (stored in `wikita-lite-onboarding-survey`).
 | `edit` | Survey | Suggested edits → Your impact → Your mentor → Daily reads |
 | `advanced` | `?mode=advanced` only | Full dashboard (all modules + Explore / Contribute tabs) |
 
-Resolution: URL param → stored survey → default `both`. **`advanced` is never
-persisted.** Config lives in `data/dashboardMode.ts`; composable
-`useWikitaLiteDashboardMode`. **Your mentor** is a stub module
-(`modules/MentorModule.vue`).
+**`advanced` is URL-only** (never implied by other params). Config lives in
+`data/dashboardMode.ts`; composable `useWikitaLiteDashboardMode`. **Your
+mentor** is a stub module (`modules/MentorModule.vue`).
 
 ## Configure + interests
 
@@ -78,16 +100,6 @@ Home / Explore / Contribute tabs are on `/wikita-lite`; a **configure** icon
   interest-based suggestions; **Add interest** opens the picker.
 - `/wikita-lite/configure/interests` — search + chips + related preview;
   **Done** persists; close (X) discards.
-
-Preferences persist in `localStorage`:
-
-| Key | File |
-| --- | --- |
-| `protowiki-prototype-user-config` | `src/config.ts` — user profile incl. **`readingList`** (saved pages) and **`editedPages`** (editing history) |
-| `wikita-lite-suggestion-prefs` | `musical-group/data/suggestionPreferences.ts` |
-| `wikita-lite-module-suggestion-prefs` | `wikita-lite/data/moduleSuggestionPreferences.ts` |
-| `wikita-lite-interests` | `musical-group/data/interests.ts` |
-| `wikita-lite-dismissed-modules` | `wikita-lite/data/moduleDismissals.ts` |
 
 Suggestion feeds (Daily reads, Mentions) honor global toggles via
 `getSuggestionSeeds()` and `suggestionFeedsKey()`. **Suggested edits**
@@ -114,16 +126,16 @@ three suggestion-source toggles as global configure, prefixed by **Use my
 default settings**. When that master toggle is on, the module inherits global
 prefs and the underlying options are read-only; when off, overrides apply to
 Suggested edits only (Daily reads and Mentions stay on global prefs).
-Interests remain **module-scoped when overrides are active** — stored in
-`wikita-lite-module-suggestion-prefs` alongside module toggles. **Add interest**
-on the module configure page opens `/wikita-lite/help-wanted/configure/interests`,
-which edits the module list only. When **Use my default settings** is on, the
-module inherits global prefs and global interests. Dismissals are **global** — a dismissed module is hidden on every tab where it appears. Dismissed modules
-hide immediately and **reappear at 3:00 AM local time**. Users can
-**Restore** early from **Configure** (`/wikita-lite/configure`). State
-persists in `wikita-lite-dismissed-modules` via
-`useWikitaLiteDismissedModules`. Dismissing also clears that module's pin
-on every tab.
+Interests remain **module-scoped when overrides are active** — encoded as
+`hwInterests` alongside `hwPref*` params. **Add interest** on the module
+configure page opens `/wikita-lite/help-wanted/configure/interests`, which edits
+the module list only. When **Use my default settings** is on, the module
+inherits global prefs and global interests. Dismissals are **global** — a
+dismissed module is hidden on every tab where it appears. Dismissed modules hide
+immediately and **reappear at 3:00 AM local time**. Users can **Restore** early
+from **Configure** (`/wikita-lite/configure`). State is encoded as
+`dismiss_<moduleId>=<restoreAtMs>` via `useWikitaLiteDismissedModules`.
+Dismissing also clears that module's pin on every tab.
 
 When overflow menus are enabled, modules that normally navigate via the
 clickable title show a footer **Show more …** link instead (Active
@@ -145,6 +157,16 @@ Review changes) are unchanged.
     (`loadPersonalizedSuggestionFeeds` in `useMusicalGroupHome.ts`), independent
     of visual `MODE_MODULE_ORDER`. Both shells may be visible at once; only the
     actively fetching module shows a progress bar.
+  - **Daily reads home fetch** — up to 3 **serial** per-seed generator morelike
+    calls (`fetchDailyReadsPreview` in `wikita-lite/data/`), 3 hits each,
+    global dedupe, one card per seed with correct `relatedToTitle`. Cards append
+    progressively via `onEach`. No blocking `fetchReadingListSummaries` on the
+    home reload path; synthetic saved items from `readingListToSavedItems`.
+    Preview caches under `dailyReadsPreview` in `homeTabCache` (separate from
+    the paginated related-feed state used by the fullscreen subpage).
+  - **Saved module metadata** — lazy only: `ensureReadingListSummaries` runs when
+    the Explore tab (`view=read`) or `/wikita-lite/saved` subpage opens, not
+    during Daily reads load.
   - **Refresh with preview cards** — stale cards stay visible; bar in each
     updating module's `#after-cards` slot (above any CTA); multiple modules may
     each show a bar while refreshing.
@@ -168,9 +190,9 @@ Do **not** add similar save-nudging copy elsewhere:
 - No CTAs like "Save pages to see…" on Home, Contribute, or other modules.
 - Other personalized sections simply **omit** when there is nothing to show.
 
-Saving a page in wikita-lite updates the user profile **`readingList`** in
-`protowiki-prototype-user-config` (not the separate `musical-group-bookmarks`
-store used by the musical-group prototype).
+Saving a page in wikita-lite updates **`?saved=`** URL params (via in-memory
+`useConfig` sync). Not the separate `musical-group-bookmarks` store used by the
+musical-group prototype.
 
 Save/bookmark **actions on cards** (bookmark icon, "Saved" label) and
 post-save toasts are fine.

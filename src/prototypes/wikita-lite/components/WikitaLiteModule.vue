@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, provide, ref, watch } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 
 import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
 import type { MenuItemValue } from '@wikimedia/codex'
@@ -12,6 +12,7 @@ import { useWikitaLiteDismissedModulesSingleton } from '../composables/useWikita
 import { useWikitaLiteModuleMenuModeSingleton } from '../composables/useWikitaLiteModuleMenuMode'
 import { useWikitaLitePinnedModulesSingleton } from '../composables/useWikitaLitePinnedModules'
 import { useWikitaLitePreserveScroll } from '../composables/useWikitaLitePreserveScroll'
+import { useWikitaLiteRoute } from '../composables/useWikitaLiteRoute'
 import { useWikitaLiteView } from '../composables/useWikitaLiteView'
 import { isOverflowModuleId, type WikitaLiteModuleId } from '../data/homeModuleIds'
 import { HELP_WANTED_CONFIGURE_PAGE } from '../routes'
@@ -38,7 +39,7 @@ const { isPinned, togglePin } = useWikitaLitePinnedModulesSingleton()
 const { dismiss } = useWikitaLiteDismissedModulesSingleton()
 const { activeView, isHome } = useWikitaLiteView()
 const { captureScroll, restoreScroll, preserveScrollFor } = useWikitaLitePreserveScroll()
-const router = useRouter()
+const { pushRoute } = useWikitaLiteRoute()
 
 const menuSelected = ref<MenuItemValue | null>(null)
 
@@ -124,7 +125,7 @@ watch(menuSelected, (value) => {
 
   if (value === 'configure' && props.moduleId === 'suggestedEdits') {
     menuSelected.value = null
-    router.push(HELP_WANTED_CONFIGURE_PAGE)
+    void pushRoute(HELP_WANTED_CONFIGURE_PAGE)
   }
 })
 

@@ -21,16 +21,22 @@ import {
 } from '@/config'
 import { applyAppPlatform } from '@/app-platform'
 import { applyThemePreference, applyWebSkinPreference } from '@/theme'
+import { isWikitaLiteConfigSaveSuppressed } from '@/prototypes/wikita-lite/data/configBridge'
 
 const config = ref<Config>(loadConfig())
 
 watch(
   config,
   (value) => {
+    if (isWikitaLiteConfigSaveSuppressed()) return
     saveConfig(value)
   },
   { deep: true },
 )
+
+export function getMutableConfigRef(): typeof config {
+  return config
+}
 
 watch(
   () => config.value.theme,

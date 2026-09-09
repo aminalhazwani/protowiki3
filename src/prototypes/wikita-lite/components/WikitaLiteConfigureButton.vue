@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconConfigure } from '@wikimedia/codex-icons'
 
+import { useWikitaLiteRoute } from '../composables/useWikitaLiteRoute'
 import { CONFIGURE_PAGE } from '../routes'
 
 interface Props {
@@ -16,10 +15,10 @@ const props = withDefaults(defineProps<Props>(), {
   to: CONFIGURE_PAGE,
 })
 
-const router = useRouter()
+const { pushRoute } = useWikitaLiteRoute()
 
 function openConfigure() {
-  router.push(props.to)
+  void pushRoute(props.to)
 }
 </script>
 

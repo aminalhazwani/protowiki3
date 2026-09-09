@@ -1,22 +1,20 @@
-import { computed, ref, watch, type ComputedRef } from 'vue'
+import { computed, type ComputedRef } from 'vue'
 
 import { type WikitaLiteModuleId } from '../data/homeModuleIds'
-import { type TabPinnedModules, loadPinnedModules, savePinnedModules } from '../data/modulePins'
+import type { TabPinnedModules } from '../data/modulePins'
 import { DEFAULT_WIKITA_LITE_VIEW, WIKITA_LITE_VIEWS, type WikitaLiteView } from '../routes'
+import { useWikitaLiteUrlState } from './useWikitaLiteUrlState'
 import { useWikitaLiteView } from './useWikitaLiteView'
 
-const pinnedByTab = ref<TabPinnedModules>(loadPinnedModules())
-
-watch(
-  pinnedByTab,
-  (value) => {
-    savePinnedModules(value)
-  },
-  { deep: true },
-)
-
 export function useWikitaLitePinnedModules() {
+  const { state, patchState } = useWikitaLiteUrlState()
   const { activeView, isHome } = useWikitaLiteView()
+
+  const pinnedByTab = computed((): TabPinnedModules => ({
+    edit: [...state.value.pinned.edit],
+    read: [...state.value.pinned.read],
+    contribute: [...state.value.pinned.contribute],
+  }))
 
   function pinView(): WikitaLiteView {
     return isHome.value ? activeView.value : DEFAULT_WIKITA_LITE_VIEW
@@ -35,17 +33,21 @@ export function useWikitaLitePinnedModules() {
     const current = pinnedByTab.value[view]
 
     if (current.includes(moduleId)) {
-      pinnedByTab.value = {
-        ...pinnedByTab.value,
-        [view]: current.filter((id) => id !== moduleId),
-      }
+      void patchState({
+        pinned: {
+          ...pinnedByTab.value,
+          [view]: current.filter((id) => id !== moduleId),
+        },
+      })
       return
     }
 
-    pinnedByTab.value = {
-      ...pinnedByTab.value,
-      [view]: [moduleId, ...current],
-    }
+    void patchState({
+      pinned: {
+        ...pinnedByTab.value,
+        [view]: [moduleId, ...current],
+      },
+    })
   }
 
   function pinnedIdsForView(view: WikitaLiteView): ComputedRef<WikitaLiteModuleId[]> {
@@ -55,13 +57,13 @@ export function useWikitaLitePinnedModules() {
   function unpinFromAllTabs(moduleId: WikitaLiteModuleId): void {
     const updated: TabPinnedModules = { ...pinnedByTab.value }
 
-    for (const view of WIKITA_LITE_VIEWS) {
-      if (updated[view].includes(moduleId)) {
-        updated[view] = updated[view].filter((id) => id !== moduleId)
+    for (const tabView of WIKITA_LITE_VIEWS) {
+      if (updated[tabView].includes(moduleId)) {
+        updated[tabView] = updated[tabView].filter((id) => id !== moduleId)
       }
     }
 
-    pinnedByTab.value = updated
+    void patchState({ pinned: updated })
   }
 
   return {
@@ -74,7 +76,6 @@ export function useWikitaLitePinnedModules() {
   }
 }
 
-/** Module-level singleton so modules share the same reactive pin state. */
 let singleton: ReturnType<typeof useWikitaLitePinnedModules> | null = null
 
 export function useWikitaLitePinnedModulesSingleton() {

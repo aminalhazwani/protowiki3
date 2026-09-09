@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
 
 import { provideWikitaLiteSaveFeedback } from './composables/useWikitaLiteSaveFeedback'
-import {
-  getWikitaLiteOnboardingUsername,
-  isWikitaLiteOnboardingComplete,
-} from './onboarding/data/onboardingPersistence'
+import { initWikitaLiteUrlState, useWikitaLiteUrlState } from './composables/useWikitaLiteUrlState'
 import WikitaLiteConfigureButton from './components/WikitaLiteConfigureButton.vue'
 import WikitaLiteShell from './components/WikitaLiteShell.vue'
 import WikitaLiteHome from './WikitaLiteHome.vue'
@@ -21,25 +18,24 @@ definePage({
   },
 })
 
-const { pageTitle: configPageTitle } = useConfig()
+initWikitaLiteUrlState()
 provideWikitaLiteSaveFeedback()
 
-const showOnboarding = ref(!isWikitaLiteOnboardingComplete())
+const { pageTitle: configPageTitle } = useConfig()
+const { isOnboarded, state } = useWikitaLiteUrlState()
+
+const showOnboarding = computed(() => !isOnboarded.value)
 
 const pageTitle = computed(() => {
-  const onboardingName = getWikitaLiteOnboardingUsername()
-  if (onboardingName) return `Hello, ${onboardingName}!`
+  const name = state.value.displayName || state.value.username
+  if (name) return `Hello, ${name}!`
   return configPageTitle.value
 })
-
-function onOnboardingCompleted(): void {
-  showOnboarding.value = false
-}
 </script>
 
 <template>
   <MobileWrapper v-if="showOnboarding" max-width="412px" :show-frame-border="false">
-    <WikitaLiteOnboarding @completed="onOnboardingCompleted" />
+    <WikitaLiteOnboarding />
   </MobileWrapper>
 
   <WikitaLiteShell v-else :title="pageTitle" actions>

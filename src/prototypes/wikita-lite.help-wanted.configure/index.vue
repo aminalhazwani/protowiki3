@@ -8,6 +8,7 @@ import WikitaLiteFullscreenHeader from '../wikita-lite/components/WikitaLiteFull
 import WikitaLiteFullscreenShell from '../wikita-lite/components/WikitaLiteFullscreenShell.vue'
 import WikitaLiteSuggestionConfigureToggles from '../wikita-lite/components/WikitaLiteSuggestionConfigureToggles.vue'
 import { useWikitaLiteModuleSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteModuleSuggestionPreferences'
+import { useWikitaLiteRoute } from '../wikita-lite/composables/useWikitaLiteRoute'
 import { useWikitaLiteSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteSuggestionPreferences'
 import {
   HELP_WANTED_CONFIGURE_INTERESTS_PAGE,
@@ -24,6 +25,7 @@ definePage({
 const MODULE_ID = 'suggestedEdits' as const
 
 const router = useRouter()
+const { pushRoute, replaceRoute } = useWikitaLiteRoute()
 const { preferences: globalPreferences, listInterests, interestsVersion } =
   useWikitaLiteSuggestionPreferencesSingleton()
 const {
@@ -80,11 +82,11 @@ function closeConfigure() {
 }
 
 function finishConfigure() {
-  router.replace(HELP_WANTED_PAGE)
+  void replaceRoute(HELP_WANTED_PAGE)
 }
 
 function openInterests() {
-  router.push(HELP_WANTED_CONFIGURE_INTERESTS_PAGE)
+  void pushRoute(HELP_WANTED_CONFIGURE_INTERESTS_PAGE)
 }
 
 function removeInterest(title: string) {

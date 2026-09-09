@@ -3,7 +3,6 @@ import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useKeyboardInset } from '@/composables/useKeyboardInset'
 
 import CreateAccountForm from '../components/CreateAccountForm.vue'
-import OnboardingChromeHeader from '../components/OnboardingChromeHeader.vue'
 import type { FlowState } from '../data/useWikitaLiteOnboardingFlow'
 import { useReturnHomeBanner } from '../data/useReturnHomeBanner'
 
@@ -23,11 +22,7 @@ function onSubmit({ username, email }: { username: string; email: string }): voi
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false">
-    <template #header>
-      <OnboardingChromeHeader mode="account" />
-    </template>
-
+  <ChromeWrapper skin="mobile" :last-edited-notice="false" :show-footer="false">
     <div class="account">
       <h1 class="account__title">Create account</h1>
       <CreateAccountForm @submit="onSubmit" />

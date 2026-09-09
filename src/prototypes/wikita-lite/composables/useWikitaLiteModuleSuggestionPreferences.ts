@@ -1,54 +1,66 @@
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { hasSuggestionSeeds } from '../../musical-group/data/getSuggestionSeeds'
-import { listInterests as listGlobalInterests, normalizeInterestTitles } from '../../musical-group/data/interests'
+import { normalizeInterestTitles } from '../../musical-group/data/interests'
 import type { SuggestionPreferences } from '../../musical-group/data/suggestionPreferences'
 import type { HomeSavedItem } from '../../musical-group/data/types'
 import {
   DEFAULT_MODULE_SUGGESTION_CONFIG,
-  loadModuleSuggestionConfig,
-  loadModuleSuggestionPreferences,
-  saveModuleSuggestionPreferences,
   type ModuleSuggestionConfig,
-  type ModuleSuggestionPreferencesMap,
 } from '../data/moduleSuggestionPreferences'
 import type { WikitaLiteModuleId } from '../data/homeModuleIds'
 import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSuggestionPreferences'
+import { useWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
-const moduleConfigs = ref<ModuleSuggestionPreferencesMap>(loadModuleSuggestionPreferences())
 const modulePreferencesVersion = ref(0)
-
 let configsInitialized = false
 
-watch(
-  moduleConfigs,
-  (value) => {
-    saveModuleSuggestionPreferences(value)
-    if (!configsInitialized) {
-      configsInitialized = true
-      return
-    }
-    modulePreferencesVersion.value += 1
-  },
-  { deep: true },
-)
-
 export function useWikitaLiteModuleSuggestionPreferences() {
-  const { preferences: globalPreferences } = useWikitaLiteSuggestionPreferencesSingleton()
+  const { state, patchState } = useWikitaLiteUrlState()
+  const { preferences: globalPreferences, listInterests: listGlobalInterests } =
+    useWikitaLiteSuggestionPreferencesSingleton()
+
+  const helpWantedOverrides = computed(() => state.value.helpWantedOverrides)
+
+  watch(
+    helpWantedOverrides,
+    () => {
+      if (!configsInitialized) {
+        configsInitialized = true
+        return
+      }
+      modulePreferencesVersion.value += 1
+    },
+    { deep: true },
+  )
 
   function getModuleConfig(moduleId: WikitaLiteModuleId): ModuleSuggestionConfig {
-    return moduleConfigs.value[moduleId] ?? loadModuleSuggestionConfig(moduleId)
+    if (moduleId !== 'suggestedEdits') {
+      return {
+        ...DEFAULT_MODULE_SUGGESTION_CONFIG,
+        preferences: { ...globalPreferences.value },
+        interests: [],
+      }
+    }
+
+    const overrides = helpWantedOverrides.value
+    return {
+      useDefaultSettings: overrides.useDefaultSettings,
+      preferences: { ...overrides.preferences },
+      interests: [...overrides.interests],
+    }
   }
 
   function setModuleConfig(moduleId: WikitaLiteModuleId, config: ModuleSuggestionConfig): void {
-    moduleConfigs.value = {
-      ...moduleConfigs.value,
-      [moduleId]: {
+    if (moduleId !== 'suggestedEdits') return
+
+    void patchState({
+      helpWantedOverrides: {
         useDefaultSettings: config.useDefaultSettings,
         preferences: { ...config.preferences },
         interests: [...config.interests],
       },
-    }
+    })
   }
 
   function listModuleInterests(moduleId: WikitaLiteModuleId): string[] {
@@ -101,7 +113,9 @@ export function useWikitaLiteModuleSuggestionPreferences() {
   }
 
   return {
-    moduleConfigs,
+    moduleConfigs: computed(() => ({
+      suggestedEdits: getModuleConfig('suggestedEdits'),
+    })),
     modulePreferencesVersion,
     getModuleConfig,
     setModuleConfig,
@@ -114,7 +128,6 @@ export function useWikitaLiteModuleSuggestionPreferences() {
   }
 }
 
-/** Module-level singleton so feeds and configure pages share the same reactive state. */
 let singleton: ReturnType<typeof useWikitaLiteModuleSuggestionPreferences> | null = null
 
 export function useWikitaLiteModuleSuggestionPreferencesSingleton() {

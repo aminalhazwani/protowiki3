@@ -8,6 +8,7 @@ import WikitaLiteFullscreenHeader from '../wikita-lite/components/WikitaLiteFull
 import WikitaLiteFullscreenShell from '../wikita-lite/components/WikitaLiteFullscreenShell.vue'
 import WikitaLiteSuggestionConfigureToggles from '../wikita-lite/components/WikitaLiteSuggestionConfigureToggles.vue'
 import { useWikitaLiteDismissedModulesSingleton } from '../wikita-lite/composables/useWikitaLiteDismissedModules'
+import { useWikitaLiteRoute } from '../wikita-lite/composables/useWikitaLiteRoute'
 import { useWikitaLiteSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteSuggestionPreferences'
 import { CONFIGURE_INTERESTS_PAGE } from '../wikita-lite/routes'
 
@@ -19,6 +20,7 @@ definePage({
 })
 
 const router = useRouter()
+const { pushRoute } = useWikitaLiteRoute()
 const { preferences, listInterests, commitInterests, interestsVersion } =
   useWikitaLiteSuggestionPreferencesSingleton()
 const { dismissedEntries, restore } = useWikitaLiteDismissedModulesSingleton()
@@ -33,7 +35,7 @@ function closeConfigure() {
 }
 
 function openInterests() {
-  router.push(CONFIGURE_INTERESTS_PAGE)
+  void pushRoute(CONFIGURE_INTERESTS_PAGE)
 }
 
 function removeInterest(title: string) {

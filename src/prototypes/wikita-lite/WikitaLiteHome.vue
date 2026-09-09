@@ -16,6 +16,7 @@ import { useWikitaLiteHomeModuleOrder } from './composables/useWikitaLiteHomeMod
 import { useWikitaLiteImpact } from './composables/useWikitaLiteImpact'
 import { useWikitaLitePinnedModulesSingleton } from './composables/useWikitaLitePinnedModules'
 import { useWikitaLiteTabLoading } from './composables/useWikitaLiteTabLoading'
+import { useWikitaLiteRoute } from './composables/useWikitaLiteRoute'
 import { useWikitaLiteView } from './composables/useWikitaLiteView'
 import WikitaLiteModule from './components/WikitaLiteModule.vue'
 import ActiveDiscussionsModule from './modules/ActiveDiscussionsModule.vue'
@@ -69,6 +70,7 @@ const HOME_TRANSLATION_PREVIEW_LIMIT = 2
 
 const { listsVersion } = useWikitaSaveFeedback()
 const { knownLanguages } = useConfig()
+const { wikitaLiteRoute } = useWikitaLiteRoute()
 const { activeView, selectView } = useWikitaLiteView()
 const { showImpact, impactCardProps, impactLoading, impactHasContent } = useWikitaLiteImpact()
 
@@ -101,6 +103,7 @@ const {
   showSavedBasedMentions,
   recentlySaved,
   savedItemsLoading,
+  ensureReadingListSummaries,
   homeRelatedItems,
   homeRelatedLoading,
   homeMentions,
@@ -118,6 +121,16 @@ const {
   translationError,
   retryTranslationFeed,
 } = useWikitaLiteHome({ getBookmarkChangeSkipFeeds: () => getBookmarkChangeSkipFeeds() })
+
+watch(
+  () => activeView.value,
+  (view) => {
+    if (view === 'read') {
+      void ensureReadingListSummaries()
+    }
+  },
+  { immediate: true },
+)
 
 const featuredHasContent = computed(() => Boolean(featuredArticle.value))
 
@@ -471,7 +484,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             module-id="suggestedEdits"
             :style="simplifiedModuleOrderStyle('suggestedEdits')"
             :title="MODULE_TITLES.suggestedEdits"
-            :to="HELP_WANTED_PAGE"
+            :to="wikitaLiteRoute(HELP_WANTED_PAGE)"
           >
             <div
               v-if="simplifiedTab.showLoadingBar('suggestedEdits') && !helpWantedPreview.length"
@@ -483,7 +496,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
               v-if="helpWantedPreview.length"
               :items="helpWantedPreview"
               :preview-limit="helpWantedPreviewLimit"
-              :more-to="HELP_WANTED_PAGE"
+              :more-to="wikitaLiteRoute(HELP_WANTED_PAGE)"
             >
               <template
                 v-if="simplifiedTab.showLoadingBar('suggestedEdits') && helpWantedPreview.length"
@@ -501,7 +514,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             module-id="furtherReading"
             :style="simplifiedModuleOrderStyle('furtherReading')"
             :title="MODULE_TITLES.furtherReading"
-            :to="FURTHER_READING_PAGE"
+            :to="wikitaLiteRoute(FURTHER_READING_PAGE)"
           >
             <div
               v-if="simplifiedTab.showLoadingBar('furtherReading') && !homeRelatedItems.length"
@@ -514,7 +527,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
               :items="homeRelatedItems"
               :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
               :lists-version="listsVersion"
-              :more-to="FURTHER_READING_PAGE"
+              :more-to="wikitaLiteRoute(FURTHER_READING_PAGE)"
             >
               <template
                 v-if="simplifiedTab.showLoadingBar('furtherReading') && homeRelatedItems.length"
@@ -532,7 +545,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             module-id="impact"
             :style="simplifiedModuleOrderStyle('impact')"
             :title="MODULE_TITLES.impact"
-            :to="IMPACT_PAGE"
+            :to="wikitaLiteRoute(IMPACT_PAGE)"
           >
             <div
               v-if="simplifiedTab.showLoadingBar('impact') && !impactHasContent"
@@ -565,7 +578,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="featured"
           :style="homeModuleOrderStyle('featured')"
           :title="MODULE_TITLES.featured"
-          :to="FEATURED_PAGE"
+          :to="wikitaLiteRoute(FEATURED_PAGE)"
         >
           <div
             v-if="editTab.showLoadingBar('featured') && !featuredHasContent && !featuredTabError"
@@ -579,7 +592,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :error="featuredTabError"
             :preview-limit="HOME_FEATURED_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="FEATURED_PAGE"
+            :more-to="wikitaLiteRoute(FEATURED_PAGE)"
             @retry="retryFeaturedFeed"
           >
             <template v-if="editTab.showLoadingBar('featured') && featuredHasContent" #after-cards>
@@ -595,7 +608,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="trending"
           :style="homeModuleOrderStyle('trending')"
           :title="MODULE_TITLES.trending"
-          :to="TRENDING_PAGE"
+          :to="wikitaLiteRoute(TRENDING_PAGE)"
         >
           <div
             v-if="editTab.showLoadingBar('trending') && !trendingItems.length && !trendingTabError"
@@ -609,7 +622,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :error="trendingTabError"
             :preview-limit="HOME_TRENDING_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="TRENDING_PAGE"
+            :more-to="wikitaLiteRoute(TRENDING_PAGE)"
             @retry="retryTrendingFeed"
           >
             <template v-if="editTab.showLoadingBar('trending') && trendingItems.length" #after-cards>
@@ -625,7 +638,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="furtherReading"
           :style="homeModuleOrderStyle('furtherReading')"
           :title="MODULE_TITLES.furtherReading"
-          :to="FURTHER_READING_PAGE"
+          :to="wikitaLiteRoute(FURTHER_READING_PAGE)"
         >
           <div
             v-if="editTab.showLoadingBar('furtherReading') && !homeRelatedItems.length"
@@ -638,7 +651,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="homeRelatedItems"
             :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="FURTHER_READING_PAGE"
+            :more-to="wikitaLiteRoute(FURTHER_READING_PAGE)"
           >
             <template
               v-if="editTab.showLoadingBar('furtherReading') && homeRelatedItems.length"
@@ -656,7 +669,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="suggestedEdits"
           :style="homeModuleOrderStyle('suggestedEdits')"
           :title="MODULE_TITLES.suggestedEdits"
-          :to="HELP_WANTED_PAGE"
+          :to="wikitaLiteRoute(HELP_WANTED_PAGE)"
         >
           <div
             v-if="editTab.showLoadingBar('suggestedEdits') && !helpWantedPreview.length"
@@ -668,7 +681,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="helpWantedPreview.length"
             :items="helpWantedPreview"
             :preview-limit="helpWantedPreviewLimit"
-            :more-to="HELP_WANTED_PAGE"
+            :more-to="wikitaLiteRoute(HELP_WANTED_PAGE)"
           >
             <template
               v-if="editTab.showLoadingBar('suggestedEdits') && helpWantedPreview.length"
@@ -686,7 +699,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="translation"
           :style="homeModuleOrderStyle('translation')"
           :title="MODULE_TITLES.translateArticles"
-          :to="TRANSLATIONS_PAGE"
+          :to="wikitaLiteRoute(TRANSLATIONS_PAGE)"
         >
           <div
             v-if="
@@ -703,7 +716,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="translationSuggestions"
             :error="translationError"
             :preview-limit="HOME_TRANSLATION_PREVIEW_LIMIT"
-            :more-to="TRANSLATIONS_PAGE"
+            :more-to="wikitaLiteRoute(TRANSLATIONS_PAGE)"
             @retry="retryTranslationFeed"
           >
             <template
@@ -725,7 +738,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="recentActivity"
           :style="homeModuleOrderStyle('recentActivity')"
           :title="recentActivityTitle"
-          :to="RECENT_ACTIVITY_PAGE"
+          :to="wikitaLiteRoute(RECENT_ACTIVITY_PAGE)"
         >
           <div
             v-if="editTab.showLoadingBar('recentActivity') && !recentActivityPreview.length"
@@ -737,7 +750,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="recentActivityPreview.length"
             :items="recentActivityPreview"
             :preview-limit="recentActivityPreviewLimit"
-            :more-to="RECENT_ACTIVITY_PAGE"
+            :more-to="wikitaLiteRoute(RECENT_ACTIVITY_PAGE)"
           >
             <template
               v-if="editTab.showLoadingBar('recentActivity') && recentActivityPreview.length"
@@ -755,7 +768,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="activeDiscussions"
           :style="homeModuleOrderStyle('activeDiscussions')"
           :title="MODULE_TITLES.activeDiscussions"
-          :to="ACTIVE_DISCUSSIONS_PAGE"
+          :to="wikitaLiteRoute(ACTIVE_DISCUSSIONS_PAGE)"
         >
           <div
             v-if="editTab.showLoadingBar('activeDiscussions') && !showActiveDiscussionsContent"
@@ -768,7 +781,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="activeDiscussions"
             :error="activeDiscussionsError"
             :preview-limit="HOME_ACTIVE_DISCUSSIONS_PREVIEW_LIMIT"
-            :more-to="ACTIVE_DISCUSSIONS_PAGE"
+            :more-to="wikitaLiteRoute(ACTIVE_DISCUSSIONS_PAGE)"
             @retry="retryActiveDiscussionsFeed"
           >
             <template
@@ -787,7 +800,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="impact"
           :style="homeModuleOrderStyle('impact')"
           :title="MODULE_TITLES.impact"
-          :to="IMPACT_PAGE"
+          :to="wikitaLiteRoute(IMPACT_PAGE)"
         >
           <div
             v-if="editTab.showLoadingBar('impact') && !impactHasContent"
@@ -809,7 +822,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="didYouKnow"
           :style="homeModuleOrderStyle('didYouKnow')"
           :title="MODULE_TITLES.didYouKnow"
-          :to="DID_YOU_KNOW_PAGE"
+          :to="wikitaLiteRoute(DID_YOU_KNOW_PAGE)"
         >
           <div
             v-if="featuredTabLoading && !homePinnedDidYouKnowPreview.length"
@@ -822,7 +835,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="didYouKnow"
             :preview-limit="HOME_DYK_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="DID_YOU_KNOW_PAGE"
+            :more-to="wikitaLiteRoute(DID_YOU_KNOW_PAGE)"
           />
         </WikitaLiteModule>
 
@@ -831,7 +844,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="bornOnThisDay"
           :style="homeModuleOrderStyle('bornOnThisDay')"
           :title="MODULE_TITLES.bornOnThisDay"
-          :to="BORN_ON_THIS_DAY_PAGE"
+          :to="wikitaLiteRoute(BORN_ON_THIS_DAY_PAGE)"
         >
           <div
             v-if="featuredTabLoading && !homeBornOnThisDayPreview.length"
@@ -844,7 +857,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="bornOnThisDay"
             :preview-limit="HOME_BORN_ON_THIS_DAY_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="BORN_ON_THIS_DAY_PAGE"
+            :more-to="wikitaLiteRoute(BORN_ON_THIS_DAY_PAGE)"
           />
         </WikitaLiteModule>
 
@@ -853,7 +866,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="saved"
           :style="homeModuleOrderStyle('saved')"
           :title="MODULE_TITLES.saved"
-          :to="SAVED_PAGE"
+          :to="wikitaLiteRoute(SAVED_PAGE)"
         >
           <div
             v-if="hasSavedPages && savedItemsLoading && !recentlySaved.length"
@@ -864,7 +877,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           <SavedModule
             :items="hasSavedPages ? recentlySaved : []"
             :preview-limit="HOME_SAVED_PREVIEW_LIMIT"
-            :more-to="SAVED_PAGE"
+            :more-to="wikitaLiteRoute(SAVED_PAGE)"
           />
         </WikitaLiteModule>
 
@@ -873,7 +886,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="mentions"
           :style="homeModuleOrderStyle('mentions')"
           :title="MODULE_TITLES.mentions"
-          :to="MENTIONS_PAGE"
+          :to="wikitaLiteRoute(MENTIONS_PAGE)"
         >
           <div
             v-if="homeMentionsLoading && !homeMentionsPreview.length"
@@ -886,7 +899,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="homeMentionsPreview"
             :preview-limit="HOME_MENTIONS_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="MENTIONS_PAGE"
+            :more-to="wikitaLiteRoute(MENTIONS_PAGE)"
           />
         </WikitaLiteModule>
 
@@ -895,7 +908,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="learn"
           :style="homeModuleOrderStyle('learn')"
           :title="MODULE_TITLES.learn"
-          :to="LEARN_PAGE"
+          :to="wikitaLiteRoute(LEARN_PAGE)"
         >
           <LearnModule />
         </WikitaLiteModule>
@@ -910,7 +923,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="didYouKnow"
           :style="exploreModuleOrderStyle('didYouKnow')"
           :title="MODULE_TITLES.didYouKnow"
-          :to="DID_YOU_KNOW_PAGE"
+          :to="wikitaLiteRoute(DID_YOU_KNOW_PAGE)"
         >
           <div
             v-if="readExploreTab.showLoadingBar('didYouKnow') && !homeDidYouKnowPreview.length"
@@ -939,7 +952,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="saved"
           :style="exploreModuleOrderStyle('saved')"
           :title="MODULE_TITLES.saved"
-          :to="SAVED_PAGE"
+          :to="wikitaLiteRoute(SAVED_PAGE)"
         >
           <div
             v-if="hasSavedPages && readExploreTab.showLoadingBar('saved') && !recentlySaved.length"
@@ -950,7 +963,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           <SavedModule
             :items="hasSavedPages ? recentlySaved : []"
             :preview-limit="HOME_SAVED_PREVIEW_LIMIT"
-            :more-to="SAVED_PAGE"
+            :more-to="wikitaLiteRoute(SAVED_PAGE)"
           >
             <template
               v-if="hasSavedPages && readExploreTab.showLoadingBar('saved') && recentlySaved.length"
@@ -972,7 +985,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="furtherReading"
           :style="exploreModuleOrderStyle('furtherReading')"
           :title="MODULE_TITLES.furtherReading"
-          :to="FURTHER_READING_PAGE"
+          :to="wikitaLiteRoute(FURTHER_READING_PAGE)"
         >
           <div
             v-if="
@@ -987,7 +1000,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="homeRelatedItems"
             :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="FURTHER_READING_PAGE"
+            :more-to="wikitaLiteRoute(FURTHER_READING_PAGE)"
           >
             <template
               v-if="
@@ -1012,7 +1025,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="mentions"
           :style="exploreModuleOrderStyle('mentions')"
           :title="MODULE_TITLES.mentions"
-          :to="MENTIONS_PAGE"
+          :to="wikitaLiteRoute(MENTIONS_PAGE)"
         >
           <div
             v-if="readExploreTab.showLoadingBar('mentions') && !homeMentionsPreview.length"
@@ -1025,7 +1038,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="homeMentionsPreview"
             :preview-limit="HOME_MENTIONS_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="MENTIONS_PAGE"
+            :more-to="wikitaLiteRoute(MENTIONS_PAGE)"
           >
             <template
               v-if="readExploreTab.showLoadingBar('mentions') && homeMentionsPreview.length"
@@ -1047,7 +1060,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="suggestedEdits"
           :style="contributeModuleOrderStyle('suggestedEdits')"
           :title="MODULE_TITLES.suggestedEdits"
-          :to="HELP_WANTED_PAGE"
+          :to="wikitaLiteRoute(HELP_WANTED_PAGE)"
         >
           <div
             v-if="contributeTab.showLoadingBar('suggestedEdits') && !helpWantedPreview.length"
@@ -1059,7 +1072,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="helpWantedPreview.length"
             :items="helpWantedPreview"
             :preview-limit="helpWantedPreviewLimit"
-            :more-to="HELP_WANTED_PAGE"
+            :more-to="wikitaLiteRoute(HELP_WANTED_PAGE)"
           >
             <template
               v-if="contributeTab.showLoadingBar('suggestedEdits') && helpWantedPreview.length"
@@ -1077,7 +1090,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="translation"
           :style="contributeModuleOrderStyle('translation')"
           :title="MODULE_TITLES.translateArticles"
-          :to="TRANSLATIONS_PAGE"
+          :to="wikitaLiteRoute(TRANSLATIONS_PAGE)"
         >
           <div
             v-if="
@@ -1094,7 +1107,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="translationSuggestions"
             :error="translationError"
             :preview-limit="HOME_TRANSLATION_PREVIEW_LIMIT"
-            :more-to="TRANSLATIONS_PAGE"
+            :more-to="wikitaLiteRoute(TRANSLATIONS_PAGE)"
             @retry="retryTranslationFeed"
           >
             <template
@@ -1116,7 +1129,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="recentActivity"
           :style="contributeModuleOrderStyle('recentActivity')"
           :title="recentActivityTitle"
-          :to="RECENT_ACTIVITY_PAGE"
+          :to="wikitaLiteRoute(RECENT_ACTIVITY_PAGE)"
         >
           <div
             v-if="contributeTab.showLoadingBar('recentActivity') && !recentActivityPreview.length"
@@ -1128,7 +1141,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="recentActivityPreview.length"
             :items="recentActivityPreview"
             :preview-limit="recentActivityPreviewLimit"
-            :more-to="RECENT_ACTIVITY_PAGE"
+            :more-to="wikitaLiteRoute(RECENT_ACTIVITY_PAGE)"
           >
             <template
               v-if="contributeTab.showLoadingBar('recentActivity') && recentActivityPreview.length"
@@ -1146,7 +1159,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="activeDiscussions"
           :style="contributeModuleOrderStyle('activeDiscussions')"
           :title="MODULE_TITLES.activeDiscussions"
-          :to="ACTIVE_DISCUSSIONS_PAGE"
+          :to="wikitaLiteRoute(ACTIVE_DISCUSSIONS_PAGE)"
         >
           <div
             v-if="contributeTab.showLoadingBar('activeDiscussions') && !showActiveDiscussionsContent"
@@ -1159,7 +1172,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="activeDiscussions"
             :error="activeDiscussionsError"
             :preview-limit="HOME_ACTIVE_DISCUSSIONS_PREVIEW_LIMIT"
-            :more-to="ACTIVE_DISCUSSIONS_PAGE"
+            :more-to="wikitaLiteRoute(ACTIVE_DISCUSSIONS_PAGE)"
             @retry="retryActiveDiscussionsFeed"
           >
             <template
@@ -1180,7 +1193,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="impact"
           :style="contributeModuleOrderStyle('impact')"
           :title="MODULE_TITLES.impact"
-          :to="IMPACT_PAGE"
+          :to="wikitaLiteRoute(IMPACT_PAGE)"
         >
           <div
             v-if="contributeTab.showLoadingBar('impact') && !impactHasContent"
@@ -1202,7 +1215,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           module-id="learn"
           :style="contributeModuleOrderStyle('learn')"
           :title="MODULE_TITLES.learn"
-          :to="LEARN_PAGE"
+          :to="wikitaLiteRoute(LEARN_PAGE)"
         >
           <LearnModule />
         </WikitaLiteModule>

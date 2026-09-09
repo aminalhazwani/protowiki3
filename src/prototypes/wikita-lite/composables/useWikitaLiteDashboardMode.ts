@@ -1,28 +1,16 @@
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
 
 import {
-  DEFAULT_DASHBOARD_MODE,
   isSimplifiedDashboardMode,
   MODE_MODULE_ORDER,
-  parseDashboardMode,
   type SimplifiedModuleId,
-  type WikitaLiteDashboardMode,
 } from '../data/dashboardMode'
-import { loadStoredDashboardMode } from '../onboarding/data/onboardingPersistence'
+import { useWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
 export function useWikitaLiteDashboardMode() {
-  const route = useRoute()
+  const { state } = useWikitaLiteUrlState()
 
-  const urlMode = computed(() => parseDashboardMode(route.query.mode))
-
-  const dashboardMode = computed((): WikitaLiteDashboardMode => {
-    const fromUrl = urlMode.value
-    if (fromUrl) return fromUrl
-
-    const stored = loadStoredDashboardMode()
-    return stored || DEFAULT_DASHBOARD_MODE
-  })
+  const dashboardMode = computed(() => state.value.mode)
 
   const isAdvancedMode = computed(() => dashboardMode.value === 'advanced')
 

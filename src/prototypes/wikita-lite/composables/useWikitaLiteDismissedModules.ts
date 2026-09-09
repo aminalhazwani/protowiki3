@@ -1,23 +1,20 @@
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 
 import { type WikitaLiteModuleId } from '../data/homeModuleIds'
 import {
-  loadDismissedModules,
   nextLocalRestoreAt,
   pruneExpiredDismissals,
-  saveDismissedModules,
   type DismissedModules,
 } from '../data/moduleDismissals'
 import { moduleTitleFor } from '../routes'
 import { useWikitaLitePinnedModulesSingleton } from './useWikitaLitePinnedModules'
+import { useWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
 export interface DismissedModuleEntry {
   moduleId: WikitaLiteModuleId
   title: string
   restoreAt: number
 }
-
-const dismissedModules = ref<DismissedModules>(loadDismissedModules())
 
 let restoreTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -41,44 +38,48 @@ function nearestRestoreAt(state: DismissedModules, now = Date.now()): number | n
   return nearest
 }
 
-function scheduleRestoreTimer(): void {
+function scheduleRestoreTimer(
+  dismissed: DismissedModules,
+  onExpire: (next: DismissedModules) => void,
+): void {
   clearRestoreTimer()
 
   if (typeof window === 'undefined') return
 
-  const nextAt = nearestRestoreAt(dismissedModules.value)
+  const nextAt = nearestRestoreAt(dismissed)
   if (nextAt === null) return
 
   const delay = Math.max(0, nextAt - Date.now())
   restoreTimer = setTimeout(() => {
-    dismissedModules.value = pruneExpiredDismissals(dismissedModules.value)
-    scheduleRestoreTimer()
+    onExpire(pruneExpiredDismissals(dismissed))
   }, delay)
 }
 
-function onVisibilityChange(): void {
-  if (typeof document === 'undefined' || document.visibilityState !== 'visible') return
-  dismissedModules.value = pruneExpiredDismissals(dismissedModules.value)
-  scheduleRestoreTimer()
-}
-
-if (typeof window !== 'undefined') {
-  dismissedModules.value = pruneExpiredDismissals(dismissedModules.value)
-  scheduleRestoreTimer()
-  document.addEventListener('visibilitychange', onVisibilityChange)
-}
-
-watch(
-  dismissedModules,
-  (value) => {
-    saveDismissedModules(value)
-    scheduleRestoreTimer()
-  },
-  { deep: true },
-)
-
 export function useWikitaLiteDismissedModules() {
+  const { state, patchState } = useWikitaLiteUrlState()
   const { unpinFromAllTabs } = useWikitaLitePinnedModulesSingleton()
+
+  const dismissedModules = computed(() => pruneExpiredDismissals(state.value.dismissed))
+
+  watch(
+    dismissedModules,
+    (value) => {
+      scheduleRestoreTimer(value, (next) => {
+        void patchState({ dismissed: next })
+      })
+    },
+    { immediate: true, deep: true },
+  )
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return
+      const pruned = pruneExpiredDismissals(state.value.dismissed)
+      if (JSON.stringify(pruned) !== JSON.stringify(state.value.dismissed)) {
+        void patchState({ dismissed: pruned })
+      }
+    })
+  }
 
   function isDismissed(moduleId: WikitaLiteModuleId): boolean {
     const restoreAt = dismissedModules.value[moduleId]
@@ -89,17 +90,19 @@ export function useWikitaLiteDismissedModules() {
   function dismiss(moduleId: WikitaLiteModuleId): void {
     unpinFromAllTabs(moduleId)
 
-    dismissedModules.value = {
-      ...dismissedModules.value,
-      [moduleId]: nextLocalRestoreAt(),
-    }
+    void patchState({
+      dismissed: {
+        ...dismissedModules.value,
+        [moduleId]: nextLocalRestoreAt(),
+      },
+    })
   }
 
   function restore(moduleId: WikitaLiteModuleId): void {
     if (!(moduleId in dismissedModules.value)) return
 
     const { [moduleId]: _removed, ...rest } = dismissedModules.value
-    dismissedModules.value = rest
+    void patchState({ dismissed: rest })
   }
 
   const dismissedEntries = computed((): DismissedModuleEntry[] => {
@@ -127,7 +130,6 @@ export function useWikitaLiteDismissedModules() {
   }
 }
 
-/** Module-level singleton so modules share the same reactive dismiss state. */
 let singleton: ReturnType<typeof useWikitaLiteDismissedModules> | null = null
 
 export function useWikitaLiteDismissedModulesSingleton() {

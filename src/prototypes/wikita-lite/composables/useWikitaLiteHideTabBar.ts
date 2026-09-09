@@ -1,17 +1,17 @@
-import { ref, watch } from 'vue'
+import { computed } from 'vue'
 
-import {
-  loadHideTabBarPreference,
-  saveHideTabBarPreference,
-} from '../data/hideTabBar'
-
-const hideTabBar = ref(loadHideTabBarPreference().hideTabBar)
-
-watch(hideTabBar, (value) => {
-  saveHideTabBarPreference({ hideTabBar: value })
-})
+import { useWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
 export function useWikitaLiteHideTabBar() {
+  const { state, patchState } = useWikitaLiteUrlState()
+
+  const hideTabBar = computed({
+    get: () => state.value.hideTabBar,
+    set: (value: boolean) => {
+      void patchState({ hideTabBar: value })
+    },
+  })
+
   function toggleHideTabBar(): void {
     hideTabBar.value = !hideTabBar.value
   }
@@ -22,7 +22,6 @@ export function useWikitaLiteHideTabBar() {
   }
 }
 
-/** Module-level singleton so shell and menu share the same reactive state. */
 let singleton: ReturnType<typeof useWikitaLiteHideTabBar> | null = null
 
 export function useWikitaLiteHideTabBarSingleton() {
