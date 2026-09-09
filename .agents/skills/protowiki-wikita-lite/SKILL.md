@@ -268,12 +268,17 @@ legacy suggestions configure page.
     `homeTabCache` (separate from the paginated related-feed state used by the
     fullscreen subpage). Cache is valid for the current UTC calendar day only —
     at most one fetch per day per seed/prefs fingerprint.
-  - **Saved module metadata** — non-blocking REST `/page/summary` enrichment via
+  - **Saved module metadata** — non-blocking enrichment via
     `ensureReadingListSummaries` whenever the reading list has items: on Home
     (when the Saved module is layout-enabled), Explore (`view=read`), and
-    `/wikita-lite/saved`. Cached summaries restore thumbnails immediately
-    (`resolveReadingListSavedItems`); missing thumbnails fetch in the background.
-    Separate from Daily reads load order — never blocks `loadPersonalizedSuggestionFeeds`.
+    `/wikita-lite/saved`. `fetchReadingListSummaries` uses REST `/page/summary`
+    first, then Action API `pageimages` when the summary has no thumbnail
+    (`fetchEnwikiPageMetadata`); resolved URLs are also written to
+    `itemThumbnailCache` so synthetic saved items pick up thumbnails before the
+    full `savedSummaries` cache merges. Cached summaries restore thumbnails
+    immediately (`resolveReadingListSavedItems`); missing metadata refetches in
+    the background (with `bypassFailureCache` when refilling). Separate from
+    Daily reads load order — never blocks `loadPersonalizedSuggestionFeeds`.
   - **Refresh with preview cards** — stale cards stay visible; bar in each
     updating module's `#after-cards` slot (above any CTA); multiple modules may
     each show a bar while refreshing.

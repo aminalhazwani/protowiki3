@@ -15,10 +15,10 @@ import { useWikitaLiteView } from '../composables/useWikitaLiteView'
 import WikitaLiteLeavePrototypeDialog from './WikitaLiteLeavePrototypeDialog.vue'
 
 initWikitaLiteUrlState()
-import { SHOW_WIKITA_LITE_CHROME_MENU, SHOW_WIKITA_LITE_FLOATING_NAV } from '../routes'
+import { SHOW_WIKITA_LITE_FLOATING_NAV } from '../routes'
 import '../wikita-lite-shell.css'
-import WikitaLiteChromeMenuPopover from './WikitaLiteChromeMenuPopover.vue'
 import WikitaLiteFloatingNav from './WikitaLiteFloatingNav.vue'
+import WikitaLitePrototypeMenuPopover from './WikitaLitePrototypeMenuPopover.vue'
 
 interface Props {
   title?: string | null
@@ -61,8 +61,8 @@ onMounted(async () => {
       >
         <template v-if="!isSubpage" #header>
           <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false">
-            <template v-if="SHOW_WIKITA_LITE_CHROME_MENU" #menu>
-              <WikitaLiteChromeMenuPopover />
+            <template #menu>
+              <WikitaLitePrototypeMenuPopover />
             </template>
           </ChromeHeader>
         </template>

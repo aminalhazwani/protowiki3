@@ -185,6 +185,7 @@ export function useMusicalGroupHome(options: {
   let abort: AbortController | null = null
   let bookmarkAbort: AbortController | null = null
   let savedSummariesAbort: AbortController | null = null
+  let savedSummariesInFlight: { key: string; promise: Promise<void> } | null = null
   let lastTranslationDependencyKey: string | null = null
 
   function currentTranslationDependencyKey(): string {
@@ -630,18 +631,31 @@ export function useMusicalGroupHome(options: {
       return
     }
 
+    if (savedSummariesInFlight?.key === cacheKey) {
+      return savedSummariesInFlight.promise
+    }
+
     savedSummariesAbort?.abort()
     savedSummariesAbort = new AbortController()
     const { signal } = savedSummariesAbort
     savedItemsLoading.value = true
 
-    try {
-      savedItems.value = await fetchReadingListSummaries(titles, signal)
-    } catch (err) {
-      if (isAbort(err)) return
-    } finally {
-      savedItemsLoading.value = false
+    const run = async (): Promise<void> => {
+      try {
+        savedItems.value = await fetchReadingListSummaries(titles, signal)
+      } catch (err) {
+        if (isAbort(err)) return
+      } finally {
+        savedItemsLoading.value = false
+        if (savedSummariesInFlight?.key === cacheKey) {
+          savedSummariesInFlight = null
+        }
+      }
     }
+
+    const promise = run()
+    savedSummariesInFlight = { key: cacheKey, promise }
+    return promise
   }
 
   async function reloadTranslationForBookmarks(signal: AbortSignal): Promise<void> {

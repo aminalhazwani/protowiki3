@@ -5,6 +5,7 @@ import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useKeyboardInset } from '@/composables/useKeyboardInset'
 
+import WikitaLitePrototypeMenuPopover from '../../components/WikitaLitePrototypeMenuPopover.vue'
 import { useWikitaLiteChromeHeaderRight } from '../../composables/useWikitaLiteChromeHeaderRight'
 import { useWikitaLiteSaveFeedback } from '../../composables/useWikitaLiteSaveFeedback'
 import { useWikitaLiteUrlState } from '../../composables/useWikitaLiteUrlState'
@@ -44,7 +45,11 @@ async function onSubmit({ username, email }: { username: string; email: string }
     :brand-link="false"
   >
     <template #header>
-      <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false" />
+      <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false">
+        <template #menu>
+          <WikitaLitePrototypeMenuPopover />
+        </template>
+      </ChromeHeader>
     </template>
     <div class="account">
       <h1 class="account__title">Create account</h1>

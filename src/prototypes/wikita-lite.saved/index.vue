@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-
 import { provideWikitaLiteSaveFeedback } from '../wikita-lite/composables/useWikitaLiteSaveFeedback'
 import { useWikitaLiteHome } from '../wikita-lite/composables/useWikitaLiteHome'
 import MobileSubpageHeader from '../wikita-lite/components/MobileSubpageHeader.vue'
@@ -17,11 +15,7 @@ definePage({
 
 provideWikitaLiteSaveFeedback()
 
-const { savedSorted, savedItemsLoading, ensureReadingListSummaries } = useWikitaLiteHome()
-
-onMounted(() => {
-  void ensureReadingListSummaries()
-})
+const { savedSorted, savedItemsLoading } = useWikitaLiteHome()
 </script>
 
 <template>

@@ -1,8 +1,8 @@
 import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
 
+import { fetchEnwikiPageMetadata } from '../../musical-group/data/fetchEnwikiPageThumbnail'
+import { setCachedItemThumbnail } from '../../musical-group/data/itemThumbnailCache'
 import { normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
-
-import { fetchPageSummary } from '../../musical-group/data/pageSummary'
 import {
   getCachedSavedSummaries,
   setCachedSavedSummaries,
@@ -21,7 +21,13 @@ function savedItemNeedsRefill(item: HomeSavedItem): boolean {
   return !item.thumbnailUrl?.trim() || !item.description?.trim()
 }
 
-/** Backfill thumbnails/descriptions missing from cached saved summaries via REST page summary. */
+function cacheSavedItemThumbnail(item: HomeSavedItem): void {
+  const url = item.thumbnailUrl?.trim()
+  if (!url) return
+  setCachedItemThumbnail(item.id, url)
+}
+
+/** Backfill thumbnails/descriptions missing from cached saved summaries. */
 export async function refillMissingSavedSummaries(
   items: HomeSavedItem[],
   signal?: AbortSignal,
@@ -32,10 +38,14 @@ export async function refillMissingSavedSummaries(
       if (!savedItemNeedsRefill(item)) return item
 
       const title = item.enwikiTitle?.trim() || item.title
-      const summary = await fetchPageSummary(title, signal, READING_LIST_REFILL_PURPOSE)
-      const thumbnailUrl = item.thumbnailUrl?.trim() || summary?.thumbnail?.source
-      const description = item.description?.trim() || summary?.description?.trim() || ''
-      const resolvedTitle = summary?.title?.trim() || item.title
+      const metadata = await fetchEnwikiPageMetadata(title, {
+        signal,
+        purpose: READING_LIST_REFILL_PURPOSE,
+        bypassFailureCache: !item.thumbnailUrl?.trim() || !item.description?.trim(),
+      })
+      const thumbnailUrl = item.thumbnailUrl?.trim() || metadata.thumbnailUrl
+      const description = item.description?.trim() || metadata.description?.trim() || ''
+      const resolvedTitle = metadata.title?.trim() || item.title
 
       if (
         thumbnailUrl === item.thumbnailUrl &&
@@ -46,12 +56,14 @@ export async function refillMissingSavedSummaries(
       }
 
       changed = true
-      return {
+      const updated = {
         ...item,
         title: resolvedTitle,
         description,
         thumbnailUrl,
       }
+      cacheSavedItemThumbnail(updated)
+      return updated
     }),
   )
 
@@ -66,16 +78,21 @@ async function resolveReadingListItem(
   const enwikiTitle = normalizeEnwikiTitle(title)
   if (!enwikiTitle) return null
 
-  const summary = await fetchPageSummary(enwikiTitle, signal, READING_LIST_SUMMARY_PURPOSE)
+  const metadata = await fetchEnwikiPageMetadata(enwikiTitle, {
+    signal,
+    purpose: READING_LIST_SUMMARY_PURPOSE,
+  })
 
-  return {
+  const item: HomeSavedItem = {
     id: readingListSavedPageId(enwikiTitle),
-    title: summary?.title?.trim() || enwikiTitle,
+    title: metadata.title?.trim() || enwikiTitle,
     enwikiTitle,
-    description: summary?.description?.trim() ?? '',
-    thumbnailUrl: summary?.thumbnail?.source,
+    description: metadata.description?.trim() ?? '',
+    thumbnailUrl: metadata.thumbnailUrl,
     savedAt,
   }
+  cacheSavedItemThumbnail(item)
+  return item
 }
 
 /** Resolve each reading-list title to display + lookup metadata (cache-first). */

@@ -7,6 +7,7 @@ import ArticleRenderer from '@/components/article/ArticleRenderer.vue'
 import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
+import WikitaLitePrototypeMenuPopover from '../../components/WikitaLitePrototypeMenuPopover.vue'
 import { useWikitaLiteChromeHeaderRight } from '../../composables/useWikitaLiteChromeHeaderRight'
 import SavePagesSheet from '../components/SavePagesSheet.vue'
 import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
@@ -79,7 +80,11 @@ function onArticleLinkClick(event: MouseEvent): void {
   <div class="read-screen">
     <ChromeWrapper skin="mobile" :last-edited-notice="false">
       <template #header>
-        <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false" />
+        <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false">
+          <template #menu>
+            <WikitaLitePrototypeMenuPopover />
+          </template>
+        </ChromeHeader>
       </template>
 
       <ReturnHomeBanner :flow="props.flow" />
