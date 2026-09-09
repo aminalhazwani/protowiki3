@@ -30,6 +30,28 @@ fetching, bookmarks, and feed logic with `musical-group` via
 Subpages use `WikitaLiteShell` + `MobileSubpageHeader` + a module with
 `standalone`. Configure flows use `WikitaLiteFullscreenShell` (no chrome).
 
+| `src/prototypes/wikita-lite/WikitaLiteOnboarding.vue` | First-run flow orchestrator |
+| `src/prototypes/wikita-lite/onboarding/` | Onboarding screens, shell, data (ported from protowiki3 `no-distractions`) |
+
+## Onboarding (first visit)
+
+On first visit to `/wikita-lite`, **`index.vue`** shows the onboarding flow
+instead of the tabbed dashboard until completion. Query params on `/wikita-lite`
+drive the active step (deep-linkable): `screen`, `title`, `username`, `survey`,
+`interests`, `email`.
+
+Flow: **read article** → **create account** → **welcome** → **survey** →
+**interests** → normal **`WikitaLiteHome`**.
+
+| Key | Purpose |
+| --- | --- |
+| `wikita-lite-onboarding-complete` | `'1'` when the reader finished onboarding |
+| `wikita-lite-onboarding-username` | Display name captured during account setup |
+| `wikita-lite-onboarding-survey` | Survey choice (`read` / `edit` / `both`) |
+
+Interests persist to `wikita-lite-interests` on completion. Dev menu (**Reset
+onboarding**) clears the completion flag and reloads `/wikita-lite`.
+
 ## Configure + interests
 
 Home / Explore / Contribute tabs are on `/wikita-lite`; a **configure** icon

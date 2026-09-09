@@ -130,5 +130,6 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
   width: 100%;
   margin: 0 auto;
   padding: 0 0;
+  padding-bottom: var(--keyboard-inset, 0px);
 }
 </style>
