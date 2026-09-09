@@ -88,6 +88,9 @@ const emit = defineEmits<{
 const langMenuOpen = ref(false)
 const langSearch = ref('')
 const langAnchor = ref<HTMLElement | null>(null)
+const bookmarkAnchor = ref<HTMLElement | null>(null)
+
+defineExpose({ bookmarkAnchor })
 
 const filteredLanguageLinks = computed(() => {
   const q = langSearch.value.trim().toLowerCase()
@@ -201,6 +204,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
           <CdxIcon :icon="cdxIconDownload" />
         </button>
         <button
+          ref="bookmarkAnchor"
           type="button"
           class="article-header__icon-tool"
           :aria-label="bookmarkLabel"
@@ -219,6 +223,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
       </div>
       <template v-else>
         <button
+          ref="bookmarkAnchor"
           type="button"
           class="article-header__icon-tool"
           :aria-label="bookmarkLabel"

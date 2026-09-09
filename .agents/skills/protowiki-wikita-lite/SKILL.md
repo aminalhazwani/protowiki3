@@ -50,7 +50,7 @@ wikita-lite routes; does **not** write back to `protowiki-prototype-user-config`
 | Group | Params | Notes |
 | --- | --- | --- |
 | Navigation | `view`, `mode` | `view`: `read`, `contribute` (Home = omit). `mode`: `both` (omit), `read`, `edit`, `advanced` |
-| Onboarding | `onboarded`, `screen`, `title`, `username`, `email`, `survey`, `interests`, `returnTo` | `onboarded=1` when complete |
+| Onboarding | `onboarded`, `screen`, `title`, `searchedTitle`, `saveTitle`, `username`, `email`, `survey`, `interests`, `returnTo` | `onboarded=1` when complete; `searchedTitle` / `saveTitle` are transient seeds for interests pre-fill |
 | User / chrome | `user`, `realUser`, `theme`, `skin`, `platform`, `langs`, `displayName` | Mirrors `useConfig` fields |
 | Page lists | `saved`, `edited`, `watchlist` | Repeated params (Wikipedia titles) |
 | Interests | `interests` | Repeated params, max 10 |
@@ -59,6 +59,7 @@ wikita-lite routes; does **not** write back to `protowiki-prototype-user-config`
 | Dismissals | `dismiss_<moduleId>` | Restore-at epoch ms |
 | Pins | `pinsHome`, `pinsExplore`, `pinsContribute` | Comma-separated module IDs |
 | Dev chrome | `cardRadius`, `hideBorders`, `hideTabBar`, `moduleMenus`, `bannerDismissed` | |
+| Mentor | `mentorAssigned`, `mentorBannerDismissed` | `1` / `0` (omit when mode default); banner dismiss `1` |
 | Lists sheet | `list` | Repeated `name\|QID1\|QID2` entries |
 
 Dev menu **Reset URL state** clears params and reloads `/wikita-lite`.
@@ -72,8 +73,14 @@ step (deep-linkable).
 Flow: **read article** → **create account** → **welcome** → **survey** →
 **interests** → **`?onboarded=1`** → **`WikitaLiteHome`**.
 
-On completion, transient keys (`screen`, `title`, `username`, `email`, …) are
-stripped; `survey`, `interests`, and `displayName` remain in the URL.
+On completion, transient keys (`screen`, `title`, `searchedTitle`, `saveTitle`,
+`username`, `email`, …) are stripped; `survey`, `interests`, and `displayName`
+remain in the URL.
+
+**Interests pre-fill** (before the user edits `?interests=`): the article picked
+from onboarding search (`searchedTitle`) and the article they tried to bookmark
+(`saveTitle`), deduped. When neither is set, falls back to `title` (except Main
+Page). Logic lives in `onboarding/data/defaultOnboardingInterests.ts`.
 
 ## Dashboard modes
 
@@ -88,8 +95,30 @@ Home module layout is controlled by **`?mode=`** or **`?survey=`** (survey maps
 | `advanced` | `?mode=advanced` only | Full dashboard (all modules + Explore / Contribute tabs) |
 
 **`advanced` is URL-only** (never implied by other params). Config lives in
-`data/dashboardMode.ts`; composable `useWikitaLiteDashboardMode`. **Your
-mentor** is a stub module (`modules/MentorModule.vue`).
+`data/dashboardMode.ts`; composable `useWikitaLiteDashboardMode`.
+
+### Your mentor module
+
+Home-preview only (no subpage). Two states in
+`modules/MentorModule.vue` — copy in `data/mentorContent.ts`, state in
+`composables/useWikitaLiteMentor.ts`:
+
+| State | Title | When |
+| --- | --- | --- |
+| Unassigned | Mentor for editing | Dashboard mode `read` (default) |
+| Assigned | Your mentor | Dashboard mode `both` or `edit` (default) |
+
+URL overrides (sparse encoding):
+
+| Param | Values | Notes |
+| --- | --- | --- |
+| `mentorAssigned` | `1` / `0` | Force assigned / unassigned; omit to use mode default |
+| `mentorBannerDismissed` | `1` | Hides the assigned-state info notice |
+
+**Get a mentor** sets `mentorAssigned=1`. Assigned state shows a dismissible
+`CdxMessage`, a profile card (initial avatar + serif bio), and a full-width CTA.
+Module title is dynamic — passed from `useWikitaLiteMentor().moduleTitle` in
+`WikitaLiteHome.vue`, not `MODULE_TITLES.mentor`.
 
 ## Configure + interests
 
@@ -159,11 +188,14 @@ Review changes) are unchanged.
     actively fetching module shows a progress bar.
   - **Daily reads home fetch** — up to 3 **serial** per-seed generator morelike
     calls (`fetchDailyReadsPreview` in `wikita-lite/data/`), 3 hits each,
-    global dedupe, one card per seed with correct `relatedToTitle`. Cards append
-    progressively via `onEach`. No blocking `fetchReadingListSummaries` on the
-    home reload path; synthetic saved items from `readingListToSavedItems`.
-    Preview caches under `dailyReadsPreview` in `homeTabCache` (separate from
-    the paginated related-feed state used by the fullscreen subpage).
+    global dedupe, **3 cards total** (3/2+1/1+1+1 by seed count; multiple per
+    seed when fewer than 3 seeds) with correct `relatedToTitle`. Thumbnails
+    come from Action API `pageimages` first; when missing, REST `/page/summary`
+    is used as fallback. Cards append progressively via `onEach`. No blocking
+    `fetchReadingListSummaries` on the home reload path; synthetic saved items
+    from `readingListToSavedItems`. Preview caches under `dailyReadsPreview` in
+    `homeTabCache` (separate from the paginated related-feed state used by the
+    fullscreen subpage).
   - **Saved module metadata** — lazy only: `ensureReadingListSummaries` runs when
     the Explore tab (`view=read`) or `/wikita-lite/saved` subpage opens, not
     during Daily reads load.
@@ -176,6 +208,10 @@ Review changes) are unchanged.
   - No aggregate footer loaders below static sections (e.g. Learn).
 - **Standalone subpages** — one `CdxProgressBar` per module, including
   pagination / infinite scroll (OR initial + load-more into one bar).
+  **Suggested edits fullscreen** (`/wikita-lite/help-wanted`) seeds from the
+  home `helpWanted` preview cache via `useContributeSuggestionsFeed` (interests-only
+  users use the same path as reading-list users); only the Contribute random fallback
+  uses `contributeRandomCacheKey`.
 - **Home preview mode** (`standalone=false`) — modules must **not**
   render their own progress bars; the home panel owns loading.
 

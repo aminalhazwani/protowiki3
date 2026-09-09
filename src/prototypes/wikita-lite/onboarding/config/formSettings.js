@@ -22,8 +22,8 @@ export const baseSettings = {
       behaviors: {
         validateWhileTyping: true, // "Run validation while typing"
         taken: false, // "Any username triggers a taken username error"
-        autoFocus: true, // "Focus username field on page load"
-        autoCapitalize: true, // "Capitalize first letter as user types"
+        autoFocus: false, // "Focus username field on page load"
+        autoCapitalize: false, // "Capitalize first letter as user types"
         learnMoreLink: false, // "Show 'Learn more' link instead of policy popover"
         chooseCarefullyCopy: true, // "'Choose carefully' description copy"
         thingsToKnowCopy: false, // "'Things to know' description copy"

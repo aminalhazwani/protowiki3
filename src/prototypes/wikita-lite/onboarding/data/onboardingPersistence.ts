@@ -51,6 +51,8 @@ export function completeWikitaLiteOnboarding(flow: OnboardingFlowState): void {
     interests,
     screen: 'read',
     title: '',
+    searchedTitle: '',
+    saveTitle: '',
     username: '',
     email: '',
     returnTo: '',

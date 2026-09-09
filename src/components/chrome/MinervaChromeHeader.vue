@@ -32,6 +32,8 @@ interface Props {
   wordmarkSrc?: string
   /** Minerva wordmark; defaults to **`wordmarkSrc`** then EN constant. */
   mobileWordmarkSrc?: string
+  /** When false, the default wordmark is decorative (not a link). */
+  brandLink?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -41,6 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
   right: undefined,
   wordmarkSrc: undefined,
   mobileWordmarkSrc: undefined,
+  brandLink: true,
 })
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
@@ -131,7 +134,7 @@ function isExternalHref(href: string): boolean {
 
       <div v-if="showMiddle" class="minerva-chrome-header__middle">
         <RouterLink
-          v-if="useDefaultWordmark"
+          v-if="useDefaultWordmark && brandLink"
           class="minerva-chrome-header__brand"
           to="/"
           aria-label="Visit the main page"
@@ -142,6 +145,13 @@ function isExternalHref(href: string): boolean {
             alt="Wikipedia"
           />
         </RouterLink>
+        <span v-else-if="useDefaultWordmark" class="minerva-chrome-header__brand">
+          <img
+            class="minerva-chrome-header__wordmark-img"
+            :src="wordmarkResolved"
+            alt="Wikipedia"
+          />
+        </span>
         <template v-else v-for="(item, index) in effectiveMiddle" :key="`middle-${index}`">
           <component
             v-if="item.type === 'component'"

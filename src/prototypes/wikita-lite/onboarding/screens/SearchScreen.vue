@@ -60,7 +60,7 @@ function onInput(event: Event): void {
 function read(title: string): void {
   const trimmed = title.trim()
   if (!trimmed.length) return
-  props.flow.goTo('read', { title: trimmed })
+  props.flow.goTo('read', { title: trimmed, searchedTitle: trimmed })
 }
 
 function goBack(): void {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, provide } from 'vue'
+import { computed, nextTick, onMounted } from 'vue'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import MobileWrapper from '@/components/MobileWrapper.vue'
@@ -33,8 +33,8 @@ const { hideCardBorders } = useWikitaLiteCardBordersSingleton()
 
 const isSubpage = computed(() => props.title === null)
 
-/** Float menus on body so opening them does not shift in-page layout / scroll. */
-provide('CdxTeleportMenus', true)
+// Codex menus stay in-place (default). Teleporting into MobileWrapper's overlay
+// races with route changes — useFloatingMenu can touch a null floating element.
 
 onMounted(async () => {
   if (props.title !== null) return
@@ -51,6 +51,7 @@ onMounted(async () => {
         :last-edited-notice="false"
         :show-header="!isSubpage"
         :show-footer="!isSubpage"
+        :brand-link="false"
       >
         <template v-if="!isSubpage" #menu>
           <WikitaLiteChromeMenuPopover />

@@ -8,6 +8,7 @@ import type { ConfigUser } from '@/config'
 import OnboardingShell from './onboarding/components/OnboardingShell.vue'
 import './onboarding/components/onboarding-motion.css'
 import { completeWikitaLiteOnboarding } from './onboarding/data/onboardingPersistence'
+import { defaultOnboardingInterests } from './onboarding/data/defaultOnboardingInterests'
 import {
   useWikitaLiteOnboardingFlow,
   type OnboardingScreen,
@@ -33,8 +34,17 @@ const WIZARD_STEP: Partial<Record<OnboardingScreen, number>> = {
 const isWizard = computed(() => flow.screen.value in WIZARD_STEP)
 const wizardStep = computed(() => WIZARD_STEP[flow.screen.value] ?? 0)
 
-const goHomeActive = computed(
-  () => flow.interests.value.filter((t) => t !== flow.title.value).length >= 1,
+const autoSeedKeys = computed(() => {
+  const seeds = defaultOnboardingInterests({
+    searchedTitle: flow.searchedTitle.value,
+    saveTitle: flow.saveTitle.value,
+    title: flow.title.value,
+  })
+  return new Set(seeds.map((title) => title.toLowerCase()))
+})
+
+const goHomeActive = computed(() =>
+  flow.interests.value.some((title) => !autoSeedKeys.value.has(title.toLowerCase())),
 )
 
 const wizardComponent = computed(() => {
@@ -86,7 +96,7 @@ watch(
 )
 
 watch(
-  [flow.screen, flow.username],
+  [flow.screen, flow.username, flow.title],
   ([screen, username]) => {
     if (user.value === 'real') return
     const hasHome = username.trim().length > 0

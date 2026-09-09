@@ -12,7 +12,7 @@ import SavePagesSheet from '../components/SavePagesSheet.vue'
 import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
 import { resolveArticleLink } from '../data/articleLinks'
 import { useArticleHtml } from '../data/useArticleHtml'
-import type { FlowState } from '../data/useWikitaLiteOnboardingFlow'
+import type { FlowState, OnboardingScreen } from '../data/useWikitaLiteOnboardingFlow'
 
 const props = defineProps<{ flow: FlowState }>()
 
@@ -21,11 +21,27 @@ const effectiveTitle = computed(() => props.flow.title.value.trim() || MAIN_PAGE
 const displayTitle = computed(() => effectiveTitle.value.replace(/_/g, ' ').trim())
 const isMainPage = computed(() => effectiveTitle.value === MAIN_PAGE_TITLE)
 const saveSheetOpen = ref(false)
+const saveSheetVisible = ref(false)
+const articleHeaderRef = ref<InstanceType<typeof ArticleHeader> | null>(null)
+const bookmarkAnchor = computed(() => articleHeaderRef.value?.bookmarkAnchor ?? null)
 
 const { html, loading, error } = useArticleHtml(effectiveTitle)
 
 function onBookmark(): void {
+  if (!isMainPage.value) {
+    void props.flow.patch({ saveTitle: displayTitle.value })
+  }
+  saveSheetVisible.value = true
   saveSheetOpen.value = true
+}
+
+function onSaveSheetNavigate(screen: OnboardingScreen): void {
+  saveSheetVisible.value = false
+  void props.flow.goTo(screen)
+}
+
+function onSaveSheetClosed(): void {
+  saveSheetVisible.value = false
 }
 
 function onSearch(): void {
@@ -61,38 +77,56 @@ function onArticleLinkClick(event: MouseEvent): void {
 </script>
 
 <template>
-  <ChromeWrapper skin="mobile" :last-edited-notice="false">
-    <template #header>
-      <ChromeHeader skin="mobile" :right="headerRight" />
-    </template>
+  <div class="read-screen">
+    <ChromeWrapper skin="mobile" :last-edited-notice="false">
+      <template #header>
+        <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false" />
+      </template>
 
-    <ReturnHomeBanner :flow="props.flow" />
-    <article class="article nd-article" data-skin="mobile">
-      <ArticleHeader
-        v-if="!isMainPage"
-        :title="displayTitle"
-        skin="mobile"
-        bookmark-affordance="bookmark"
-        @bookmark-click="onBookmark"
-      />
+      <ReturnHomeBanner :flow="props.flow" />
+      <article class="article nd-article" data-skin="mobile">
+        <ArticleHeader
+          v-if="!isMainPage"
+          ref="articleHeaderRef"
+          :title="displayTitle"
+          skin="mobile"
+          bookmark-affordance="bookmark"
+          @bookmark-click="onBookmark"
+        />
 
-      <CdxProgressBar v-if="loading" inline aria-label="Loading article" />
+        <CdxProgressBar v-if="loading" inline aria-label="Loading article" />
 
-      <CdxMessage v-if="error" type="error" :allow-user-dismiss="false">
-        Couldn't load this article: {{ error }}
-      </CdxMessage>
+        <CdxMessage v-if="error" type="error" :allow-user-dismiss="false">
+          Couldn't load this article: {{ error }}
+        </CdxMessage>
 
-      <ArticleRenderer v-if="html !== null" skin="mobile" @click="onArticleLinkClick">
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div v-html="html" />
-      </ArticleRenderer>
+        <ArticleRenderer v-if="html !== null" skin="mobile" @click="onArticleLinkClick">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div v-html="html" />
+        </ArticleRenderer>
+      </article>
+    </ChromeWrapper>
 
-      <SavePagesSheet v-model:open="saveSheetOpen" :flow="props.flow" />
-    </article>
-  </ChromeWrapper>
+    <SavePagesSheet
+      v-if="saveSheetVisible"
+      v-model:open="saveSheetOpen"
+      :anchor="bookmarkAnchor"
+      @navigate="onSaveSheetNavigate"
+      @closed="onSaveSheetClosed"
+    />
+  </div>
 </template>
 
 <style scoped>
+.read-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 .nd-article {
   box-sizing: border-box;
   width: 100%;

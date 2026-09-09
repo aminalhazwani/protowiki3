@@ -24,7 +24,9 @@ function hydrateConfigFromState(state: WikitaLiteUrlState): void {
   if (!configRef) return
 
   const patch = stateToConfigPatch(state)
-  const activeUser = state.user
+  // During onboarding, WikitaLiteOnboarding owns simulated user state — URL defaults
+  // would otherwise reset `user` to `'new'` on every title/search navigation.
+  const activeUser = state.onboarded ? state.user : configRef.value.user
 
   setWikitaLiteConfigSaveSuppressed(true)
   configRef.value = {
@@ -32,8 +34,7 @@ function hydrateConfigFromState(state: WikitaLiteUrlState): void {
     theme: patch.theme,
     appPlatform: patch.appPlatform,
     webSkin: patch.webSkin,
-    user: patch.user,
-    realUsername: patch.realUsername,
+    ...(state.onboarded ? { user: patch.user, realUsername: patch.realUsername } : {}),
     knownLanguages: [...patch.knownLanguages],
     userPageLists: {
       ...configRef.value.userPageLists,

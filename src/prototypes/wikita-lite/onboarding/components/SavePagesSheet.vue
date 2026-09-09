@@ -1,11 +1,22 @@
 <script setup lang="ts">
+import { nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
+
 import { CdxPopover } from '@wikimedia/codex'
 
-import type { FlowState } from '../data/useWikitaLiteOnboardingFlow'
+import type { OnboardingScreen } from '../data/useWikitaLiteOnboardingFlow'
 
 const open = defineModel<boolean>('open', { default: false })
 
-const props = defineProps<{ flow: FlowState }>()
+const props = defineProps<{
+  anchor?: HTMLElement | ComponentPublicInstance | null
+}>()
+
+const emit = defineEmits<{
+  navigate: [screen: OnboardingScreen]
+  closed: []
+}>()
+
+const pendingScreen = ref<OnboardingScreen | null>(null)
 
 const primaryAction = {
   label: 'Create account',
@@ -16,22 +27,40 @@ const defaultAction = {
   label: 'Log in',
 }
 
-function onCreateAccount(): void {
+function queueNavigation(screen: OnboardingScreen): void {
+  pendingScreen.value = screen
   open.value = false
-  void props.flow.goTo('account')
+}
+
+function onCreateAccount(): void {
+  queueNavigation('account')
 }
 
 function onLogIn(): void {
-  open.value = false
-  void props.flow.goTo('home')
+  queueNavigation('home')
 }
+
+// Emit only after the teleported popover has closed — routing away or unmounting
+// the parent while CdxPopover is still tearing down causes Vue patch errors.
+watch(open, async (isOpen) => {
+  if (isOpen) return
+  await nextTick()
+  if (pendingScreen.value) {
+    const screen = pendingScreen.value
+    pendingScreen.value = null
+    emit('navigate', screen)
+  } else {
+    emit('closed')
+  }
+})
 </script>
 
 <template>
   <CdxPopover
     v-model:open="open"
-    class="save-pages-sheet"
+    class="save-pages-sheet mobile-wrapper__sheet-popover"
     use-bottom-sheet
+    :anchor="props.anchor"
     title="Save pages"
     :use-close-button="true"
     :primary-action="primaryAction"
@@ -44,7 +73,7 @@ function onLogIn(): void {
   </CdxPopover>
 </template>
 
-<!-- Teleported popover: match onboarding dashpage CTA sizing (onboarding-layout.css). -->
+<!-- Teleports into MobileWrapper overlay; wide-viewport sheet layout via mobile-wrapper-overlays.css. -->
 <style>
 .save-pages-sheet .cdx-popover__header__title {
   font-family: var(--font-family-base, sans-serif);

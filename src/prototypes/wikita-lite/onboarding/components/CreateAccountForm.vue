@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onFormSubmit" novalidate :class="inputHeightClass">
+  <form @submit.prevent="onFormSubmit" novalidate autocomplete="off" :class="inputHeightClass">
     <Transition :name="transitionName" mode="out-in">
       <div :key="isMultiStep ? currentField : 'all'" class="step-content">
         <div v-if="isFieldActive('username')" class="username-field-wrapper">
@@ -41,6 +41,7 @@
             <div @click="onUsernameEndIconClick" @keydown="onUsernameEndIconKeydown">
               <CdxTextInput
                 ref="usernameInputRef"
+                v-bind="noInputAssistanceAttrs"
                 v-model="form.username"
                 input-type="text"
                 placeholder="Enter your username"
@@ -235,6 +236,7 @@
           >
             <CdxTextInput
               ref="passwordInputRef"
+              v-bind="noInputAssistanceAttrs"
               v-model="form.password"
               :input-type="passwordInputType"
               :end-icon="passwordEndIcon"
@@ -270,6 +272,7 @@
           >
             <CdxTextInput
               ref="confirmPasswordInputRef"
+              v-bind="noInputAssistanceAttrs"
               v-model="form.confirmPassword"
               :input-type="confirmPasswordInputType"
               :end-icon="confirmPasswordEndIcon"
@@ -305,6 +308,7 @@
           </template>
           <CdxTextInput
             ref="emailInputRef"
+            v-bind="noInputAssistanceAttrs"
             v-model="form.email"
             input-type="email"
             placeholder="Enter your email address"
@@ -388,6 +392,13 @@ import { generateUsername } from '../utils/generateUsername.js'
 import { useMultiStep } from '../composables/useMultiStep'
 
 const emit = defineEmits(['submit'])
+
+const noInputAssistanceAttrs = {
+  autocomplete: 'off',
+  autocorrect: 'off',
+  autocapitalize: 'off',
+  spellcheck: false,
+}
 
 const showPolicy = ref(false)
 const { settings } = useFormSettings()

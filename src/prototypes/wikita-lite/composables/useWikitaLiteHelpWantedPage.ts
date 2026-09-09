@@ -2,29 +2,29 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 
-import { readingListKey } from '../data/readingListSavedPages'
 import { fetchReadingListSummaries } from '../data/fetchReadingListSummaries'
+import { readingListToSavedItems } from '../data/readingListSavedPages'
 import {
   loadNextRandomEditSuggestion,
   restoreRandomEditSuggestionsFeed,
   type RandomEditSuggestionsFeed,
 } from '../../musical-group/data/fetchRandomEditSuggestions'
-import { getCachedSavedSummaries } from '../../musical-group/data/homeTabCache'
 import type { HomeHelpWanted, HomeSavedItem } from '../../musical-group/data/types'
 import { useContributeSuggestionsFeed } from '../../musical-group/useContributeSuggestionsFeed'
+import { useWikitaLiteModuleSuggestionPreferencesSingleton } from './useWikitaLiteModuleSuggestionPreferences'
 import {
   isSentinelNearViewport,
   useViewportInfiniteScroll,
 } from './useViewportInfiniteScroll'
 
-function useSavedHelpWantedPage(readingListTitles: string[]) {
-  const dependencyKey = readingListKey()
-  const cachedSummaries = getCachedSavedSummaries(dependencyKey)
-
-  const savedItems = ref<HomeSavedItem[]>(cachedSummaries ?? [])
-  const savedItemsLoading = ref(Boolean(!cachedSummaries?.length))
-  const pageActive = ref(Boolean(cachedSummaries?.length))
+function usePersonalizedHelpWantedPage(
+  initialSavedItems: HomeSavedItem[],
+  readingListTitles?: string[],
+) {
+  const savedItems = ref<HomeSavedItem[]>(initialSavedItems)
+  const pageActive = ref(true)
   const loadSentinel = ref<HTMLElement | null>(null)
+  let fillingViewport = false
 
   const {
     savedSuggestions,
@@ -35,6 +35,42 @@ function useSavedHelpWantedPage(readingListTitles: string[]) {
     loadMoreRelated,
   } = useContributeSuggestionsFeed(savedItems, pageActive)
 
+  const feedLoading = computed(() => savedLoading.value || relatedLoading.value)
+
+  const helpWanted = computed(() => [
+    ...savedSuggestions.value,
+    ...relatedSuggestions.value,
+  ])
+
+  const helpWantedLoading = computed(
+    () => feedLoading.value && helpWanted.value.length === 0,
+  )
+
+  const helpWantedLoadingMore = computed(
+    () => helpWanted.value.length > 0 && feedLoading.value,
+  )
+
+  async function fillViewport(): Promise<void> {
+    if (fillingViewport) return
+    fillingViewport = true
+    try {
+      while (
+        pageActive.value &&
+        relatedHasMore.value &&
+        !relatedLoading.value &&
+        !savedLoading.value
+      ) {
+        const countBefore = helpWanted.value.length
+        await loadMoreRelated()
+        await nextTick()
+        if (helpWanted.value.length === countBefore) break
+        if (!isSentinelNearViewport(loadSentinel.value)) break
+      }
+    } finally {
+      fillingViewport = false
+    }
+  }
+
   useViewportInfiniteScroll({
     sentinel: loadSentinel,
     active: pageActive,
@@ -44,29 +80,20 @@ function useSavedHelpWantedPage(readingListTitles: string[]) {
   })
 
   onMounted(async () => {
+    await nextTick()
+    void fillViewport()
+
+    if (!readingListTitles?.length) return
+
     try {
-      savedItems.value = await fetchReadingListSummaries(readingListTitles)
+      const enriched = await fetchReadingListSummaries(readingListTitles)
+      if (enriched.length) {
+        savedItems.value = enriched
+      }
     } catch {
-      if (!savedItems.value.length) savedItems.value = []
+      // Keep synthetic items on failure.
     }
-    savedItemsLoading.value = false
-    pageActive.value = true
   })
-
-  const helpWanted = computed(() => [
-    ...savedSuggestions.value,
-    ...relatedSuggestions.value,
-  ])
-
-  const helpWantedLoading = computed(
-    () =>
-      savedItemsLoading.value ||
-      ((savedLoading.value || relatedLoading.value) && helpWanted.value.length === 0),
-  )
-
-  const helpWantedLoadingMore = computed(
-    () => helpWanted.value.length > 0 && (savedLoading.value || relatedLoading.value),
-  )
 
   return {
     helpWanted,
@@ -184,9 +211,19 @@ function useRandomHelpWantedPage() {
 
 export function useWikitaLiteHelpWantedPage() {
   const { currentUserPageLists } = useConfig()
+  const { hasModuleSuggestionSeeds } = useWikitaLiteModuleSuggestionPreferencesSingleton()
   const readingListTitles = currentUserPageLists.value.readingList
+
   if (readingListTitles.length) {
-    return useSavedHelpWantedPage(readingListTitles)
+    return usePersonalizedHelpWantedPage(
+      readingListToSavedItems(readingListTitles),
+      readingListTitles,
+    )
   }
+
+  if (hasModuleSuggestionSeeds('suggestedEdits', [])) {
+    return usePersonalizedHelpWantedPage([])
+  }
+
   return useRandomHelpWantedPage()
 }

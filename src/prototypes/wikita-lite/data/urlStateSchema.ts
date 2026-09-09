@@ -17,6 +17,7 @@ import {
 import { normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
 import { normalizeInterestTitles } from '../../musical-group/data/interests'
 import { normalizeQid } from '../../musical-group/data/wikidataApi'
+import { defaultOnboardingInterests } from '../onboarding/data/defaultOnboardingInterests'
 import type { OnboardingScreen, SurveyChoice } from '../onboarding/data/useWikitaLiteOnboardingFlow'
 import { ONBOARDING_SCREENS } from '../onboarding/data/useWikitaLiteOnboardingFlow'
 import { DEFAULT_CARD_BORDERS_PREFERENCE } from './cardBorders'
@@ -70,6 +71,8 @@ export interface WikitaLiteUrlState {
   onboarded: boolean
   screen: OnboardingScreen
   title: string
+  searchedTitle: string
+  saveTitle: string
   username: string
   email: string
   survey: SurveyChoice | ''
@@ -94,6 +97,9 @@ export interface WikitaLiteUrlState {
   hideTabBar: boolean
   useModuleMenuMode: boolean
   bannerDismissed: boolean
+  /** null = use dashboard-mode default; true/false = explicit override. */
+  mentorAssigned: boolean | null
+  mentorBannerDismissed: boolean
   lists: UserList[]
 }
 
@@ -103,6 +109,8 @@ export type WikitaLiteUrlStatePatch = Partial<{
   onboarded: boolean | null
   screen: OnboardingScreen | null
   title: string | null
+  searchedTitle: string | null
+  saveTitle: string | null
   username: string | null
   email: string | null
   survey: SurveyChoice | '' | null
@@ -127,6 +135,8 @@ export type WikitaLiteUrlStatePatch = Partial<{
   hideTabBar: boolean | null
   useModuleMenuMode: boolean | null
   bannerDismissed: boolean | null
+  mentorAssigned: boolean | null
+  mentorBannerDismissed: boolean | null
   lists: UserList[] | null
 }>
 
@@ -137,6 +147,8 @@ export function defaultWikitaLiteUrlState(): WikitaLiteUrlState {
     onboarded: false,
     screen: 'read',
     title: '',
+    searchedTitle: '',
+    saveTitle: '',
     username: '',
     email: '',
     survey: '',
@@ -165,6 +177,8 @@ export function defaultWikitaLiteUrlState(): WikitaLiteUrlState {
     hideTabBar: DEFAULT_HIDE_TAB_BAR_PREFERENCE.hideTabBar,
     useModuleMenuMode: DEFAULT_MODULE_MENU_MODE_PREFERENCE.useModuleMenuMode,
     bannerDismissed: false,
+    mentorAssigned: null,
+    mentorBannerDismissed: false,
     lists: [],
   }
 }
@@ -190,6 +204,12 @@ function parsePrefBool(raw: string, defaultValue: boolean): boolean {
   if (raw === '1') return true
   if (raw === '0') return false
   return defaultValue
+}
+
+function parseOptionalBool(raw: string): boolean | null {
+  if (raw === '1') return true
+  if (raw === '0') return false
+  return null
 }
 
 function isScreen(value: string): value is OnboardingScreen {
@@ -287,9 +307,11 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
     ? langsRaw.split('|').map((code) => code.trim().toLowerCase()).filter(Boolean)
     : defaults.langs
 
-  const interests = normalizeInterestTitles(stringArray(query.interests))
-
   const title = firstString(query.title).trim()
+  const searchedTitle = firstString(query.searchedTitle).trim()
+  const saveTitle = firstString(query.saveTitle).trim()
+  const explicitInterests =
+    query.interests !== undefined ? normalizeInterestTitles(stringArray(query.interests)) : null
 
   return {
     view,
@@ -297,10 +319,14 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
     onboarded: firstString(query.onboarded) === '1',
     screen,
     title,
+    searchedTitle,
+    saveTitle,
     username: firstString(query.username).trim(),
     email: firstString(query.email).trim(),
     survey,
-    interests: interests.length ? interests : title ? normalizeInterestTitles([title]) : [],
+    interests:
+      explicitInterests ??
+      defaultOnboardingInterests({ searchedTitle, saveTitle, title }),
     returnTo,
     user,
     realUser: firstString(query.realUser).trim(),
@@ -352,6 +378,8 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
       DEFAULT_MODULE_MENU_MODE_PREFERENCE.useModuleMenuMode,
     ),
     bannerDismissed: firstString(query.bannerDismissed) === '1',
+    mentorAssigned: parseOptionalBool(firstString(query.mentorAssigned)),
+    mentorBannerDismissed: firstString(query.mentorBannerDismissed) === '1',
     lists: stringArray(query.list)
       .map(parseListEntry)
       .filter((entry): entry is UserList => entry !== null),
@@ -388,6 +416,8 @@ export function serializeWikitaLiteState(
     next.screen = state.screen
   }
   if (state.title && !state.onboarded) next.title = state.title
+  if (state.searchedTitle && !state.onboarded) next.searchedTitle = state.searchedTitle
+  if (state.saveTitle && !state.onboarded) next.saveTitle = state.saveTitle
   if (state.username && !state.onboarded) next.username = state.username
   if (state.email && !state.onboarded) next.email = state.email
   if (state.survey) next.survey = state.survey
@@ -474,6 +504,11 @@ export function serializeWikitaLiteState(
 
   if (state.bannerDismissed) next.bannerDismissed = '1'
 
+  if (state.mentorAssigned === true) next.mentorAssigned = '1'
+  else if (state.mentorAssigned === false) next.mentorAssigned = '0'
+
+  if (state.mentorBannerDismissed) next.mentorBannerDismissed = '1'
+
   if (state.lists.length) {
     next.list = state.lists.map(serializeListEntry)
   }
@@ -495,6 +530,10 @@ export function mergeWikitaLiteQuery(
     ...(patch.onboarded !== undefined && patch.onboarded !== null ? { onboarded: patch.onboarded } : {}),
     ...(patch.screen !== undefined && patch.screen !== null ? { screen: patch.screen } : {}),
     ...(patch.title !== undefined && patch.title !== null ? { title: patch.title } : {}),
+    ...(patch.searchedTitle !== undefined && patch.searchedTitle !== null
+      ? { searchedTitle: patch.searchedTitle }
+      : {}),
+    ...(patch.saveTitle !== undefined && patch.saveTitle !== null ? { saveTitle: patch.saveTitle } : {}),
     ...(patch.username !== undefined && patch.username !== null ? { username: patch.username } : {}),
     ...(patch.email !== undefined && patch.email !== null ? { email: patch.email } : {}),
     ...(patch.survey !== undefined && patch.survey !== null ? { survey: patch.survey } : {}),
@@ -535,6 +574,10 @@ export function mergeWikitaLiteQuery(
     ...(patch.bannerDismissed !== undefined && patch.bannerDismissed !== null
       ? { bannerDismissed: patch.bannerDismissed }
       : {}),
+    ...(patch.mentorAssigned !== undefined ? { mentorAssigned: patch.mentorAssigned } : {}),
+    ...(patch.mentorBannerDismissed !== undefined && patch.mentorBannerDismissed !== null
+      ? { mentorBannerDismissed: patch.mentorBannerDismissed }
+      : {}),
     ...(patch.lists !== undefined && patch.lists !== null ? { lists: patch.lists } : {}),
   }
 
@@ -550,6 +593,8 @@ export function stripWikitaLiteQuery(query: LocationQuery): LocationQueryRaw {
     'onboarded',
     'screen',
     'title',
+    'searchedTitle',
+    'saveTitle',
     'username',
     'email',
     'survey',
@@ -581,6 +626,8 @@ export function stripWikitaLiteQuery(query: LocationQuery): LocationQueryRaw {
     'hideTabBar',
     'moduleMenus',
     'bannerDismissed',
+    'mentorAssigned',
+    'mentorBannerDismissed',
     'list',
   ])
 

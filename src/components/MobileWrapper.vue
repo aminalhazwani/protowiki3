@@ -1,10 +1,17 @@
 <script setup lang="ts">
+import { provide, ref } from 'vue'
+
+import '@/styles/mobile-wrapper-overlays.css'
+
 /**
  * Phone-frame preview shell: full-width children below **480px** viewport;
  * centred column with neutral side gutters (Codex **`--background-color-neutral`**) when wider.
  *
  * Compose with **`ChromeWrapper skin="mobile"`** (or other mobile-skinned content)
  * inside the default slot.
+ *
+ * Provides `#mobile-wrapper-overlay` as Codex's teleport target so popovers,
+ * bottom sheets, and dialogs stay inside the phone column on wide viewports.
  */
 interface Props {
   /** BCP-47 language tag on the inner column (optional). */
@@ -23,16 +30,29 @@ const props = withDefaults(defineProps<Props>(), {
   maxWidth: '412px',
   showFrameBorder: true,
 })
+
+/** Element ref (not a selector) so Teleport resolves the target before slot children mount. */
+const overlayEl = ref<HTMLElement | null>(null)
+
+provide('CdxTeleportTarget', overlayEl)
 </script>
 
 <template>
-  <div class="mobile-wrapper">
+  <div
+    class="mobile-wrapper"
+    :style="{ '--mobile-wrapper-max-width': props.maxWidth }"
+  >
+    <div
+      id="mobile-wrapper-overlay"
+      ref="overlayEl"
+      class="mobile-wrapper__overlay"
+      aria-hidden="true"
+    />
     <div
       class="mobile-wrapper__column"
       :class="{ 'mobile-wrapper__column--frameless': !props.showFrameBorder }"
       :lang="props.lang"
       :dir="props.dir"
-      :style="{ '--mobile-wrapper-max-width': props.maxWidth }"
     >
       <slot />
     </div>

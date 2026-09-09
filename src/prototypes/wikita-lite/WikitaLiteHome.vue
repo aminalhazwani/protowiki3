@@ -14,6 +14,7 @@ import { useWikitaLiteExploreModuleOrder } from './composables/useWikitaLiteExpl
 import { useWikitaLiteHideTabBarSingleton } from './composables/useWikitaLiteHideTabBar'
 import { useWikitaLiteHomeModuleOrder } from './composables/useWikitaLiteHomeModuleOrder'
 import { useWikitaLiteImpact } from './composables/useWikitaLiteImpact'
+import { useWikitaLiteMentor } from './composables/useWikitaLiteMentor'
 import { useWikitaLitePinnedModulesSingleton } from './composables/useWikitaLitePinnedModules'
 import { useWikitaLiteTabLoading } from './composables/useWikitaLiteTabLoading'
 import { useWikitaLiteRoute } from './composables/useWikitaLiteRoute'
@@ -73,6 +74,7 @@ const { knownLanguages } = useConfig()
 const { wikitaLiteRoute } = useWikitaLiteRoute()
 const { activeView, selectView } = useWikitaLiteView()
 const { showImpact, impactCardProps, impactLoading, impactHasContent } = useWikitaLiteImpact()
+const { moduleTitle: mentorModuleTitle } = useWikitaLiteMentor()
 
 const impactPreviewCount = computed(() => (impactHasContent.value ? 1 : 0))
 const impactEmptyPending = computed(() => impactLoading.value && !impactHasContent.value)
@@ -527,7 +529,6 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
               :items="homeRelatedItems"
               :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
               :lists-version="listsVersion"
-              :more-to="wikitaLiteRoute(FURTHER_READING_PAGE)"
             >
               <template
                 v-if="simplifiedTab.showLoadingBar('furtherReading') && homeRelatedItems.length"
@@ -566,7 +567,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="!isDismissed('mentor')"
             module-id="mentor"
             :style="simplifiedModuleOrderStyle('mentor')"
-            :title="MODULE_TITLES.mentor"
+            :title="mentorModuleTitle"
           >
             <MentorModule />
           </WikitaLiteModule>
@@ -651,7 +652,6 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="homeRelatedItems"
             :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="wikitaLiteRoute(FURTHER_READING_PAGE)"
           >
             <template
               v-if="editTab.showLoadingBar('furtherReading') && homeRelatedItems.length"
@@ -1000,7 +1000,6 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :items="homeRelatedItems"
             :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="wikitaLiteRoute(FURTHER_READING_PAGE)"
           >
             <template
               v-if="

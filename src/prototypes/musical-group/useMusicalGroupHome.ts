@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { useConfig } from '@/composables/useConfig'
 
 import { WIKITA_SAVE_FEEDBACK_KEY } from './composables/useWikitaSaveFeedback'
-import { fetchDailyReadsPreview } from '../wikita-lite/data/fetchDailyReadsPreview'
+import { fetchDailyReadsPreview, refillMissingDailyReadsThumbnails } from '../wikita-lite/data/fetchDailyReadsPreview'
 import { fetchReadingListSummaries } from '../wikita-lite/data/fetchReadingListSummaries'
 import { readingListKey, readingListToSavedItems } from '../wikita-lite/data/readingListSavedPages'
 import { useWikitaLiteSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteSuggestionPreferences'
@@ -305,6 +305,13 @@ export function useMusicalGroupHome(options: {
             const cachedPreview = getCachedDailyReadsPreview(dependencyKey)
             if (cachedPreview?.length) {
               homeRelatedItems.value = cachedPreview
+              if (cachedPreview.some((item) => !item.thumbnailUrl?.trim())) {
+                const refilled = await refillMissingDailyReadsThumbnails(cachedPreview, signal)
+                if (refilled !== cachedPreview) {
+                  homeRelatedItems.value = refilled
+                  setCachedDailyReadsPreview(dependencyKey, refilled)
+                }
+              }
               return
             }
 

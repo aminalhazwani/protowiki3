@@ -7,7 +7,6 @@ import { CdxCard, CdxProgressBar } from '@wikimedia/codex'
 import { cdxIconLightbulb } from '@wikimedia/codex-icons'
 
 import type { HomeHelpWanted } from '../../musical-group/data/types'
-import { resolveEditOpportunityIcon } from '../../musical-group/data/editOpportunityIcons'
 import { helpWantedHref } from '../composables/useWikitaLiteCardActions'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
@@ -43,12 +42,6 @@ function cardThumbnail(url?: string) {
 }
 
 const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () => props.standalone })
-
-function suggestionIcon(suggestion: HomeHelpWanted) {
-  return props.standalone
-    ? resolveEditOpportunityIcon(suggestion.need)
-    : cdxIconLightbulb
-}
 </script>
 
 <template>
@@ -69,7 +62,7 @@ function suggestionIcon(suggestion: HomeHelpWanted) {
         {{ suggestion.description }}
       </template>
       <template #supporting-text>
-        <WikitaLiteSupportingRow :icon="suggestionIcon(suggestion)">
+        <WikitaLiteSupportingRow :icon="cdxIconLightbulb">
           {{ suggestion.suggestionLabel }}
         </WikitaLiteSupportingRow>
       </template>

@@ -46,6 +46,8 @@ interface Props {
   mobileWordmarkSrc?: string
   /** Forwarded to **`ChromeHeader`** (desktop tools only). */
   navTools?: ChromeNavTool[]
+  /** Forwarded to **`ChromeHeader`** — when false, the Minerva wordmark is decorative. */
+  brandLink?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -61,6 +63,7 @@ const props = withDefaults(defineProps<Props>(), {
   taglineSrc: undefined,
   mobileWordmarkSrc: undefined,
   navTools: undefined,
+  brandLink: true,
 })
 
 const { displayName } = useConfig()
@@ -91,6 +94,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
           :tagline-src="props.taglineSrc"
           :mobile-wordmark-src="props.mobileWordmarkSrc"
           :nav-tools="props.navTools"
+          :brand-link="props.brandLink"
         >
           <template v-if="$slots.menu" #menu>
             <slot name="menu" />
