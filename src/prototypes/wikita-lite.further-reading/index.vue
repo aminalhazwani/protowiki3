@@ -9,8 +9,8 @@ import { MODULE_TITLES } from '../wikita-lite/routes'
 
 definePage({
   meta: {
-    title: 'Wikita-lite — Further reading',
-    description: 'Further reading suggestions in Wikita-lite.',
+    title: 'Wikita-lite — Daily reads',
+    description: 'Daily reads suggestions in Wikita-lite.',
   },
 })
 

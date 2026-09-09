@@ -25,10 +25,11 @@ function isEmptySlot(feed: FeedLoadingConfig): boolean {
 }
 
 function isFeedLoading(feed: FeedLoadingConfig): boolean {
-  if (feed.emptyPending !== undefined) {
-    return Boolean(unref(feed.loading))
-  }
   return Boolean(unref(feed.loading))
+}
+
+function isEmptyPending(feed: FeedLoadingConfig): boolean {
+  return feed.emptyPending !== undefined && Boolean(unref(feed.emptyPending))
 }
 
 export function useWikitaLiteTabLoading(feeds: FeedLoadingConfig[]) {
@@ -45,7 +46,13 @@ export function useWikitaLiteTabLoading(feeds: FeedLoadingConfig[]) {
 
     const previewCount = unref(feed.previewCount)
     const hasError = Boolean(unref(feed.hasError))
-    return previewCount > 0 || hasError || loadingSlot.value === feedId
+    if (previewCount > 0 || hasError) return true
+
+    if (feed.emptyPending !== undefined) {
+      return isEmptyPending(feed)
+    }
+
+    return loadingSlot.value === feedId
   }
 
   function showModule(feedId: string): boolean {
@@ -54,7 +61,9 @@ export function useWikitaLiteTabLoading(feeds: FeedLoadingConfig[]) {
 
     const previewCount = unref(feed.previewCount)
     const hasError = Boolean(unref(feed.hasError))
-    return previewCount > 0 || hasError || showLoadingBar(feedId)
+    if (previewCount > 0 || hasError) return true
+    if (feed.emptyPending !== undefined && isEmptyPending(feed)) return true
+    return showLoadingBar(feedId)
   }
 
   return { loadingSlot, showLoadingBar, showModule }

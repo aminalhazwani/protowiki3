@@ -72,3 +72,8 @@ export function loadStoredSurveyChoice(): SurveyChoice | '' {
     return ''
   }
 }
+
+/** Persisted onboarding survey maps 1:1 to simplified dashboard mode. */
+export function loadStoredDashboardMode(): SurveyChoice | '' {
+  return loadStoredSurveyChoice()
+}

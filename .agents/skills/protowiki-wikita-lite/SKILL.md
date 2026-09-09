@@ -52,6 +52,23 @@ Flow: **read article** → **create account** → **welcome** → **survey** →
 Interests persist to `wikita-lite-interests` on completion. Dev menu (**Reset
 onboarding**) clears the completion flag and reloads `/wikita-lite`.
 
+## Dashboard modes
+
+Home module layout is controlled by **`?mode=`** on `/wikita-lite` and by the
+onboarding survey (stored in `wikita-lite-onboarding-survey`).
+
+| Mode | Source | Home modules (order) |
+| --- | --- | --- |
+| `both` | Survey / default | Suggested edits → Daily reads → Your impact → Your mentor |
+| `read` | Survey | Daily reads → Suggested edits → Your impact → Your mentor |
+| `edit` | Survey | Suggested edits → Your impact → Your mentor → Daily reads |
+| `advanced` | `?mode=advanced` only | Full dashboard (all modules + Explore / Contribute tabs) |
+
+Resolution: URL param → stored survey → default `both`. **`advanced` is never
+persisted.** Config lives in `data/dashboardMode.ts`; composable
+`useWikitaLiteDashboardMode`. **Your mentor** is a stub module
+(`modules/MentorModule.vue`).
+
 ## Configure + interests
 
 Home / Explore / Contribute tabs are on `/wikita-lite`; a **configure** icon
@@ -72,7 +89,7 @@ Preferences persist in `localStorage`:
 | `wikita-lite-interests` | `musical-group/data/interests.ts` |
 | `wikita-lite-dismissed-modules` | `wikita-lite/data/moduleDismissals.ts` |
 
-Suggestion feeds (Further reading, Mentions) honor global toggles via
+Suggestion feeds (Daily reads, Mentions) honor global toggles via
 `getSuggestionSeeds()` and `suggestionFeedsKey()`. **Suggested edits**
 uses module-effective prefs from `useWikitaLiteModuleSuggestionPreferences`
 and `helpWantedFeedsKey()` — it may diverge from global configure when the
@@ -83,9 +100,9 @@ Contribute still falls back to random seeds per the rules below.
 **Mentions** require the saved-pages toggle and at least one bookmark.
 
 Users with no bookmarks but editing-history and/or interests enabled see
-Further reading and Suggested edits when seeds exist. Home tab
+Daily reads and Suggested edits when seeds exist. Home tab
 Suggested edits previews follow `suggestedEditsModuleSeedsAvailable` (module
-override or global defaults); Further reading still follows global
+override or global defaults); Daily reads still follows global
 `suggestionSeedsAvailable`.
 
 ### Module dismiss (overflow menus)
@@ -96,7 +113,7 @@ module's overflow menu includes **Dismiss**. **Suggested edits** also includes
 three suggestion-source toggles as global configure, prefixed by **Use my
 default settings**. When that master toggle is on, the module inherits global
 prefs and the underlying options are read-only; when off, overrides apply to
-Suggested edits only (Further reading and Mentions stay on global prefs).
+Suggested edits only (Daily reads and Mentions stay on global prefs).
 Interests remain **module-scoped when overrides are active** — stored in
 `wikita-lite-module-suggestion-prefs` alongside module toggles. **Add interest**
 on the module configure page opens `/wikita-lite/help-wanted/configure/interests`,
@@ -110,7 +127,7 @@ on every tab.
 
 When overflow menus are enabled, modules that normally navigate via the
 clickable title show a footer **Show more …** link instead (Active
-discussions, Trending, Further reading, Saved, Mentions). Modules that
+discussions, Trending, Daily reads, Saved, Mentions). Modules that
 already always show a footer CTA (Suggested edits, Translate articles,
 Review changes) are unchanged.
 
@@ -122,11 +139,18 @@ Review changes) are unchanged.
   `useWikitaLiteTabLoading.ts` in `WikitaLiteHome.vue`:
   - **Empty module** — one bar at the first pending slot in that tab's visual
     module order; bar under the module title.
+  - **Daily reads + Suggested edits on Home** — when suggestion seeds exist,
+    both module shells render immediately (via `emptyPending`), even while
+    empty. **Fetch order** is always Daily reads → Suggested edits
+    (`loadPersonalizedSuggestionFeeds` in `useMusicalGroupHome.ts`), independent
+    of visual `MODE_MODULE_ORDER`. Both shells may be visible at once; only the
+    actively fetching module shows a progress bar.
   - **Refresh with preview cards** — stale cards stay visible; bar in each
     updating module's `#after-cards` slot (above any CTA); multiple modules may
     each show a bar while refreshing.
   - **Hidden shells** — omit a module unless it has preview content or is
-    showing its loading bar.
+    showing its loading bar (Daily reads and Suggested edits excepted — see
+    above).
   - No aggregate footer loaders below static sections (e.g. Learn).
 - **Standalone subpages** — one `CdxProgressBar` per module, including
   pagination / infinite scroll (OR initial + load-more into one bar).

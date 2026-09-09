@@ -269,10 +269,6 @@ export function useMusicalGroupHome(options: {
 
     if (needsRelatedFetch) homeRelatedLoading.value = true
     if (needsMentionsFetch) homeMentionsLoading.value = true
-    if (needsHelpFetch) {
-      helpWantedLoading.value = true
-      if (!cachedHelp?.length && !helpWanted.value.length) helpWanted.value = []
-    }
     if (needsRecentFetch) recentChangesLoading.value = true
 
     const appendHelpWanted = (suggestion: HomeHelpWanted): void => {
@@ -313,21 +309,6 @@ export function useMusicalGroupHome(options: {
         }
       })(),
       (async () => {
-        if (!needsHelpFetch) return
-        try {
-          helpWanted.value = await fetchHelpWanted(helpWantedSeedItems, signal, helpWantedLimit, {
-            onEach: appendHelpWanted,
-            dependencyKey: helpWantedKey,
-            includeSavedSuggestions,
-            savedItems: items,
-          })
-        } catch (err) {
-          if (isAbort(err)) return
-        } finally {
-          helpWantedLoading.value = false
-        }
-      })(),
-      (async () => {
         if (!needsRecentFetch) return
         try {
           recentChanges.value = await fetchRecentChanges(items, signal, { dependencyKey })
@@ -338,6 +319,27 @@ export function useMusicalGroupHome(options: {
         }
       })(),
     ])
+
+    if (signal.aborted) return
+
+    if (!needsHelpFetch) return
+
+    if (cachedHelp) helpWanted.value = cachedHelp
+    helpWantedLoading.value = true
+    if (!cachedHelp?.length && !helpWanted.value.length) helpWanted.value = []
+
+    try {
+      helpWanted.value = await fetchHelpWanted(helpWantedSeedItems, signal, helpWantedLimit, {
+        onEach: appendHelpWanted,
+        dependencyKey: helpWantedKey,
+        includeSavedSuggestions,
+        savedItems: items,
+      })
+    } catch (err) {
+      if (isAbort(err)) return
+    } finally {
+      helpWantedLoading.value = false
+    }
   }
 
   function clearPersonalizedFeeds(): void {
@@ -817,10 +819,23 @@ export function useMusicalGroupHome(options: {
     await loadTrending(abort.signal)
   }
 
+  function primeHomeRelatedLoading(): void {
+    if (!hasSuggestionSeeds(savedItems.value, preferences.value)) return
+
+    const seedItems = suggestionSeedItems(savedItems.value, preferences.value)
+    const dependencyKey = suggestionFeedsKey(seedItems)
+    hydratePersonalizedFeedsFromCache(dependencyKey, helpWantedDependencyKey(savedItems.value))
+
+    if (homeRelatedItems.value.length > 0) return
+    homeRelatedLoading.value = true
+  }
+
   function load(): void {
     abort?.abort()
     abort = new AbortController()
     const { signal } = abort
+
+    primeHomeRelatedLoading()
 
     const dayKey = utcDayKey()
     const featuredCached = getCachedFeaturedTab(dayKey)
@@ -865,15 +880,14 @@ export function useMusicalGroupHome(options: {
     }
 
     void (async () => {
+      const bookmarksPromise = reloadBookmarks()
       await Promise.all([
         featuredCached ? Promise.resolve() : loadFeatured(signal),
         loadTrending(signal, { background: Boolean(trendingCached?.length) }),
         loadActiveDiscussions(signal, { background: Boolean(activeDiscussionsCached?.length) }),
         loadTranslationSuggestions(signal, { background: Boolean(translationCached?.length) }),
+        bookmarksPromise,
       ])
-      if (signal.aborted) return
-
-      await reloadBookmarks()
     })()
   }
 

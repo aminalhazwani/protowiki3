@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxProgressBar } from '@wikimedia/codex'
 import { cdxIconReload } from '@wikimedia/codex-icons'
 
 import ImpactModule from '../wikita-lite/modules/ImpactModule.vue'
@@ -15,7 +15,13 @@ definePage({
   },
 })
 
-const { impactPageProps, showRealRefresh, onImpactRefresh } = useWikitaLiteImpact()
+const {
+  impactPageProps,
+  showRealRefresh,
+  impactLoading,
+  impactHasContent,
+  onImpactRefresh,
+} = useWikitaLiteImpact()
 </script>
 
 <template>
@@ -32,6 +38,18 @@ const { impactPageProps, showRealRefresh, onImpactRefresh } = useWikitaLiteImpac
         </CdxButton>
       </template>
     </MobileSubpageHeader>
-    <ImpactModule standalone v-bind="impactPageProps" @refresh="onImpactRefresh" />
+    <div
+      v-if="impactLoading && !impactHasContent"
+      class="wikita-lite-impact-page__loading"
+    >
+      <CdxProgressBar inline aria-label="Loading your impact" />
+    </div>
+    <ImpactModule v-if="impactHasContent" standalone v-bind="impactPageProps" />
   </WikitaLiteShell>
 </template>
+
+<style scoped>
+.wikita-lite-impact-page__loading {
+  padding-block: var(--spacing-50, 8px);
+}
+</style>

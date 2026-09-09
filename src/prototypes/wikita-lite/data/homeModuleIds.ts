@@ -30,7 +30,7 @@ export const CONTRIBUTE_MODULE_IDS = [
 export type HomeEditModuleId = (typeof HOME_EDIT_MODULE_IDS)[number]
 export type ExploreReadModuleId = (typeof EXPLORE_READ_MODULE_IDS)[number]
 export type ContributeModuleId = (typeof CONTRIBUTE_MODULE_IDS)[number]
-export type WikitaLiteModuleId = HomeEditModuleId | ExploreReadModuleId
+export type WikitaLiteModuleId = HomeEditModuleId | ExploreReadModuleId | 'mentor'
 
 /** Explore modules that appear on Home only when pinned from a fullscreen page. */
 export const HOME_PINNED_ONLY_MODULE_IDS = [
@@ -67,5 +67,5 @@ export function isHomeFeedModule(id: string): id is HomeFeedModuleId {
 }
 
 export function isOverflowModuleId(id: string): id is WikitaLiteModuleId {
-  return isHomePinnableModule(id) || isExploreReadModule(id)
+  return isHomePinnableModule(id) || isExploreReadModule(id) || id === 'mentor'
 }

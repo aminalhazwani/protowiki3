@@ -409,6 +409,12 @@
 }
 
 .wikita-lite-shell.wikita-lite-shell--hide-card-borders
+  .wikita-lite-module__cards
+  > .impact-module--empty {
+  margin-top: var(--spacing-25, 4px);
+}
+
+.wikita-lite-shell.wikita-lite-shell--hide-card-borders
   .wikita-lite-card-with-action__action {
   margin-top: var(--spacing-25, 4px);
 }

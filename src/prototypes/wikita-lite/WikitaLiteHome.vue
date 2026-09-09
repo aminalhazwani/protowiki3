@@ -8,6 +8,7 @@ import { useConfig } from '@/composables/useConfig'
 import { useWikitaSaveFeedback } from '../musical-group/composables/useWikitaSaveFeedback'
 import { useWikitaLiteHome, type PersonalizedFeedId } from './composables/useWikitaLiteHome'
 import { useWikitaLiteContributeModuleOrder } from './composables/useWikitaLiteContributeModuleOrder'
+import { useWikitaLiteDashboardMode } from './composables/useWikitaLiteDashboardMode'
 import { useWikitaLiteDismissedModulesSingleton } from './composables/useWikitaLiteDismissedModules'
 import { useWikitaLiteExploreModuleOrder } from './composables/useWikitaLiteExploreModuleOrder'
 import { useWikitaLiteHideTabBarSingleton } from './composables/useWikitaLiteHideTabBar'
@@ -24,6 +25,7 @@ import FeaturedModule from './modules/FeaturedModule.vue'
 import HelpWantedModule from './modules/HelpWantedModule.vue'
 import ImpactModule from './modules/ImpactModule.vue'
 import LearnModule from './modules/LearnModule.vue'
+import MentorModule from './modules/MentorModule.vue'
 import MentionsModule from './modules/MentionsModule.vue'
 import RecentActivityModule from './modules/RecentActivityModule.vue'
 import RelatedModule from './modules/RelatedModule.vue'
@@ -68,13 +70,17 @@ const HOME_TRANSLATION_PREVIEW_LIMIT = 2
 const { listsVersion } = useWikitaSaveFeedback()
 const { knownLanguages } = useConfig()
 const { activeView, selectView } = useWikitaLiteView()
-const { showImpact, impactCardProps, onImpactRefresh } = useWikitaLiteImpact()
+const { showImpact, impactCardProps, impactLoading, impactHasContent } = useWikitaLiteImpact()
+
+const impactPreviewCount = computed(() => (impactHasContent.value ? 1 : 0))
+const impactEmptyPending = computed(() => impactLoading.value && !impactHasContent.value)
 const { homeModuleOrderStyle } = useWikitaLiteHomeModuleOrder()
 const { exploreModuleOrderStyle } = useWikitaLiteExploreModuleOrder()
 const { contributeModuleOrderStyle } = useWikitaLiteContributeModuleOrder()
 const { isDismissed } = useWikitaLiteDismissedModulesSingleton()
 const { isPinnedToHome } = useWikitaLitePinnedModulesSingleton()
 const { hideTabBar } = useWikitaLiteHideTabBarSingleton()
+const { isAdvancedMode, simplifiedModuleOrderStyle } = useWikitaLiteDashboardMode()
 
 let getBookmarkChangeSkipFeeds: () => PersonalizedFeedId[] = () => []
 
@@ -141,6 +147,19 @@ const recentActivityPreviewLimit = computed(() =>
 
 const helpWantedPreview = computed(() =>
   helpWanted.value.slice(0, helpWantedPreviewLimit.value),
+)
+
+const furtherReadingEmptyPending = computed(
+  () =>
+    suggestionSeedsAvailable.value &&
+    homeRelatedPreviewCount.value === 0 &&
+    homeRelatedLoading.value,
+)
+const suggestedEditsEmptyPending = computed(
+  () =>
+    suggestedEditsModuleSeedsAvailable.value &&
+    helpWantedPreview.value.length === 0 &&
+    (helpWantedLoading.value || homeRelatedLoading.value),
 )
 
 const recentActivityPreview = computed(() =>
@@ -254,12 +273,14 @@ const editTab = useWikitaLiteTabLoading([
     id: 'furtherReading',
     loading: homeRelatedLoading,
     previewCount: homeRelatedPreviewCount,
+    emptyPending: furtherReadingEmptyPending,
     enabled: suggestionSeedsAvailable,
   },
   {
     id: 'suggestedEdits',
     loading: helpWantedLoading,
     previewCount: computed(() => helpWantedPreview.value.length),
+    emptyPending: suggestedEditsEmptyPending,
     enabled: suggestedEditsModuleSeedsAvailable,
   },
   {
@@ -284,6 +305,13 @@ const editTab = useWikitaLiteTabLoading([
     hasError: activeDiscussionsError,
     enabled: hasSavedPages,
   },
+  {
+    id: 'impact',
+    loading: impactLoading,
+    previewCount: impactPreviewCount,
+    emptyPending: impactEmptyPending,
+    enabled: showImpact,
+  },
 ])
 
 const readExploreTab = useWikitaLiteTabLoading([
@@ -302,6 +330,7 @@ const readExploreTab = useWikitaLiteTabLoading([
     id: 'furtherReading',
     loading: homeRelatedLoading,
     previewCount: homeRelatedPreviewCount,
+    emptyPending: furtherReadingEmptyPending,
     enabled: suggestionSeedsAvailable,
   },
   {
@@ -309,6 +338,30 @@ const readExploreTab = useWikitaLiteTabLoading([
     loading: homeMentionsLoading,
     previewCount: computed(() => homeMentionsPreview.value.length),
     enabled: showSavedBasedMentions,
+  },
+])
+
+const simplifiedTab = useWikitaLiteTabLoading([
+  {
+    id: 'furtherReading',
+    loading: homeRelatedLoading,
+    previewCount: homeRelatedPreviewCount,
+    emptyPending: furtherReadingEmptyPending,
+    enabled: suggestionSeedsAvailable,
+  },
+  {
+    id: 'suggestedEdits',
+    loading: helpWantedLoading,
+    previewCount: computed(() => helpWantedPreview.value.length),
+    emptyPending: suggestedEditsEmptyPending,
+    enabled: suggestedEditsModuleSeedsAvailable,
+  },
+  {
+    id: 'impact',
+    loading: impactLoading,
+    previewCount: impactPreviewCount,
+    emptyPending: impactEmptyPending,
+    enabled: showImpact,
   },
 ])
 
@@ -337,6 +390,13 @@ const contributeTab = useWikitaLiteTabLoading([
     previewCount: activeDiscussionsPreviewCount,
     emptyPending: contributeActiveDiscussionsPending,
     hasError: activeDiscussionsError,
+  },
+  {
+    id: 'impact',
+    loading: impactLoading,
+    previewCount: impactPreviewCount,
+    emptyPending: impactEmptyPending,
+    enabled: showImpact,
   },
 ])
 
@@ -403,6 +463,103 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
   >
     <CdxTab name="edit" :label="VIEW_TAB_LABELS.edit">
       <div class="wikita-lite-home__panel">
+        <template v-if="!isAdvancedMode">
+          <WikitaLiteModule
+            v-if="
+              simplifiedTab.showModule('suggestedEdits') && !isDismissed('suggestedEdits')
+            "
+            module-id="suggestedEdits"
+            :style="simplifiedModuleOrderStyle('suggestedEdits')"
+            :title="MODULE_TITLES.suggestedEdits"
+            :to="HELP_WANTED_PAGE"
+          >
+            <div
+              v-if="simplifiedTab.showLoadingBar('suggestedEdits') && !helpWantedPreview.length"
+              class="wikita-lite-home__loading"
+            >
+              <CdxProgressBar inline aria-label="Loading edit suggestions" />
+            </div>
+            <HelpWantedModule
+              v-if="helpWantedPreview.length"
+              :items="helpWantedPreview"
+              :preview-limit="helpWantedPreviewLimit"
+              :more-to="HELP_WANTED_PAGE"
+            >
+              <template
+                v-if="simplifiedTab.showLoadingBar('suggestedEdits') && helpWantedPreview.length"
+                #after-cards
+              >
+                <div class="wikita-lite-home__loading">
+                  <CdxProgressBar inline aria-label="Loading edit suggestions" />
+                </div>
+              </template>
+            </HelpWantedModule>
+          </WikitaLiteModule>
+
+          <WikitaLiteModule
+            v-if="simplifiedTab.showModule('furtherReading') && !isDismissed('furtherReading')"
+            module-id="furtherReading"
+            :style="simplifiedModuleOrderStyle('furtherReading')"
+            :title="MODULE_TITLES.furtherReading"
+            :to="FURTHER_READING_PAGE"
+          >
+            <div
+              v-if="simplifiedTab.showLoadingBar('furtherReading') && !homeRelatedItems.length"
+              class="wikita-lite-home__loading"
+            >
+              <CdxProgressBar inline aria-label="Loading daily reads" />
+            </div>
+            <RelatedModule
+              v-if="homeRelatedItems.length"
+              :items="homeRelatedItems"
+              :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
+              :lists-version="listsVersion"
+              :more-to="FURTHER_READING_PAGE"
+            >
+              <template
+                v-if="simplifiedTab.showLoadingBar('furtherReading') && homeRelatedItems.length"
+                #after-cards
+              >
+                <div class="wikita-lite-home__loading">
+                  <CdxProgressBar inline aria-label="Loading daily reads" />
+                </div>
+              </template>
+            </RelatedModule>
+          </WikitaLiteModule>
+
+          <WikitaLiteModule
+            v-if="showImpact && !isDismissed('impact') && simplifiedTab.showModule('impact')"
+            module-id="impact"
+            :style="simplifiedModuleOrderStyle('impact')"
+            :title="MODULE_TITLES.impact"
+            :to="IMPACT_PAGE"
+          >
+            <div
+              v-if="simplifiedTab.showLoadingBar('impact') && !impactHasContent"
+              class="wikita-lite-home__loading"
+            >
+              <CdxProgressBar inline aria-label="Loading your impact" />
+            </div>
+            <ImpactModule v-if="impactHasContent" v-bind="impactCardProps" />
+            <div
+              v-if="simplifiedTab.showLoadingBar('impact') && impactHasContent"
+              class="wikita-lite-home__loading"
+            >
+              <CdxProgressBar inline aria-label="Loading your impact" />
+            </div>
+          </WikitaLiteModule>
+
+          <WikitaLiteModule
+            v-if="!isDismissed('mentor')"
+            module-id="mentor"
+            :style="simplifiedModuleOrderStyle('mentor')"
+            :title="MODULE_TITLES.mentor"
+          >
+            <MentorModule />
+          </WikitaLiteModule>
+        </template>
+
+        <template v-else>
         <WikitaLiteModule
           v-if="editTab.showModule('featured') && !isDismissed('featured')"
           module-id="featured"
@@ -474,7 +631,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="editTab.showLoadingBar('furtherReading') && !homeRelatedItems.length"
             class="wikita-lite-home__loading"
           >
-            <CdxProgressBar inline aria-label="Loading further reading" />
+            <CdxProgressBar inline aria-label="Loading daily reads" />
           </div>
           <RelatedModule
             v-if="homeRelatedItems.length"
@@ -488,7 +645,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
               #after-cards
             >
               <div class="wikita-lite-home__loading">
-                <CdxProgressBar inline aria-label="Loading further reading" />
+                <CdxProgressBar inline aria-label="Loading daily reads" />
               </div>
             </template>
           </RelatedModule>
@@ -626,13 +783,25 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         </WikitaLiteModule>
 
         <WikitaLiteModule
-          v-if="showImpact && !isDismissed('impact')"
+          v-if="showImpact && !isDismissed('impact') && editTab.showModule('impact')"
           module-id="impact"
           :style="homeModuleOrderStyle('impact')"
           :title="MODULE_TITLES.impact"
           :to="IMPACT_PAGE"
         >
-          <ImpactModule v-bind="impactCardProps" @refresh="onImpactRefresh" />
+          <div
+            v-if="editTab.showLoadingBar('impact') && !impactHasContent"
+            class="wikita-lite-home__loading"
+          >
+            <CdxProgressBar inline aria-label="Loading your impact" />
+          </div>
+          <ImpactModule v-if="impactHasContent" v-bind="impactCardProps" />
+          <div
+            v-if="editTab.showLoadingBar('impact') && impactHasContent"
+            class="wikita-lite-home__loading"
+          >
+            <CdxProgressBar inline aria-label="Loading your impact" />
+          </div>
         </WikitaLiteModule>
 
         <WikitaLiteModule
@@ -730,10 +899,11 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         >
           <LearnModule />
         </WikitaLiteModule>
+        </template>
       </div>
     </CdxTab>
 
-    <CdxTab v-if="!hideTabBar" name="read" :label="VIEW_TAB_LABELS.read">
+    <CdxTab v-if="!hideTabBar && isAdvancedMode" name="read" :label="VIEW_TAB_LABELS.read">
       <div class="wikita-lite-home__panel">
         <WikitaLiteModule
           v-if="readExploreTab.showModule('didYouKnow') && !isDismissed('didYouKnow')"
@@ -810,7 +980,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             "
             class="wikita-lite-home__loading"
           >
-            <CdxProgressBar inline aria-label="Loading further reading" />
+            <CdxProgressBar inline aria-label="Loading daily reads" />
           </div>
           <RelatedModule
             v-if="homeRelatedItems.length"
@@ -827,7 +997,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
               #after-cards
             >
               <div class="wikita-lite-home__loading">
-                <CdxProgressBar inline aria-label="Loading further reading" />
+                <CdxProgressBar inline aria-label="Loading daily reads" />
               </div>
             </template>
           </RelatedModule>
@@ -870,7 +1040,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
       </div>
     </CdxTab>
 
-    <CdxTab v-if="!hideTabBar" name="contribute" :label="VIEW_TAB_LABELS.contribute">
+    <CdxTab v-if="!hideTabBar && isAdvancedMode" name="contribute" :label="VIEW_TAB_LABELS.contribute">
       <div class="wikita-lite-home__panel">
         <WikitaLiteModule
           v-if="contributeTab.showModule('suggestedEdits') && !isDismissed('suggestedEdits')"
@@ -1006,13 +1176,25 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         </WikitaLiteModule>
 
         <WikitaLiteModule
-          v-if="showImpact && !isDismissed('impact')"
+          v-if="showImpact && !isDismissed('impact') && contributeTab.showModule('impact')"
           module-id="impact"
           :style="contributeModuleOrderStyle('impact')"
           :title="MODULE_TITLES.impact"
           :to="IMPACT_PAGE"
         >
-          <ImpactModule v-bind="impactCardProps" @refresh="onImpactRefresh" />
+          <div
+            v-if="contributeTab.showLoadingBar('impact') && !impactHasContent"
+            class="wikita-lite-home__loading"
+          >
+            <CdxProgressBar inline aria-label="Loading your impact" />
+          </div>
+          <ImpactModule v-if="impactHasContent" v-bind="impactCardProps" />
+          <div
+            v-if="contributeTab.showLoadingBar('impact') && impactHasContent"
+            class="wikita-lite-home__loading"
+          >
+            <CdxProgressBar inline aria-label="Loading your impact" />
+          </div>
         </WikitaLiteModule>
 
         <WikitaLiteModule

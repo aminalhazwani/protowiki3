@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import { CdxButton, CdxCard } from '@wikimedia/codex'
 import {
-  cdxIconChart,
+  cdxIconChartBar,
+  cdxIconChartLine,
   cdxIconCheckAll,
   cdxIconEdit,
-  cdxIconHeartOutline,
   cdxIconUserTalk,
 } from '@wikimedia/codex-icons'
 
@@ -14,17 +15,12 @@ import type { ImpactData } from '../../template-homepage/impact/data/impactTypes
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
 import { HELP_WANTED_PAGE } from '../routes'
 
-const emit = defineEmits<{
-  refresh: []
-}>()
-
 interface Props extends ImpactData {
   standalone?: boolean
   empty?: boolean
   showRefresh?: boolean
   refreshing?: boolean
   refreshError?: string | null
-  loadPending?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -37,10 +33,7 @@ const props = withDefaults(defineProps<Props>(), {
   showRefresh: false,
   refreshing: false,
   refreshError: undefined,
-  loadPending: false,
 })
-
-const showLoadPrompt = computed(() => props.loadPending && props.standalone)
 
 const { cardClass } = useWikitaLiteCardListClasses({ standalone: () => props.standalone })
 
@@ -50,54 +43,40 @@ function formatStat(value: number | string | undefined): string {
   if (value === undefined || value === '') return '–'
   return String(value)
 }
-
-function onRefreshClick(): void {
-  emit('refresh')
-}
 </script>
 
 <template>
   <div
     class="impact-module"
-    :class="{ 'impact-module--standalone': standalone }"
+    :class="{
+      'impact-module--standalone': standalone,
+      'impact-module--empty': empty,
+    }"
   >
     <p v-if="refreshError" class="impact-module__refresh-error" role="alert">
       {{ refreshError }}
     </p>
 
-    <CdxCard v-if="showLoadPrompt" :class="['impact-module__card', cardClass]">
-      <template #description>
-        <div class="impact-module__load-prompt">
-          <CdxButton
-            action="progressive"
-            weight="primary"
-            :disabled="refreshing"
-            @click="onRefreshClick"
-          >
-            {{ refreshing ? 'Loading…' : 'Load impact' }}
-          </CdxButton>
-        </div>
-      </template>
-    </CdxCard>
-
-    <CdxCard
-      v-else-if="empty"
-      :icon="cdxIconHeartOutline"
-      :url="HELP_WANTED_PAGE"
-      :class="['impact-module__card', cardClass]"
-    >
-      <template #title>0 edits to articles so far</template>
-      <template #description>
-        Help extend free knowledge to the world by editing topics that matter most to you.
-      </template>
-      <template #supporting-text>
-        Start with a few <strong>suggested edits</strong>, then see how many people are viewing
-        your contributions here.
-      </template>
-    </CdxCard>
+    <div v-if="empty" class="impact-module__empty">
+      <div class="impact-module__empty-copy">
+        <p class="impact-module__empty-headline">0 edits to articles so far.</p>
+        <p class="impact-module__empty-body">
+          Help extend free knowledge to the world by editing topics that matter most to you.
+        </p>
+        <p class="impact-module__empty-caption">
+          Start with a few <strong>suggested edits</strong>, then see how many people are viewing
+          your contributions here.
+        </p>
+      </div>
+      <RouterLink v-slot="{ navigate }" :to="HELP_WANTED_PAGE" custom>
+        <CdxButton class="impact-module__empty-cta" weight="normal" @click="navigate">
+          See all suggestions
+        </CdxButton>
+      </RouterLink>
+    </div>
 
     <template v-else>
-      <CdxCard :class="['impact-module__card', cardClass]">
+      <CdxCard :icon="cdxIconChartLine" :class="['impact-module__card', cardClass]">
         <template #title>{{ viewsTitle }}</template>
         <template #description>{{ viewLabel }}</template>
       </CdxCard>
@@ -115,7 +94,7 @@ function onRefreshClick(): void {
       </div>
 
       <div class="impact-module__row">
-        <CdxCard :icon="cdxIconChart" :class="['impact-module__card', 'impact-module__card--half', cardClass]">
+        <CdxCard :icon="cdxIconChartBar" :class="['impact-module__card', 'impact-module__card--half', cardClass]">
           <template #title>{{ formatStat(longestStreak) }}</template>
           <template #description>Longest editing streak</template>
         </CdxCard>
@@ -164,14 +143,40 @@ function onRefreshClick(): void {
   color: var(--color-error, #bf3c2c);
 }
 
-.impact-module__load-prompt {
+.impact-module__empty {
   display: flex;
-  justify-content: center;
-  padding-block: var(--spacing-50, 8px);
+  flex-direction: column;
+  gap: var(--spacing-75, 12px);
+  width: 100%;
 }
 
-.impact-module--standalone .impact-module__load-prompt {
-  min-height: 40vh;
-  align-items: center;
+.impact-module__empty-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-25, 4px);
+  color: var(--color-subtle, #54595d);
+}
+
+.impact-module__empty-headline {
+  margin: 0;
+  font-size: var(--font-size-medium, 0.875rem);
+  font-weight: bold;
+  line-height: var(--line-height-medium, 1.375rem);
+}
+
+.impact-module__empty-body {
+  margin: 0;
+  font-size: var(--font-size-medium, 0.875rem);
+  line-height: var(--line-height-medium, 1.375rem);
+}
+
+.impact-module__empty-caption {
+  margin: 0;
+  font-size: var(--font-size-small, 0.8125rem);
+  line-height: var(--line-height-small, 1.25rem);
+}
+
+.impact-module__empty-cta {
+  width: 100%;
 }
 </style>

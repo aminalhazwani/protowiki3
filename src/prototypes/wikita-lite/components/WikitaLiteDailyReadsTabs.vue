@@ -12,7 +12,7 @@ const props = withDefaults(
     ariaLabel?: string
   }>(),
   {
-    ariaLabel: 'Further reading filters',
+    ariaLabel: 'Daily reads filters',
   },
 )
 

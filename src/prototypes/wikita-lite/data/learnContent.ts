@@ -10,7 +10,7 @@ export const LEARN_GUIDE = {
   title: 'How to edit a page',
   description: 'Introduction to editing on Wikipedia.',
   supportingText: 'Guide',
-  href: 'https://en.wikipedia.org/wiki/Help:Introduction',
+  href: 'https://en.wikipedia.org/wiki/Help:Introduction_to_Wikipedia',
 } as const
 
 export const LEARN_VIDEO = {

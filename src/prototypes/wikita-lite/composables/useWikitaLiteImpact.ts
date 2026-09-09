@@ -10,16 +10,11 @@ type ImpactModuleBind = ImpactData & {
   showRefresh?: boolean
   refreshing?: boolean
   refreshError?: string | null
-  loadPending?: boolean
 }
 
-function shouldShowLoadPrompt(hasStarted: boolean, hasRenderableData: boolean): boolean {
-  return !hasStarted && !hasRenderableData
-}
-
-function isImpactEmpty(user: string, hasRenderableData: boolean): boolean {
+function isImpactEmpty(user: string, hasRenderableData: boolean, loading: boolean): boolean {
   if (user === 'experienced') return false
-  if (user === 'real') return !hasRenderableData
+  if (user === 'real') return !loading && !hasRenderableData
   return true
 }
 
@@ -28,6 +23,8 @@ export function useWikitaLiteImpact(): {
   impactCardProps: ComputedRef<ImpactModuleBind>
   impactPageProps: ComputedRef<ImpactModuleBind>
   showRealRefresh: ComputedRef<boolean>
+  impactLoading: ComputedRef<boolean>
+  impactHasContent: ComputedRef<boolean>
   onImpactRefresh: () => void
 } {
   const { user, realUsername, realLang, setCurrentUserPageList } = useConfig()
@@ -43,17 +40,31 @@ export function useWikitaLiteImpact(): {
     { immediate: true },
   )
 
+  watch(
+    [() => user.value, () => realImpact.hasStarted.value],
+    ([activeUser, hasStarted]) => {
+      if (activeUser === 'real' && !hasStarted) {
+        void realImpact.refresh()
+      }
+    },
+    { immediate: true },
+  )
+
   const showImpact = computed(() => user.value !== 'logged-out')
 
-  function realUserBind(): ImpactModuleBind {
-    if (shouldShowLoadPrompt(realImpact.hasStarted.value, realImpact.hasRenderableData.value)) {
-      return {
-        loadPending: true,
-        refreshing: realImpact.loading.value,
-        refreshError: realImpact.error.value,
+  const impactLoading = computed(() => user.value === 'real' && realImpact.loading.value)
+
+  const impactHasContent = computed(() => {
+    if (!showImpact.value) return false
+    if (user.value === 'real') {
+      if (realImpact.loading.value && !realImpact.hasRenderableData.value) {
+        return false
       }
     }
+    return true
+  })
 
+  function realUserBind(): ImpactModuleBind {
     return {
       ...realImpact.impactProps.value,
       showRefresh: true,
@@ -73,7 +84,11 @@ export function useWikitaLiteImpact(): {
     if (user.value === 'real') {
       return {
         ...realUserBind(),
-        empty: isImpactEmpty(user.value, realImpact.hasRenderableData.value),
+        empty: isImpactEmpty(
+          user.value,
+          realImpact.hasRenderableData.value,
+          realImpact.loading.value,
+        ),
       }
     }
     return { empty: true }
@@ -86,17 +101,18 @@ export function useWikitaLiteImpact(): {
     if (user.value === 'real') {
       return {
         ...realUserBind(),
-        empty: isImpactEmpty(user.value, realImpact.hasRenderableData.value),
+        empty: isImpactEmpty(
+          user.value,
+          realImpact.hasRenderableData.value,
+          realImpact.loading.value,
+        ),
       }
     }
     return { empty: true }
   })
 
   const showRealRefresh = computed(
-    () =>
-      user.value === 'real' &&
-      realImpact.hasRenderableData.value &&
-      !shouldShowLoadPrompt(realImpact.hasStarted.value, realImpact.hasRenderableData.value),
+    () => user.value === 'real' && realImpact.hasStarted.value,
   )
 
   function onImpactRefresh(): void {
@@ -110,6 +126,8 @@ export function useWikitaLiteImpact(): {
     impactCardProps,
     impactPageProps,
     showRealRefresh,
+    impactLoading,
+    impactHasContent,
     onImpactRefresh,
   }
 }

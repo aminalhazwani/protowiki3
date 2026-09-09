@@ -12,6 +12,7 @@ const ALL_DISMISSABLE_MODULE_IDS = [
     ...HOME_EDIT_MODULE_IDS,
     ...EXPLORE_READ_MODULE_IDS,
     ...CONTRIBUTE_MODULE_IDS,
+    'mentor',
   ]),
 ] as readonly WikitaLiteModuleId[]
 
