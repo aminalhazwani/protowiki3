@@ -35,6 +35,10 @@ function parsePreferences(value: unknown): SuggestionPreferences | null {
         ? record.useEditingHistory
         : DEFAULT_SUGGESTION_PREFERENCES.useEditingHistory,
     useInterests: record.useInterests,
+    useWatchlist:
+      typeof record.useWatchlist === 'boolean'
+        ? record.useWatchlist
+        : DEFAULT_SUGGESTION_PREFERENCES.useWatchlist,
   }
 }
 

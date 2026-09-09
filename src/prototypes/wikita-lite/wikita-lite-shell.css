@@ -132,19 +132,9 @@
   display: none;
 }
 
+/* Home greeting — semantic h3 (Heading 3); layout only, no font overrides. */
 .special-page-wrapper.wikita-lite-shell .special-page-wrapper__title {
-  font-family: var(--font-family-serif);
-  font-size: var(--font-size-xxx-large);
-  font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-xxx-large);
-  color: var(--color-base);
-}
-
-.special-page-wrapper.wikita-lite-shell[data-skin='mobile'] .special-page-wrapper__title {
-  font-family: var(--font-family-serif);
-  font-size: var(--font-size-xxx-large);
-  font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-xxx-large);
+  margin: 0;
 }
 
 /* Icon + caption rows — SupportingRow is the single flex container. */
@@ -421,7 +411,3 @@
   margin-top: var(--spacing-25, 4px);
 }
 
-.wikita-lite-shell.wikita-lite-shell--hide-card-borders
-  .wikita-lite-card-with-action__action {
-  margin-top: var(--spacing-25, 4px);
-}

@@ -49,7 +49,9 @@ export function useWikitaLiteTabLoading(feeds: FeedLoadingConfig[]) {
     if (previewCount > 0 || hasError) return true
 
     if (feed.emptyPending !== undefined) {
-      return isEmptyPending(feed)
+      // emptyPending can keep a shell visible while a sibling feed loads first (e.g. Daily reads
+      // before Suggested edits); only show this feed's bar when its own loading ref is true.
+      return isEmptyPending(feed) && isFeedLoading(feed)
     }
 
     return loadingSlot.value === feedId

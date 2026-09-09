@@ -50,12 +50,11 @@ export function useWikitaLiteImpact(): {
     { immediate: true },
   )
 
-  const showImpact = computed(() => user.value !== 'logged-out')
+  const showImpact = computed(() => true)
 
   const impactLoading = computed(() => user.value === 'real' && realImpact.loading.value)
 
   const impactHasContent = computed(() => {
-    if (!showImpact.value) return false
     if (user.value === 'real') {
       if (realImpact.loading.value && !realImpact.hasRenderableData.value) {
         return false

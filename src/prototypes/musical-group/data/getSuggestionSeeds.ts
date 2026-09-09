@@ -12,6 +12,11 @@ function listEditedPageTitles(): string[] {
   return config.userPageLists[config.user]?.editedPages ?? []
 }
 
+function listWatchlistPageTitles(): string[] {
+  const config = loadConfig()
+  return config.userPageLists[config.user]?.watchlist ?? []
+}
+
 /** Enwiki titles to use as morelike / suggestion seeds. */
 export function getSuggestionSeedTitles(
   savedItems: HomeSavedItem[],
@@ -28,6 +33,10 @@ export function getSuggestionSeedTitles(
 
   if (prefs.useEditingHistory) {
     seeds.push(...listEditedPageTitles())
+  }
+
+  if (prefs.useWatchlist) {
+    seeds.push(...listWatchlistPageTitles())
   }
 
   if (prefs.useInterests) {

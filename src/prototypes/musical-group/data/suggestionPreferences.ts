@@ -2,12 +2,14 @@ export interface SuggestionPreferences {
   useSavedPages: boolean
   useEditingHistory: boolean
   useInterests: boolean
+  useWatchlist: boolean
 }
 
 export const DEFAULT_SUGGESTION_PREFERENCES: SuggestionPreferences = {
   useSavedPages: true,
   useEditingHistory: true,
   useInterests: true,
+  useWatchlist: true,
 }
 
 const STORAGE_KEY = 'wikita-lite-suggestion-prefs'
@@ -25,6 +27,10 @@ function parsePreferences(value: unknown): SuggestionPreferences | null {
         ? record.useEditingHistory
         : DEFAULT_SUGGESTION_PREFERENCES.useEditingHistory,
     useInterests: record.useInterests,
+    useWatchlist:
+      typeof record.useWatchlist === 'boolean'
+        ? record.useWatchlist
+        : DEFAULT_SUGGESTION_PREFERENCES.useWatchlist,
   }
 }
 

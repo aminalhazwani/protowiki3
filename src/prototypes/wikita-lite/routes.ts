@@ -16,8 +16,24 @@ export const ACTIVE_DISCUSSIONS_PAGE = '/wikita-lite/active-discussions'
 export const TRANSLATIONS_PAGE = '/wikita-lite/translations'
 export const LEARN_PAGE = '/wikita-lite/learn'
 export const IMPACT_PAGE = '/wikita-lite/impact'
-export const CONFIGURE_PAGE = '/wikita-lite/configure'
-export const CONFIGURE_INTERESTS_PAGE = '/wikita-lite/configure/interests'
+export const CONFIGURE_HOME_PAGE = '/wikita-lite/configure'
+export const PERSONALIZATION_PAGE = '/wikita-lite/personalization'
+
+/** Fullscreen subpages whose configure button opens Personalization. */
+export const PERSONALIZED_SUBPAGE_PATHS = [
+  HELP_WANTED_PAGE,
+  FURTHER_READING_PAGE,
+  RECENT_ACTIVITY_PAGE,
+] as const
+
+export function isPersonalizationReturnPath(path: string): boolean {
+  return (PERSONALIZED_SUBPAGE_PATHS as readonly string[]).includes(path)
+}
+
+/** Legacy suggestion-source configure (not linked from Home chrome). */
+export const CONFIGURE_SUGGESTIONS_PAGE = '/wikita-lite/configure/suggestions'
+export const CONFIGURE_SUGGESTIONS_INTERESTS_PAGE =
+  '/wikita-lite/configure/suggestions/interests'
 
 export type WikitaLiteView = 'edit' | 'read' | 'contribute'
 
@@ -38,6 +54,9 @@ export const VIEW_TAB_LABELS: Record<WikitaLiteView, string> = {
 
 /** Floating home button — always shown on WikitaLiteShell routes. */
 export const SHOW_WIKITA_LITE_FLOATING_NAV = true
+
+/** Prototype dev menu (card radius, URL reset, …) in WikitaLiteShell header. */
+export const SHOW_WIKITA_LITE_CHROME_MENU = false
 
 export function viewTitleFor(view: WikitaLiteView): string | null {
   if (view === DEFAULT_WIKITA_LITE_VIEW) return null

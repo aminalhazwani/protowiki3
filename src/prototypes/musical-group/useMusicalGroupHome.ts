@@ -6,12 +6,20 @@ import { useConfig } from '@/composables/useConfig'
 import { WIKITA_SAVE_FEEDBACK_KEY } from './composables/useWikitaSaveFeedback'
 import { fetchDailyReadsPreview, refillMissingDailyReadsThumbnails } from '../wikita-lite/data/fetchDailyReadsPreview'
 import { fetchReadingListSummaries } from '../wikita-lite/data/fetchReadingListSummaries'
-import { readingListKey, readingListToSavedItems } from '../wikita-lite/data/readingListSavedPages'
+import {
+  readingListKey,
+  resolveReadingListSavedItems,
+} from '../wikita-lite/data/readingListSavedPages'
 import { useWikitaLiteSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteSuggestionPreferences'
-import { useWikitaLiteModuleSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteModuleSuggestionPreferences'
 import { listBookmarks } from './data/bookmarks'
 import { listInterests as listStoredInterests } from './data/interests'
-import { bookmarksKey, contributeRandomCacheKey, helpWantedFeedsKey, utcDayKey } from './data/cacheKeys'
+import {
+  bookmarksKey,
+  contributeRandomCacheKey,
+  dailyReadsPreviewCacheKey,
+  helpWantedFeedsKey,
+  utcDayKey,
+} from './data/cacheKeys'
 import { fetchActiveDiscussions, clearActiveDiscussionsSessionCache } from './data/fetchActiveDiscussions'
 import { fetchFeaturedTabContent, isUsableFeaturedTab } from './data/fetchFeaturedFeed'
 import { fetchHelpWanted } from './data/fetchHelpWanted'
@@ -84,7 +92,6 @@ export interface ReloadBookmarksOptions {
 
 const CONTRIBUTE_FALLBACK_HELP_WANTED_LIMIT = 1
 const CONTRIBUTE_FALLBACK_RECENT_CHANGES_LIMIT = 1
-const SUGGESTED_EDITS_MODULE_ID = 'suggestedEdits' as const
 
 export function useMusicalGroupHome(options: {
   helpWantedLimit?: number
@@ -104,12 +111,6 @@ export function useMusicalGroupHome(options: {
   const saveFeedback = inject(WIKITA_SAVE_FEEDBACK_KEY, null)
   const { preferences, preferencesVersion, interestsVersion } =
     useWikitaLiteSuggestionPreferencesSingleton()
-  const {
-    effectiveSuggestionPreferences,
-    effectiveModuleInterests,
-    hasModuleSuggestionSeeds,
-    modulePreferencesVersion,
-  } = useWikitaLiteModuleSuggestionPreferencesSingleton()
   const featuredTab = ref<HomeFeaturedTab>(EMPTY_FEATURED_TAB)
   const featuredTabLoading = ref(true)
   const featuredTabError = ref<string | null>(null)
@@ -171,26 +172,6 @@ export function useMusicalGroupHome(options: {
     return suggestionSeedItems(items, preferences.value, listInterests())
   }
 
-  const suggestedEditsModuleSeedsAvailable = computed(() =>
-    hasModuleSuggestionSeeds(SUGGESTED_EDITS_MODULE_ID, savedItems.value),
-  )
-
-  function helpWantedDependencyKey(items: HomeSavedItem[] = savedItems.value): string {
-    return helpWantedFeedsKey(
-      items,
-      effectiveSuggestionPreferences(SUGGESTED_EDITS_MODULE_ID),
-      effectiveModuleInterests(SUGGESTED_EDITS_MODULE_ID),
-    )
-  }
-
-  function helpWantedSeedItemsFor(items: HomeSavedItem[]): HomeSavedItem[] {
-    return suggestionSeedItems(
-      items,
-      effectiveSuggestionPreferences(SUGGESTED_EDITS_MODULE_ID),
-      effectiveModuleInterests(SUGGESTED_EDITS_MODULE_ID),
-    )
-  }
-
   const showSavedBasedMentions = computed(
     () => preferences.value.useSavedPages && hasSavedPages.value,
   )
@@ -210,12 +191,9 @@ export function useMusicalGroupHome(options: {
     return translationSuggestionsCacheKey(translationTargetLangs.value)
   }
 
-  function hydratePersonalizedFeedsFromCache(
-    dependencyKey: string,
-    helpWantedKey: string = dependencyKey,
-  ): void {
+  function hydratePersonalizedFeedsFromCache(dependencyKey: string): void {
     if (savedPagesSource === 'readingList') {
-      const cachedPreview = getCachedDailyReadsPreview(dependencyKey)
+      const cachedPreview = getCachedDailyReadsPreview(dailyReadsPreviewCacheKey())
       if (cachedPreview?.length) {
         homeRelatedItems.value = cachedPreview
       }
@@ -226,7 +204,7 @@ export function useMusicalGroupHome(options: {
       }
     }
 
-    const cachedHelp = getCachedHelpWanted(helpWantedKey)
+    const cachedHelp = getCachedHelpWanted(dependencyKey)
     if (cachedHelp) helpWanted.value = cachedHelp
 
     const cachedRecent = getCachedRecentChangesPreview(dependencyKey)
@@ -237,17 +215,25 @@ export function useMusicalGroupHome(options: {
     return savedPagesSource === 'readingList' ? readingListKey() : bookmarksKey()
   }
 
+  function readingListNeedsSummaryFetch(items: HomeSavedItem[]): boolean {
+    if (!items.length) return false
+    if (!getCachedSavedSummaries(readingListKey())) return true
+    return items.some((item) => !item.thumbnailUrl?.trim() || !item.description?.trim())
+  }
+
   function hydrateBookmarksFromCache(): void {
     const dependencyKey = savedPagesCacheKey()
     const cachedSummaries = getCachedSavedSummaries(dependencyKey)
-    if (cachedSummaries) {
+    if (savedPagesSource === 'readingList') {
+      savedItems.value = resolveReadingListSavedItems([
+        ...currentUserPageLists.value.readingList,
+      ])
+    } else if (cachedSummaries) {
       savedItems.value = cachedSummaries
-    } else if (savedPagesSource === 'readingList') {
-      savedItems.value = readingListToSavedItems([...currentUserPageLists.value.readingList])
     }
 
     const feedKey = globalSuggestionFeedsKey(savedItems.value)
-    hydratePersonalizedFeedsFromCache(feedKey, helpWantedDependencyKey(savedItems.value))
+    hydratePersonalizedFeedsFromCache(feedKey)
 
     if (preferences.value.useSavedPages) {
       const cachedMentions = getCachedHomeMentions(dependencyKey)
@@ -264,17 +250,13 @@ export function useMusicalGroupHome(options: {
     skipFeeds: Set<PersonalizedFeedId>,
   ): Promise<void> {
     const seedItems = globalSuggestionSeedItems(items)
-    const helpWantedPrefs = effectiveSuggestionPreferences(SUGGESTED_EDITS_MODULE_ID)
-    const helpWantedInterests = effectiveModuleInterests(SUGGESTED_EDITS_MODULE_ID)
-    const helpWantedKey = helpWantedFeedsKey(items, helpWantedPrefs, helpWantedInterests)
-    const helpWantedSeedItems = helpWantedSeedItemsFor(items)
-    const includeSavedSuggestions = helpWantedPrefs.useSavedPages && items.length > 0
+    const includeSavedSuggestions = preferences.value.useSavedPages && items.length > 0
 
-    const cachedHelp = getCachedHelpWanted(helpWantedKey)
+    const cachedHelp = getCachedHelpWanted(dependencyKey)
     const needsRelatedFetch =
       !skipFeeds.has('related') &&
       (savedPagesSource === 'readingList'
-        ? !getCachedDailyReadsPreview(dependencyKey)?.length
+        ? !getCachedDailyReadsPreview(dailyReadsPreviewCacheKey())?.length
         : !getCachedRelatedFeed('home', dependencyKey))
     const needsMentionsFetch =
       preferences.value.useSavedPages &&
@@ -282,15 +264,21 @@ export function useMusicalGroupHome(options: {
       !getCachedHomeMentions(savedPagesCacheKey())
     const needsHelpFetch =
       !skipFeeds.has('helpWanted') &&
+      seedItems.length > 0 &&
       (!cachedHelp || cachedHelp.length < helpWantedLimit)
     const needsRecentFetch =
       !skipFeeds.has('recentChanges') &&
-      items.length > 0 &&
+      seedItems.length > 0 &&
       !getCachedRecentChangesPreview(dependencyKey)
 
     if (needsRelatedFetch) homeRelatedLoading.value = true
     if (needsMentionsFetch) homeMentionsLoading.value = true
     if (needsRecentFetch) recentChangesLoading.value = true
+    if (needsHelpFetch) {
+      if (cachedHelp) helpWanted.value = cachedHelp
+      helpWantedLoading.value = true
+      if (!cachedHelp?.length && !helpWanted.value.length) helpWanted.value = []
+    }
 
     const appendHelpWanted = (suggestion: HomeHelpWanted): void => {
       if (helpWanted.value.some((entry) => entry.itemId === suggestion.itemId)) return
@@ -302,14 +290,15 @@ export function useMusicalGroupHome(options: {
         if (!needsRelatedFetch) return
         try {
           if (savedPagesSource === 'readingList') {
-            const cachedPreview = getCachedDailyReadsPreview(dependencyKey)
+            const dailyReadsKey = dailyReadsPreviewCacheKey()
+            const cachedPreview = getCachedDailyReadsPreview(dailyReadsKey)
             if (cachedPreview?.length) {
               homeRelatedItems.value = cachedPreview
               if (cachedPreview.some((item) => !item.thumbnailUrl?.trim())) {
                 const refilled = await refillMissingDailyReadsThumbnails(cachedPreview, signal)
                 if (refilled !== cachedPreview) {
                   homeRelatedItems.value = refilled
-                  setCachedDailyReadsPreview(dependencyKey, refilled)
+                  setCachedDailyReadsPreview(dailyReadsKey, refilled)
                 }
               }
               return
@@ -331,7 +320,7 @@ export function useMusicalGroupHome(options: {
               },
             })
             if (collected.length) {
-              setCachedDailyReadsPreview(dependencyKey, collected)
+              setCachedDailyReadsPreview(dailyReadsKey, collected)
             }
           } else {
             homeRelatedItems.value = await loadRelatedFeedInitialBatch(
@@ -353,7 +342,7 @@ export function useMusicalGroupHome(options: {
         try {
           const excludeRelated =
             savedPagesSource === 'readingList'
-              ? (getCachedDailyReadsPreview(dependencyKey) ?? homeRelatedItems.value)
+              ? (getCachedDailyReadsPreview(dailyReadsPreviewCacheKey()) ?? homeRelatedItems.value)
               : (getCachedRelatedFeed('home', dependencyKey)?.items ?? [])
           homeMentionsRaw.value = await fetchHomeMentions(items, signal, undefined, excludeRelated)
         } catch (err) {
@@ -366,35 +355,29 @@ export function useMusicalGroupHome(options: {
       (async () => {
         if (!needsRecentFetch) return
         try {
-          recentChanges.value = await fetchRecentChanges(items, signal, { dependencyKey })
+          recentChanges.value = await fetchRecentChanges(seedItems, signal, { dependencyKey })
         } catch (err) {
           if (isAbort(err)) return
         } finally {
           recentChangesLoading.value = false
         }
       })(),
+      (async () => {
+        if (!needsHelpFetch) return
+        try {
+          helpWanted.value = await fetchHelpWanted(seedItems, signal, helpWantedLimit, {
+            onEach: appendHelpWanted,
+            dependencyKey,
+            includeSavedSuggestions,
+            savedItems: items,
+          })
+        } catch (err) {
+          if (isAbort(err)) return
+        } finally {
+          helpWantedLoading.value = false
+        }
+      })(),
     ])
-
-    if (signal.aborted) return
-
-    if (!needsHelpFetch) return
-
-    if (cachedHelp) helpWanted.value = cachedHelp
-    helpWantedLoading.value = true
-    if (!cachedHelp?.length && !helpWanted.value.length) helpWanted.value = []
-
-    try {
-      helpWanted.value = await fetchHelpWanted(helpWantedSeedItems, signal, helpWantedLimit, {
-        onEach: appendHelpWanted,
-        dependencyKey: helpWantedKey,
-        includeSavedSuggestions,
-        savedItems: items,
-      })
-    } catch (err) {
-      if (isAbort(err)) return
-    } finally {
-      helpWantedLoading.value = false
-    }
   }
 
   function clearPersonalizedFeeds(): void {
@@ -409,46 +392,6 @@ export function useMusicalGroupHome(options: {
     homeMentionsLoading.value = false
     helpWantedLoading.value = false
     recentChangesLoading.value = false
-  }
-
-  async function loadModuleHelpWantedOnly(
-    items: HomeSavedItem[],
-    signal: AbortSignal,
-    skipFeeds: Set<PersonalizedFeedId>,
-  ): Promise<void> {
-    if (skipFeeds.has('helpWanted')) return
-
-    const helpWantedPrefs = effectiveSuggestionPreferences(SUGGESTED_EDITS_MODULE_ID)
-    const helpWantedInterests = effectiveModuleInterests(SUGGESTED_EDITS_MODULE_ID)
-    const helpWantedKey = helpWantedFeedsKey(items, helpWantedPrefs, helpWantedInterests)
-    const helpWantedSeedItems = helpWantedSeedItemsFor(items)
-    const includeSavedSuggestions = helpWantedPrefs.useSavedPages && items.length > 0
-    const cachedHelp = getCachedHelpWanted(helpWantedKey)
-    const needsHelpFetch = !cachedHelp || cachedHelp.length < helpWantedLimit
-
-    if (cachedHelp) helpWanted.value = cachedHelp
-    if (!needsHelpFetch) return
-
-    helpWantedLoading.value = true
-    if (!cachedHelp?.length && !helpWanted.value.length) helpWanted.value = []
-
-    const appendHelpWanted = (suggestion: HomeHelpWanted): void => {
-      if (helpWanted.value.some((entry) => entry.itemId === suggestion.itemId)) return
-      helpWanted.value = [...helpWanted.value, suggestion]
-    }
-
-    try {
-      helpWanted.value = await fetchHelpWanted(helpWantedSeedItems, signal, helpWantedLimit, {
-        onEach: appendHelpWanted,
-        dependencyKey: helpWantedKey,
-        includeSavedSuggestions,
-        savedItems: items,
-      })
-    } catch (err) {
-      if (isAbort(err)) return
-    } finally {
-      helpWantedLoading.value = false
-    }
   }
 
   async function loadContributeFallbackFeeds(
@@ -539,6 +482,26 @@ export function useMusicalGroupHome(options: {
     ])
   }
 
+  /** Refresh reading-list saved items without reloading personalized home previews. */
+  function syncReadingListSavedItems(): void {
+    if (savedPagesSource !== 'readingList') return
+
+    const readingListTitles = [...currentUserPageLists.value.readingList]
+    hasSavedPages.value = readingListTitles.length > 0
+
+    if (!readingListTitles.length) {
+      void reloadBookmarks({
+        skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
+      })
+      return
+    }
+
+    savedItems.value = resolveReadingListSavedItems(readingListTitles)
+    if (readingListNeedsSummaryFetch(savedItems.value)) {
+      void ensureReadingListSummaries()
+    }
+  }
+
   async function reloadBookmarks(reloadOptions: ReloadBookmarksOptions = {}): Promise<void> {
     bookmarkAbort?.abort()
     bookmarkAbort = new AbortController()
@@ -561,15 +524,6 @@ export function useMusicalGroupHome(options: {
       if (!suggestionSeedsAvailable.value) {
         clearPersonalizedFeeds()
 
-        if (suggestedEditsModuleSeedsAvailable.value) {
-          await Promise.all([
-            loadModuleHelpWantedOnly([], signal, skipFeeds),
-            loadContributeFallbackFeeds(signal, { skipHelpWanted: true }),
-            reloadTranslationForBookmarks(signal),
-          ])
-          return
-        }
-
         await Promise.all([
           loadContributeFallbackFeeds(signal),
           reloadTranslationForBookmarks(signal),
@@ -579,8 +533,8 @@ export function useMusicalGroupHome(options: {
 
       contributeSeedItems.value = []
       const seedItems = globalSuggestionSeedItems([])
-      const dependencyKey = globalSuggestionFeedsKey(seedItems)
-      hydratePersonalizedFeedsFromCache(dependencyKey, helpWantedDependencyKey([]))
+      const dependencyKey = globalSuggestionFeedsKey([])
+      hydratePersonalizedFeedsFromCache(dependencyKey)
 
       if (!seedItems.length) {
         homeRelatedItems.value = []
@@ -603,8 +557,11 @@ export function useMusicalGroupHome(options: {
 
     let items: HomeSavedItem[]
     if (savedPagesSource === 'readingList') {
-      items = readingListToSavedItems(readingListTitles)
+      items = resolveReadingListSavedItems(readingListTitles)
       savedItems.value = items
+      if (readingListNeedsSummaryFetch(items)) {
+        void ensureReadingListSummaries()
+      }
     } else {
       if (!getCachedSavedSummaries(savedPagesCacheKey()) && !savedItems.value.length) {
         savedItemsLoading.value = true
@@ -634,31 +591,14 @@ export function useMusicalGroupHome(options: {
     if (
       !preferences.value.useSavedPages &&
       !preferences.value.useEditingHistory &&
+      !preferences.value.useWatchlist &&
       !preferences.value.useInterests
     ) {
       homeRelatedItems.value = []
       homeMentionsRaw.value = []
       helpWanted.value = []
-
-      const moduleSeedsAvailable = suggestedEditsModuleSeedsAvailable.value
-      await Promise.all([
-        moduleSeedsAvailable
-          ? loadModuleHelpWantedOnly(items, signal, skipFeeds)
-          : Promise.resolve(),
-        (async () => {
-          if (!skipFeeds.has('recentChanges')) {
-            recentChangesLoading.value = true
-            try {
-              recentChanges.value = await fetchRecentChanges(items, signal, { dependencyKey })
-            } catch (err) {
-              if (isAbort(err)) return
-            } finally {
-              recentChangesLoading.value = false
-            }
-          }
-        })(),
-        reloadTranslationForBookmarks(signal),
-      ])
+      recentChanges.value = []
+      await reloadTranslationForBookmarks(signal)
       return
     }
 
@@ -682,8 +622,11 @@ export function useMusicalGroupHome(options: {
 
     const cacheKey = readingListKey()
     const cached = getCachedSavedSummaries(cacheKey)
-    if (cached?.length) {
-      savedItems.value = cached
+    if (
+      cached?.length &&
+      !cached.some((item) => !item.thumbnailUrl?.trim() || !item.description?.trim())
+    ) {
+      savedItems.value = resolveReadingListSavedItems(titles)
       return
     }
 
@@ -905,9 +848,8 @@ export function useMusicalGroupHome(options: {
   function primeHomeRelatedLoading(): void {
     if (!hasSuggestionSeeds(savedItems.value, preferences.value, listInterests())) return
 
-    const seedItems = globalSuggestionSeedItems(savedItems.value)
-    const dependencyKey = globalSuggestionFeedsKey(seedItems)
-    hydratePersonalizedFeedsFromCache(dependencyKey, helpWantedDependencyKey(savedItems.value))
+    const dependencyKey = globalSuggestionFeedsKey(savedItems.value)
+    hydratePersonalizedFeedsFromCache(dependencyKey)
 
     if (homeRelatedItems.value.length > 0) return
     homeRelatedLoading.value = true
@@ -992,13 +934,17 @@ export function useMusicalGroupHome(options: {
   watch(
     () => saveFeedback?.listsVersion.value,
     () => {
+      if (savedPagesSource === 'readingList') {
+        syncReadingListSavedItems()
+        return
+      }
       void reloadBookmarks({
         skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
       })
     },
   )
 
-  watch([preferencesVersion, interestsVersion, modulePreferencesVersion], () => {
+  watch([preferencesVersion, interestsVersion], () => {
     clearCachedSuggestionFeeds()
     void reloadBookmarks({
       skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
@@ -1017,9 +963,21 @@ export function useMusicalGroupHome(options: {
   )
 
   watch(
+    () => currentUserPageLists.value.watchlist,
+    () => {
+      clearCachedSuggestionFeeds()
+      void reloadBookmarks({
+        skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
+      })
+    },
+    { deep: true },
+  )
+
+  watch(
     () => currentUserPageLists.value.readingList,
     () => {
       if (savedPagesSource !== 'readingList') return
+      syncReadingListSavedItems()
       clearCachedSuggestionFeeds()
       void reloadBookmarks({
         skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
@@ -1065,7 +1023,6 @@ export function useMusicalGroupHome(options: {
     retryTranslationFeed,
     hasSavedPages,
     suggestionSeedsAvailable,
-    suggestedEditsModuleSeedsAvailable,
     showSavedBasedMentions,
     savedSorted,
     contributeSeedItems,

@@ -2,7 +2,7 @@ import { bookmarksKey } from './cacheKeys'
 import { normalizeEnwikiTitle } from './enwikiTitle'
 import {
   fetchEditSuggestionForPage,
-  fetchEditSuggestionForSavedItem,
+  fetchSavedSuggestionsUpToLimit,
 } from './fetchEditSuggestion'
 import { fetchMorelikeTitles, resolveRelatedSummary } from './fetchRelatedReading'
 import { getCachedHelpWanted, setCachedHelpWanted } from './homeTabCache'
@@ -93,21 +93,21 @@ export async function fetchHelpWanted(
 
   const suggestions: HomeHelpWanted[] = []
 
-  if (includeSaved) {
-    const savedCandidates = savedForDirect.filter((item) => item.enwikiTitle)
+  function persistPreviewCache(): void {
+    if (suggestions.length) {
+      setCachedHelpWanted(dependencyKey, suggestions)
+    }
+  }
 
-    for (const item of savedCandidates) {
-      if (suggestions.length >= limit) break
-      const suggestion = await fetchEditSuggestionForSavedItem(
-        item,
-        signal,
-        'musical-group-help-wanted',
-      )
-      if (suggestion) {
+  if (includeSaved) {
+    await fetchSavedSuggestionsUpToLimit(savedForDirect, limit, signal, {
+      onEach: (suggestion) => {
         suggestions.push(suggestion)
         options?.onEach?.(suggestion)
-      }
-    }
+        persistPreviewCache()
+      },
+      userAgentSuffix: 'musical-group-help-wanted',
+    })
   }
 
   while (suggestions.length < limit) {
@@ -115,6 +115,7 @@ export async function fetchHelpWanted(
     if (!unsavedSuggestion) break
     suggestions.push(unsavedSuggestion)
     options?.onEach?.(unsavedSuggestion)
+    persistPreviewCache()
   }
 
   if (suggestions.length) {

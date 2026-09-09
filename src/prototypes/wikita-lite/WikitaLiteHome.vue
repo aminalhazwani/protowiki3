@@ -12,16 +12,15 @@ import { useWikitaLiteDashboardMode } from './composables/useWikitaLiteDashboard
 import { useWikitaLiteDismissedModulesSingleton } from './composables/useWikitaLiteDismissedModules'
 import { useWikitaLiteExploreModuleOrder } from './composables/useWikitaLiteExploreModuleOrder'
 import { useWikitaLiteHideTabBarSingleton } from './composables/useWikitaLiteHideTabBar'
-import { useWikitaLiteHomeModuleOrder } from './composables/useWikitaLiteHomeModuleOrder'
+import { useWikitaLiteHomeLayout } from './composables/useWikitaLiteHomeLayout'
 import { useWikitaLiteImpact } from './composables/useWikitaLiteImpact'
 import { useWikitaLiteMentor } from './composables/useWikitaLiteMentor'
-import { useWikitaLitePinnedModulesSingleton } from './composables/useWikitaLitePinnedModules'
 import { useWikitaLiteTabLoading } from './composables/useWikitaLiteTabLoading'
 import { useWikitaLiteRoute } from './composables/useWikitaLiteRoute'
 import { useWikitaLiteView } from './composables/useWikitaLiteView'
+import WikitaLiteInterestsEmptyState from './components/WikitaLiteInterestsEmptyState.vue'
 import WikitaLiteModule from './components/WikitaLiteModule.vue'
 import ActiveDiscussionsModule from './modules/ActiveDiscussionsModule.vue'
-import BornOnThisDayModule from './modules/BornOnThisDayModule.vue'
 import DidYouKnowModule from './modules/DidYouKnowModule.vue'
 import FeaturedModule from './modules/FeaturedModule.vue'
 import HelpWantedModule from './modules/HelpWantedModule.vue'
@@ -36,7 +35,6 @@ import TranslationModule from './modules/TranslationModule.vue'
 import TrendingModule from './modules/TrendingModule.vue'
 import {
   ACTIVE_DISCUSSIONS_PAGE,
-  BORN_ON_THIS_DAY_PAGE,
   DID_YOU_KNOW_PAGE,
   FEATURED_PAGE,
   FURTHER_READING_PAGE,
@@ -56,7 +54,6 @@ import {
 
 const HOME_FEATURED_PREVIEW_LIMIT = 3
 const HOME_DYK_PREVIEW_LIMIT = 2
-const HOME_BORN_ON_THIS_DAY_PREVIEW_LIMIT = 3
 const HOME_TRENDING_PREVIEW_LIMIT = 2
 const EXPLORE_UNSAVED_DYK_PREVIEW_LIMIT = 3
 const HOME_SAVED_PREVIEW_LIMIT = 5
@@ -73,18 +70,17 @@ const { listsVersion } = useWikitaSaveFeedback()
 const { knownLanguages } = useConfig()
 const { wikitaLiteRoute } = useWikitaLiteRoute()
 const { activeView, selectView } = useWikitaLiteView()
-const { showImpact, impactCardProps, impactLoading, impactHasContent } = useWikitaLiteImpact()
+const { impactCardProps, impactLoading, impactHasContent } = useWikitaLiteImpact()
 const { moduleTitle: mentorModuleTitle } = useWikitaLiteMentor()
 
 const impactPreviewCount = computed(() => (impactHasContent.value ? 1 : 0))
 const impactEmptyPending = computed(() => impactLoading.value && !impactHasContent.value)
-const { homeModuleOrderStyle } = useWikitaLiteHomeModuleOrder()
 const { exploreModuleOrderStyle } = useWikitaLiteExploreModuleOrder()
 const { contributeModuleOrderStyle } = useWikitaLiteContributeModuleOrder()
 const { isDismissed } = useWikitaLiteDismissedModulesSingleton()
-const { isPinnedToHome } = useWikitaLitePinnedModulesSingleton()
 const { hideTabBar } = useWikitaLiteHideTabBarSingleton()
-const { isAdvancedMode, simplifiedModuleOrderStyle } = useWikitaLiteDashboardMode()
+const { isLayoutModuleEnabled, layoutModuleOrderStyle } = useWikitaLiteHomeLayout()
+const { dashboardMode } = useWikitaLiteDashboardMode()
 
 let getBookmarkChangeSkipFeeds: () => PersonalizedFeedId[] = () => []
 
@@ -98,10 +94,8 @@ const {
   trendingTabError,
   retryTrendingFeed,
   didYouKnow,
-  bornOnThisDay,
   hasSavedPages,
   suggestionSeedsAvailable,
-  suggestedEditsModuleSeedsAvailable,
   showSavedBasedMentions,
   recentlySaved,
   savedItemsLoading,
@@ -124,16 +118,6 @@ const {
   retryTranslationFeed,
 } = useWikitaLiteHome({ getBookmarkChangeSkipFeeds: () => getBookmarkChangeSkipFeeds() })
 
-watch(
-  () => activeView.value,
-  (view) => {
-    if (view === 'read') {
-      void ensureReadingListSummaries()
-    }
-  },
-  { immediate: true },
-)
-
 const featuredHasContent = computed(() => Boolean(featuredArticle.value))
 
 const featuredPreviewCount = computed(() => (featuredHasContent.value ? 1 : 0))
@@ -147,15 +131,13 @@ const homeMentionsPreview = computed(() =>
 )
 
 const helpWantedPreviewLimit = computed(() =>
-  suggestionSeedsAvailable.value ||
-  suggestedEditsModuleSeedsAvailable.value ||
-  hasSavedPages.value
+  suggestionSeedsAvailable.value || hasSavedPages.value
     ? HOME_HELP_WANTED_PREVIEW_LIMIT
     : UNSAVED_HELP_WANTED_PREVIEW_LIMIT,
 )
 
 const recentActivityPreviewLimit = computed(() =>
-  hasSavedPages.value
+  suggestionSeedsAvailable.value
     ? HOME_RECENT_ACTIVITY_PREVIEW_LIMIT
     : UNSAVED_RECENT_ACTIVITY_PREVIEW_LIMIT,
 )
@@ -172,9 +154,29 @@ const furtherReadingEmptyPending = computed(
 )
 const suggestedEditsEmptyPending = computed(
   () =>
-    suggestedEditsModuleSeedsAvailable.value &&
+    suggestionSeedsAvailable.value &&
     helpWantedPreview.value.length === 0 &&
-    (helpWantedLoading.value || homeRelatedLoading.value),
+    helpWantedLoading.value,
+)
+
+const showFurtherReadingNoSeeds = computed(
+  () =>
+    dashboardMode.value === 'read' &&
+    isLayoutModuleEnabled('furtherReading') &&
+    !suggestionSeedsAvailable.value,
+)
+const showSuggestedEditsNoSeeds = computed(
+  () =>
+    (dashboardMode.value === 'both' || dashboardMode.value === 'edit') &&
+    isLayoutModuleEnabled('suggestedEdits') &&
+    !suggestionSeedsAvailable.value,
+)
+
+const furtherReadingPreviewCount = computed(
+  () => homeRelatedPreviewCount.value || (showFurtherReadingNoSeeds.value ? 1 : 0),
+)
+const suggestedEditsPreviewCount = computed(
+  () => helpWantedPreview.value.length || (showSuggestedEditsNoSeeds.value ? 1 : 0),
 )
 
 const recentActivityPreview = computed(() =>
@@ -193,8 +195,6 @@ const showActiveDiscussionsContent = computed(
 
 const activeDiscussionsPending = computed(
   () =>
-    hasSavedPages.value &&
-    showRecentActivityModule.value &&
     activeDiscussionsLoading.value &&
     !activeDiscussions.value.length &&
     !activeDiscussionsError.value,
@@ -215,53 +215,38 @@ const homeDidYouKnowPreview = computed(() =>
   didYouKnow.value.slice(0, exploreDidYouKnowPreviewLimit.value),
 )
 
-const homeBornOnThisDayPreview = computed(() =>
-  bornOnThisDay.value.slice(0, HOME_BORN_ON_THIS_DAY_PREVIEW_LIMIT),
-)
-
 const homePinnedDidYouKnowPreview = computed(() =>
   didYouKnow.value.slice(0, HOME_DYK_PREVIEW_LIMIT),
 )
 
 const showDidYouKnowOnHome = computed(
   () =>
-    isPinnedToHome('didYouKnow') &&
+    isLayoutModuleEnabled('didYouKnow') &&
     !isDismissed('didYouKnow') &&
     (homePinnedDidYouKnowPreview.value.length > 0 || featuredTabLoading.value),
 )
 
-const showBornOnThisDayOnHome = computed(
-  () =>
-    isPinnedToHome('bornOnThisDay') &&
-    !isDismissed('bornOnThisDay') &&
-    (homeBornOnThisDayPreview.value.length > 0 || featuredTabLoading.value),
+const showSavedOnHome = computed(
+  () => isLayoutModuleEnabled('saved') && !isDismissed('saved'),
 )
 
-const showSavedOnHome = computed(() => isPinnedToHome('saved') && !isDismissed('saved'))
-
-const showMentionsOnHome = computed(
-  () =>
-    isPinnedToHome('mentions') &&
-    !isDismissed('mentions') &&
-    showSavedBasedMentions.value &&
-    (homeMentionsPreview.value.length > 0 || homeMentionsLoading.value),
+watch(
+  () => [hasSavedPages.value, showSavedOnHome.value, activeView.value] as const,
+  ([saved, savedOnHome, view]) => {
+    if (saved && (savedOnHome || view === 'read')) {
+      void ensureReadingListSummaries()
+    }
+  },
+  { immediate: true },
 )
 
 const showTranslationModule = computed(() => knownLanguages.value.length > 0)
 
-const showEditTranslationModule = computed(
-  () => showTranslationModule.value && hasSavedPages.value,
-)
-
 const recentActivityTitle = computed(() => recentActivityTitleForView(activeView.value))
 
 function isRecentActivityVisible(): boolean {
-  return recentActivityPreview.value.length > 0 && !recentChangesLoading.value
+  return recentChangesLoading.value || recentActivityPreview.value.length > 0
 }
-
-const showRecentActivityModule = computed(
-  () => hasSavedPages.value && isRecentActivityVisible(),
-)
 
 const translationPending = computed(
   () =>
@@ -277,40 +262,34 @@ const editTab = useWikitaLiteTabLoading([
     loading: featuredTabLoading,
     previewCount: featuredPreviewCount,
     hasError: featuredTabError,
+    enabled: computed(() => isLayoutModuleEnabled('featured')),
   },
   {
     id: 'trending',
     loading: trendingLoading,
     previewCount: trendingPreviewCount,
     hasError: trendingTabError,
+    enabled: computed(() => isLayoutModuleEnabled('trending')),
   },
   {
     id: 'furtherReading',
     loading: homeRelatedLoading,
-    previewCount: homeRelatedPreviewCount,
+    previewCount: furtherReadingPreviewCount,
     emptyPending: furtherReadingEmptyPending,
-    enabled: suggestionSeedsAvailable,
+    enabled: computed(() => isLayoutModuleEnabled('furtherReading')),
   },
   {
     id: 'suggestedEdits',
     loading: helpWantedLoading,
-    previewCount: computed(() => helpWantedPreview.value.length),
+    previewCount: suggestedEditsPreviewCount,
     emptyPending: suggestedEditsEmptyPending,
-    enabled: suggestedEditsModuleSeedsAvailable,
-  },
-  {
-    id: 'translation',
-    loading: translationLoading,
-    previewCount: computed(() => translationPreview.value.length),
-    emptyPending: translationPending,
-    hasError: translationError,
-    enabled: showEditTranslationModule,
+    enabled: computed(() => isLayoutModuleEnabled('suggestedEdits')),
   },
   {
     id: 'recentActivity',
     loading: recentChangesLoading,
     previewCount: computed(() => recentActivityPreview.value.length),
-    enabled: hasSavedPages,
+    enabled: computed(() => isLayoutModuleEnabled('recentActivity')),
   },
   {
     id: 'activeDiscussions',
@@ -318,14 +297,26 @@ const editTab = useWikitaLiteTabLoading([
     previewCount: activeDiscussionsPreviewCount,
     emptyPending: activeDiscussionsPending,
     hasError: activeDiscussionsError,
-    enabled: hasSavedPages,
+    enabled: computed(() => isLayoutModuleEnabled('activeDiscussions')),
   },
   {
     id: 'impact',
     loading: impactLoading,
     previewCount: impactPreviewCount,
     emptyPending: impactEmptyPending,
-    enabled: showImpact,
+    enabled: computed(() => isLayoutModuleEnabled('impact')),
+  },
+  {
+    id: 'saved',
+    loading: savedItemsLoading,
+    previewCount: computed(() => recentlySaved.value.length),
+    enabled: computed(() => isLayoutModuleEnabled('saved')),
+  },
+  {
+    id: 'didYouKnow',
+    loading: featuredTabLoading,
+    previewCount: computed(() => homePinnedDidYouKnowPreview.value.length),
+    enabled: computed(() => isLayoutModuleEnabled('didYouKnow')),
   },
 ])
 
@@ -356,35 +347,12 @@ const readExploreTab = useWikitaLiteTabLoading([
   },
 ])
 
-const simplifiedTab = useWikitaLiteTabLoading([
-  {
-    id: 'furtherReading',
-    loading: homeRelatedLoading,
-    previewCount: homeRelatedPreviewCount,
-    emptyPending: furtherReadingEmptyPending,
-    enabled: suggestionSeedsAvailable,
-  },
-  {
-    id: 'suggestedEdits',
-    loading: helpWantedLoading,
-    previewCount: computed(() => helpWantedPreview.value.length),
-    emptyPending: suggestedEditsEmptyPending,
-    enabled: suggestedEditsModuleSeedsAvailable,
-  },
-  {
-    id: 'impact',
-    loading: impactLoading,
-    previewCount: impactPreviewCount,
-    emptyPending: impactEmptyPending,
-    enabled: showImpact,
-  },
-])
-
 const contributeTab = useWikitaLiteTabLoading([
   {
     id: 'suggestedEdits',
     loading: helpWantedLoading,
     previewCount: computed(() => helpWantedPreview.value.length),
+    emptyPending: suggestedEditsEmptyPending,
   },
   {
     id: 'translation',
@@ -411,21 +379,20 @@ const contributeTab = useWikitaLiteTabLoading([
     loading: impactLoading,
     previewCount: impactPreviewCount,
     emptyPending: impactEmptyPending,
-    enabled: showImpact,
+    enabled: computed(() => isLayoutModuleEnabled('impact')),
   },
 ])
 
 function isFurtherReadingVisible(): boolean {
-  if (homeRelatedLoading.value) return false
-  return homeRelatedItems.value.length > 0
+  return homeRelatedLoading.value || homeRelatedItems.value.length > 0
 }
 
 function isMentionsVisible(): boolean {
-  return homeMentionsPreview.value.length > 0 && !homeMentionsLoading.value
+  return homeMentionsLoading.value || homeMentionsPreview.value.length > 0
 }
 
 function isSuggestedEditsVisible(): boolean {
-  return helpWantedPreview.value.length > 0 && !helpWantedLoading.value
+  return helpWantedLoading.value || helpWantedPreview.value.length > 0
 }
 
 function onSelectView(view: string) {
@@ -478,106 +445,10 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
   >
     <CdxTab name="edit" :label="VIEW_TAB_LABELS.edit">
       <div class="wikita-lite-home__panel">
-        <template v-if="!isAdvancedMode">
-          <WikitaLiteModule
-            v-if="
-              simplifiedTab.showModule('suggestedEdits') && !isDismissed('suggestedEdits')
-            "
-            module-id="suggestedEdits"
-            :style="simplifiedModuleOrderStyle('suggestedEdits')"
-            :title="MODULE_TITLES.suggestedEdits"
-            :to="wikitaLiteRoute(HELP_WANTED_PAGE)"
-          >
-            <div
-              v-if="simplifiedTab.showLoadingBar('suggestedEdits') && !helpWantedPreview.length"
-              class="wikita-lite-home__loading"
-            >
-              <CdxProgressBar inline aria-label="Loading edit suggestions" />
-            </div>
-            <HelpWantedModule
-              v-if="helpWantedPreview.length"
-              :items="helpWantedPreview"
-              :preview-limit="helpWantedPreviewLimit"
-              :more-to="wikitaLiteRoute(HELP_WANTED_PAGE)"
-            >
-              <template
-                v-if="simplifiedTab.showLoadingBar('suggestedEdits') && helpWantedPreview.length"
-                #after-cards
-              >
-                <div class="wikita-lite-home__loading">
-                  <CdxProgressBar inline aria-label="Loading edit suggestions" />
-                </div>
-              </template>
-            </HelpWantedModule>
-          </WikitaLiteModule>
-
-          <WikitaLiteModule
-            v-if="simplifiedTab.showModule('furtherReading') && !isDismissed('furtherReading')"
-            module-id="furtherReading"
-            :style="simplifiedModuleOrderStyle('furtherReading')"
-            :title="MODULE_TITLES.furtherReading"
-            :to="wikitaLiteRoute(FURTHER_READING_PAGE)"
-          >
-            <div
-              v-if="simplifiedTab.showLoadingBar('furtherReading') && !homeRelatedItems.length"
-              class="wikita-lite-home__loading"
-            >
-              <CdxProgressBar inline aria-label="Loading daily reads" />
-            </div>
-            <RelatedModule
-              v-if="homeRelatedItems.length"
-              :items="homeRelatedItems"
-              :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
-              :lists-version="listsVersion"
-            >
-              <template
-                v-if="simplifiedTab.showLoadingBar('furtherReading') && homeRelatedItems.length"
-                #after-cards
-              >
-                <div class="wikita-lite-home__loading">
-                  <CdxProgressBar inline aria-label="Loading daily reads" />
-                </div>
-              </template>
-            </RelatedModule>
-          </WikitaLiteModule>
-
-          <WikitaLiteModule
-            v-if="showImpact && !isDismissed('impact') && simplifiedTab.showModule('impact')"
-            module-id="impact"
-            :style="simplifiedModuleOrderStyle('impact')"
-            :title="MODULE_TITLES.impact"
-            :to="wikitaLiteRoute(IMPACT_PAGE)"
-          >
-            <div
-              v-if="simplifiedTab.showLoadingBar('impact') && !impactHasContent"
-              class="wikita-lite-home__loading"
-            >
-              <CdxProgressBar inline aria-label="Loading your impact" />
-            </div>
-            <ImpactModule v-if="impactHasContent" v-bind="impactCardProps" />
-            <div
-              v-if="simplifiedTab.showLoadingBar('impact') && impactHasContent"
-              class="wikita-lite-home__loading"
-            >
-              <CdxProgressBar inline aria-label="Loading your impact" />
-            </div>
-          </WikitaLiteModule>
-
-          <WikitaLiteModule
-            v-if="!isDismissed('mentor')"
-            module-id="mentor"
-            :style="simplifiedModuleOrderStyle('mentor')"
-            :title="mentorModuleTitle"
-          >
-            <MentorModule />
-          </WikitaLiteModule>
-        </template>
-
-        <template v-else>
         <WikitaLiteModule
           v-if="editTab.showModule('featured') && !isDismissed('featured')"
           module-id="featured"
-          :style="homeModuleOrderStyle('featured')"
+          :style="layoutModuleOrderStyle('featured')"
           :title="MODULE_TITLES.featured"
           :to="wikitaLiteRoute(FEATURED_PAGE)"
         >
@@ -593,7 +464,6 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             :error="featuredTabError"
             :preview-limit="HOME_FEATURED_PREVIEW_LIMIT"
             :lists-version="listsVersion"
-            :more-to="wikitaLiteRoute(FEATURED_PAGE)"
             @retry="retryFeaturedFeed"
           >
             <template v-if="editTab.showLoadingBar('featured') && featuredHasContent" #after-cards>
@@ -607,7 +477,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         <WikitaLiteModule
           v-if="editTab.showModule('trending') && !isDismissed('trending')"
           module-id="trending"
-          :style="homeModuleOrderStyle('trending')"
+          :style="layoutModuleOrderStyle('trending')"
           :title="MODULE_TITLES.trending"
           :to="wikitaLiteRoute(TRENDING_PAGE)"
         >
@@ -637,18 +507,19 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         <WikitaLiteModule
           v-if="editTab.showModule('furtherReading') && !isDismissed('furtherReading')"
           module-id="furtherReading"
-          :style="homeModuleOrderStyle('furtherReading')"
+          :style="layoutModuleOrderStyle('furtherReading')"
           :title="MODULE_TITLES.furtherReading"
           :to="wikitaLiteRoute(FURTHER_READING_PAGE)"
         >
+          <WikitaLiteInterestsEmptyState v-if="showFurtherReadingNoSeeds" />
           <div
-            v-if="editTab.showLoadingBar('furtherReading') && !homeRelatedItems.length"
+            v-else-if="editTab.showLoadingBar('furtherReading') && !homeRelatedItems.length"
             class="wikita-lite-home__loading"
           >
             <CdxProgressBar inline aria-label="Loading daily reads" />
           </div>
           <RelatedModule
-            v-if="homeRelatedItems.length"
+            v-else-if="homeRelatedItems.length"
             :items="homeRelatedItems"
             :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
             :lists-version="listsVersion"
@@ -667,24 +538,25 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         <WikitaLiteModule
           v-if="editTab.showModule('suggestedEdits') && !isDismissed('suggestedEdits')"
           module-id="suggestedEdits"
-          :style="homeModuleOrderStyle('suggestedEdits')"
+          :style="layoutModuleOrderStyle('suggestedEdits')"
           :title="MODULE_TITLES.suggestedEdits"
           :to="wikitaLiteRoute(HELP_WANTED_PAGE)"
         >
+          <WikitaLiteInterestsEmptyState v-if="showSuggestedEditsNoSeeds" />
           <div
-            v-if="editTab.showLoadingBar('suggestedEdits') && !helpWantedPreview.length"
+            v-else-if="helpWantedLoading && !helpWantedPreview.length"
             class="wikita-lite-home__loading"
           >
             <CdxProgressBar inline aria-label="Loading edit suggestions" />
           </div>
           <HelpWantedModule
-            v-if="helpWantedPreview.length"
+            v-else-if="helpWantedPreview.length"
             :items="helpWantedPreview"
             :preview-limit="helpWantedPreviewLimit"
             :more-to="wikitaLiteRoute(HELP_WANTED_PAGE)"
           >
             <template
-              v-if="editTab.showLoadingBar('suggestedEdits') && helpWantedPreview.length"
+              v-if="helpWantedLoading && helpWantedPreview.length"
               #after-cards
             >
               <div class="wikita-lite-home__loading">
@@ -695,48 +567,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         </WikitaLiteModule>
 
         <WikitaLiteModule
-          v-if="editTab.showModule('translation') && !isDismissed('translation')"
-          module-id="translation"
-          :style="homeModuleOrderStyle('translation')"
-          :title="MODULE_TITLES.translateArticles"
-          :to="wikitaLiteRoute(TRANSLATIONS_PAGE)"
-        >
-          <div
-            v-if="
-              editTab.showLoadingBar('translation') &&
-              !translationPreview.length &&
-              !translationError
-            "
-            class="wikita-lite-home__loading"
-          >
-            <CdxProgressBar inline aria-label="Loading translation suggestions" />
-          </div>
-          <TranslationModule
-            v-if="translationPreview.length || translationError"
-            :items="translationSuggestions"
-            :error="translationError"
-            :preview-limit="HOME_TRANSLATION_PREVIEW_LIMIT"
-            :more-to="wikitaLiteRoute(TRANSLATIONS_PAGE)"
-            @retry="retryTranslationFeed"
-          >
-            <template
-              v-if="
-                editTab.showLoadingBar('translation') &&
-                (translationPreview.length || translationError)
-              "
-              #after-cards
-            >
-              <div class="wikita-lite-home__loading">
-                <CdxProgressBar inline aria-label="Loading translation suggestions" />
-              </div>
-            </template>
-          </TranslationModule>
-        </WikitaLiteModule>
-
-        <WikitaLiteModule
           v-if="editTab.showModule('recentActivity') && !isDismissed('recentActivity')"
           module-id="recentActivity"
-          :style="homeModuleOrderStyle('recentActivity')"
+          :style="layoutModuleOrderStyle('recentActivity')"
           :title="recentActivityTitle"
           :to="wikitaLiteRoute(RECENT_ACTIVITY_PAGE)"
         >
@@ -766,7 +599,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         <WikitaLiteModule
           v-if="editTab.showModule('activeDiscussions') && !isDismissed('activeDiscussions')"
           module-id="activeDiscussions"
-          :style="homeModuleOrderStyle('activeDiscussions')"
+          :style="layoutModuleOrderStyle('activeDiscussions')"
           :title="MODULE_TITLES.activeDiscussions"
           :to="wikitaLiteRoute(ACTIVE_DISCUSSIONS_PAGE)"
         >
@@ -796,9 +629,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         </WikitaLiteModule>
 
         <WikitaLiteModule
-          v-if="showImpact && !isDismissed('impact') && editTab.showModule('impact')"
+          v-if="!isDismissed('impact') && editTab.showModule('impact')"
           module-id="impact"
-          :style="homeModuleOrderStyle('impact')"
+          :style="layoutModuleOrderStyle('impact')"
           :title="MODULE_TITLES.impact"
           :to="wikitaLiteRoute(IMPACT_PAGE)"
         >
@@ -818,14 +651,14 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         </WikitaLiteModule>
 
         <WikitaLiteModule
-          v-if="showDidYouKnowOnHome"
+          v-if="showDidYouKnowOnHome && editTab.showModule('didYouKnow')"
           module-id="didYouKnow"
-          :style="homeModuleOrderStyle('didYouKnow')"
+          :style="layoutModuleOrderStyle('didYouKnow')"
           :title="MODULE_TITLES.didYouKnow"
           :to="wikitaLiteRoute(DID_YOU_KNOW_PAGE)"
         >
           <div
-            v-if="featuredTabLoading && !homePinnedDidYouKnowPreview.length"
+            v-if="editTab.showLoadingBar('didYouKnow') && !homePinnedDidYouKnowPreview.length"
             class="wikita-lite-home__loading"
           >
             <CdxProgressBar inline aria-label="Loading Did you know" />
@@ -840,36 +673,14 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         </WikitaLiteModule>
 
         <WikitaLiteModule
-          v-if="showBornOnThisDayOnHome"
-          module-id="bornOnThisDay"
-          :style="homeModuleOrderStyle('bornOnThisDay')"
-          :title="MODULE_TITLES.bornOnThisDay"
-          :to="wikitaLiteRoute(BORN_ON_THIS_DAY_PAGE)"
-        >
-          <div
-            v-if="featuredTabLoading && !homeBornOnThisDayPreview.length"
-            class="wikita-lite-home__loading"
-          >
-            <CdxProgressBar inline aria-label="Loading Born on this day" />
-          </div>
-          <BornOnThisDayModule
-            v-if="homeBornOnThisDayPreview.length"
-            :items="bornOnThisDay"
-            :preview-limit="HOME_BORN_ON_THIS_DAY_PREVIEW_LIMIT"
-            :lists-version="listsVersion"
-            :more-to="wikitaLiteRoute(BORN_ON_THIS_DAY_PAGE)"
-          />
-        </WikitaLiteModule>
-
-        <WikitaLiteModule
-          v-if="showSavedOnHome"
+          v-if="showSavedOnHome && editTab.showModule('saved')"
           module-id="saved"
-          :style="homeModuleOrderStyle('saved')"
+          :style="layoutModuleOrderStyle('saved')"
           :title="MODULE_TITLES.saved"
           :to="wikitaLiteRoute(SAVED_PAGE)"
         >
           <div
-            v-if="hasSavedPages && savedItemsLoading && !recentlySaved.length"
+            v-if="editTab.showLoadingBar('saved') && hasSavedPages && !recentlySaved.length"
             class="wikita-lite-home__loading"
           >
             <CdxProgressBar inline aria-label="Loading saved pages" />
@@ -882,41 +693,17 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         </WikitaLiteModule>
 
         <WikitaLiteModule
-          v-if="showMentionsOnHome"
-          module-id="mentions"
-          :style="homeModuleOrderStyle('mentions')"
-          :title="MODULE_TITLES.mentions"
-          :to="wikitaLiteRoute(MENTIONS_PAGE)"
+          v-if="isLayoutModuleEnabled('mentor') && !isDismissed('mentor')"
+          module-id="mentor"
+          :style="layoutModuleOrderStyle('mentor')"
+          :title="mentorModuleTitle"
         >
-          <div
-            v-if="homeMentionsLoading && !homeMentionsPreview.length"
-            class="wikita-lite-home__loading"
-          >
-            <CdxProgressBar inline aria-label="Loading mentions" />
-          </div>
-          <MentionsModule
-            v-if="homeMentionsPreview.length"
-            :items="homeMentionsPreview"
-            :preview-limit="HOME_MENTIONS_PREVIEW_LIMIT"
-            :lists-version="listsVersion"
-            :more-to="wikitaLiteRoute(MENTIONS_PAGE)"
-          />
+          <MentorModule />
         </WikitaLiteModule>
-
-        <WikitaLiteModule
-          v-if="!isDismissed('learn')"
-          module-id="learn"
-          :style="homeModuleOrderStyle('learn')"
-          :title="MODULE_TITLES.learn"
-          :to="wikitaLiteRoute(LEARN_PAGE)"
-        >
-          <LearnModule />
-        </WikitaLiteModule>
-        </template>
       </div>
     </CdxTab>
 
-    <CdxTab v-if="!hideTabBar && isAdvancedMode" name="read" :label="VIEW_TAB_LABELS.read">
+    <CdxTab v-if="!hideTabBar" name="read" :label="VIEW_TAB_LABELS.read">
       <div class="wikita-lite-home__panel">
         <WikitaLiteModule
           v-if="readExploreTab.showModule('didYouKnow') && !isDismissed('didYouKnow')"
@@ -1052,7 +839,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
       </div>
     </CdxTab>
 
-    <CdxTab v-if="!hideTabBar && isAdvancedMode" name="contribute" :label="VIEW_TAB_LABELS.contribute">
+    <CdxTab v-if="!hideTabBar" name="contribute" :label="VIEW_TAB_LABELS.contribute">
       <div class="wikita-lite-home__panel">
         <WikitaLiteModule
           v-if="contributeTab.showModule('suggestedEdits') && !isDismissed('suggestedEdits')"
@@ -1188,7 +975,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
         </WikitaLiteModule>
 
         <WikitaLiteModule
-          v-if="showImpact && !isDismissed('impact') && contributeTab.showModule('impact')"
+          v-if="!isDismissed('impact') && contributeTab.showModule('impact')"
           module-id="impact"
           :style="contributeModuleOrderStyle('impact')"
           :title="MODULE_TITLES.impact"

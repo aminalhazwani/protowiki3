@@ -7,12 +7,14 @@ import {
   type WikitaSaveFeedbackContext,
 } from '../../musical-group/composables/useWikitaSaveFeedback'
 import { normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
+import { setCachedItemThumbnail } from '../../musical-group/data/itemThumbnailCache'
+import { readingListSavedPageId } from '../data/readingListSavedPages'
 import { useWikitaLiteListsSingleton } from './useWikitaLiteLists'
 import { initWikitaLiteUrlState } from './useWikitaLiteUrlState'
 
 export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
   initWikitaLiteUrlState()
-  const { currentUserPageLists, setCurrentUserPageList } = useConfig()
+  const { currentUserPageLists, setReadingListWithTimestamps } = useConfig()
   const { addPageToList, createList, removePageFromAllLists } = useWikitaLiteListsSingleton()
 
   const toastOpen = ref(false)
@@ -38,18 +40,21 @@ export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
 
     const key = normalized.toLowerCase()
     const current = [...currentUserPageLists.value.readingList]
+    const savedAt = [...currentUserPageLists.value.readingListSavedAt]
     const index = current.findIndex(
       (entry) => normalizeEnwikiTitle(entry).toLowerCase() === key,
     )
 
     if (index >= 0) {
       current.splice(index, 1)
-      setCurrentUserPageList('readingList', current)
+      savedAt.splice(index, 1)
+      setReadingListWithTimestamps(current, savedAt)
       return false
     }
 
     current.unshift(normalized)
-    setCurrentUserPageList('readingList', current)
+    savedAt.unshift(Date.now())
+    setReadingListWithTimestamps(current, savedAt)
     return true
   }
 
@@ -59,6 +64,9 @@ export function provideWikitaLiteSaveFeedback(): WikitaSaveFeedbackContext {
       toastPageId.value = pageId
       toastPageTitle.value = pageTitle
       toastPageThumbnailUrl.value = thumbnailUrl ?? null
+      if (thumbnailUrl?.trim()) {
+        setCachedItemThumbnail(readingListSavedPageId(pageTitle), thumbnailUrl.trim())
+      }
       toastOpen.value = true
     } else {
       removePageFromAllLists(pageId)

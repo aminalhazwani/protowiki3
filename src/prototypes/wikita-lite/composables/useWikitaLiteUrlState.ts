@@ -2,10 +2,14 @@ import { computed, ref, watch, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { getMutableConfigRef } from '@/composables/useConfig'
-import type { Config } from '@/config'
+import {
+  clearPrototypeUserAgentUsername,
+  setPrototypeUserAgentUsername,
+  type Config,
+} from '@/config'
 
 import {
-  isWikitaLiteConfigSaveSuppressed,
+  isWikitaLiteConfigHydrationSuppressed,
   setWikitaLiteConfigSaveSuppressed,
   setWikitaLiteUrlModeActive,
 } from '../data/configBridge'
@@ -25,7 +29,7 @@ function hydrateConfigFromState(state: WikitaLiteUrlState): void {
 
   const patch = stateToConfigPatch(state)
   // During onboarding, WikitaLiteOnboarding owns simulated user state — URL defaults
-  // would otherwise reset `user` to `'new'` on every title/search navigation.
+  // would otherwise reset `user` to `'logged-out'` on every title/search navigation.
   const activeUser = state.onboarded ? state.user : configRef.value.user
 
   setWikitaLiteConfigSaveSuppressed(true)
@@ -41,6 +45,7 @@ function hydrateConfigFromState(state: WikitaLiteUrlState): void {
       [activeUser]: {
         ...configRef.value.userPageLists[activeUser],
         readingList: [...patch.readingList],
+        readingListSavedAt: [...patch.readingListSavedAt],
         editedPages: [...patch.editedPages],
         watchlist: [...patch.watchlist],
       },
@@ -61,6 +66,7 @@ function configToStatePatch(config: Config): WikitaLiteUrlStatePatch {
     platform: config.appPlatform,
     langs: [...config.knownLanguages],
     saved: [...lists.readingList],
+    savedTs: [...lists.readingListSavedAt],
     edited: [...lists.editedPages],
     watchlist: [...lists.watchlist],
   }
@@ -104,11 +110,23 @@ function createWikitaLiteUrlState() {
     { immediate: true },
   )
 
+  watch(
+    [() => route.path, state],
+    ([path, value]) => {
+      if (isWikitaLiteRoute(path)) {
+        setPrototypeUserAgentUsername(value.displayName || value.username)
+      } else {
+        clearPrototypeUserAgentUsername()
+      }
+    },
+    { immediate: true },
+  )
+
   if (configRef && !configWatchStop) {
     configWatchStop = watch(
       configRef,
       (config) => {
-        if (isHydrating.value || isWikitaLiteConfigSaveSuppressed()) return
+        if (isHydrating.value || isWikitaLiteConfigHydrationSuppressed()) return
         if (!isWikitaLiteRoute(route.path)) return
         if (syncDebounce) clearTimeout(syncDebounce)
         syncDebounce = setTimeout(() => {

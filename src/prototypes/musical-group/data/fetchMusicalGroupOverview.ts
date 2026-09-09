@@ -1,4 +1,4 @@
-import { loadConfig, PROTOWIKI_API_PROJECT_URL, PROTOWIKI_API_USER_AGENT, wikimediaApiFetchHeaders } from '@/config'
+import { formatWikimediaApiUserAgent, loadConfig, wikimediaApiFetchHeaders } from '@/config'
 import { fetchWikimedia } from '@/lib/fetchWikimedia'
 import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
 
@@ -58,11 +58,10 @@ interface QualityCheckResult {
 }
 
 function microtaskFetchHeaders(): HeadersInit {
-  const contact = loadConfig().apiContact.trim() || 'contact unavailable'
-  const userAgent = `${PROTOWIKI_API_USER_AGENT} (${PROTOWIKI_API_PROJECT_URL}; ${contact}) musical-group-quality-check`
+  const contact = loadConfig().apiContact.trim() || undefined
   return {
     'Content-Type': 'application/json',
-    'User-Agent': userAgent,
+    'User-Agent': formatWikimediaApiUserAgent('musical-group-quality-check', contact),
   }
 }
 

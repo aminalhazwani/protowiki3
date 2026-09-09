@@ -7,17 +7,7 @@ export function isOnboardingSeedTitle(title: string): boolean {
   return trimmed.length > 0 && trimmed !== MAIN_PAGE_TITLE
 }
 
-export function defaultOnboardingInterests(input: {
-  searchedTitle?: string
-  saveTitle?: string
-  title?: string
-}): string[] {
-  const fromActions = [input.searchedTitle, input.saveTitle].filter((title): title is string =>
-    isOnboardingSeedTitle(title ?? ''),
-  )
-  if (fromActions.length) return normalizeInterestTitles(fromActions)
-  if (isOnboardingSeedTitle(input.title ?? '')) {
-    return normalizeInterestTitles([input.title!])
-  }
-  return []
+/** Prefill list from transient onboarding seeds (save attempts + account-from-article). */
+export function defaultOnboardingInterests(seeds: string[]): string[] {
+  return normalizeInterestTitles(seeds.filter((title) => isOnboardingSeedTitle(title)))
 }

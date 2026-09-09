@@ -5,9 +5,9 @@ import { CdxMessage, CdxProgressBar } from '@wikimedia/codex'
 import ArticleHeader from '@/components/article/ArticleHeader.vue'
 import ArticleRenderer from '@/components/article/ArticleRenderer.vue'
 import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
-import type { HeaderItem } from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
+import { useWikitaLiteChromeHeaderRight } from '../../composables/useWikitaLiteChromeHeaderRight'
 import SavePagesSheet from '../components/SavePagesSheet.vue'
 import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
 import { resolveArticleLink } from '../data/articleLinks'
@@ -28,9 +28,6 @@ const bookmarkAnchor = computed(() => articleHeaderRef.value?.bookmarkAnchor ?? 
 const { html, loading, error } = useArticleHtml(effectiveTitle)
 
 function onBookmark(): void {
-  if (!isMainPage.value) {
-    void props.flow.patch({ saveTitle: displayTitle.value })
-  }
   saveSheetVisible.value = true
   saveSheetOpen.value = true
 }
@@ -48,11 +45,9 @@ function onSearch(): void {
   void props.flow.goTo('search')
 }
 
-const headerRight: HeaderItem[] = [
-  { type: 'button', icon: 'search', label: 'Search', onClick: onSearch },
-  { type: 'button', icon: 'bell-outline', label: 'Notifications' },
-  { type: 'button', icon: 'user-avatar-outline', label: 'User menu' },
-]
+const { headerRight } = useWikitaLiteChromeHeaderRight({
+  search: { type: 'button', icon: 'search', label: 'Search', onClick: onSearch },
+})
 
 function onArticleLinkClick(event: MouseEvent): void {
   const anchor = (event.target as HTMLElement).closest('a')
@@ -72,7 +67,7 @@ function onArticleLinkClick(event: MouseEvent): void {
     return
   }
 
-  void props.flow.goTo('read', { title: target.title })
+  void props.flow.goTo('article', { title: target.title })
 }
 </script>
 

@@ -27,6 +27,7 @@ const {
   draftInterests,
   relatedItems,
   relatedLoading,
+  previewSource,
   addInterest,
   removeInterest,
   discardAndClose,
@@ -45,10 +46,12 @@ function focusSearch() {
 
 onMounted(focusSearch)
 
+const previewHeading = computed(() =>
+  previewSource.value === 'random' ? 'Random articles' : 'Related articles',
+)
+
 const showRelatedSection = computed(
-  () =>
-    draftInterests.value.length > 0 &&
-    (relatedLoading.value || relatedItems.value.length > 0),
+  () => relatedLoading.value || relatedItems.value.length > 0,
 )
 
 let searchAbort: AbortController | null = null
@@ -172,10 +175,10 @@ function onSearchResultClick(payload: TypeaheadSearchEvent) {
 
       <div class="wikita-lite-interests__scroll">
         <section v-if="showRelatedSection" class="wikita-lite-interests__related">
-          <h2 class="wikita-lite-interests__related-title">Related articles</h2>
+          <h2 class="wikita-lite-interests__related-title">{{ previewHeading }}</h2>
 
           <div v-if="relatedLoading && !relatedItems.length" class="wikita-lite-interests__loading">
-            <CdxProgressBar inline aria-label="Loading related articles" />
+            <CdxProgressBar inline :aria-label="`Loading ${previewHeading.toLowerCase()}`" />
           </div>
 
           <div v-else-if="relatedItems.length" class="wikita-lite-interests__related-list">

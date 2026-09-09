@@ -76,6 +76,7 @@ export function useConfig(): {
   currentUserPageLists: ComputedRef<UserPageLists>
   isCurrentUserPageListsModified: ComputedRef<boolean>
   setCurrentUserPageList: (field: PageListKey, pages: string[]) => void
+  setReadingListWithTimestamps: (titles: string[], savedAt: number[]) => void
   resetCurrentUserPageLists: () => void
 } {
   const theme = computed({
@@ -185,6 +186,21 @@ export function useConfig(): {
     }
   }
 
+  function setReadingListWithTimestamps(titles: string[], savedAt: number[]) {
+    const activeUser = user.value
+    config.value = {
+      ...config.value,
+      userPageLists: {
+        ...config.value.userPageLists,
+        [activeUser]: {
+          ...config.value.userPageLists[activeUser],
+          readingList: [...titles],
+          readingListSavedAt: [...savedAt],
+        },
+      },
+    }
+  }
+
   function resetCurrentUserPageLists() {
     const activeUser = user.value
     config.value = {
@@ -214,6 +230,7 @@ export function useConfig(): {
     currentUserPageLists,
     isCurrentUserPageListsModified,
     setCurrentUserPageList,
+    setReadingListWithTimestamps,
     resetCurrentUserPageLists,
   }
 }

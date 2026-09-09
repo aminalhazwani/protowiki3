@@ -91,7 +91,7 @@ const editedPagesText = computed({
               v-model:selected="user"
               class="settings-panel__input"
               :menu-items="userMenuItems"
-              default-label="New user"
+              default-label="Logged out user"
             />
             <CdxButton
               v-tooltip="!isCurrentUserPageListsModified ? 'Already set to default' : undefined"

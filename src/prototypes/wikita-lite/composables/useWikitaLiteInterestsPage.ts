@@ -1,10 +1,13 @@
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { fetchRandomSuggestions } from '../../musical-group/data/fetchMorelikeSuggestions'
 import { fetchMorelikeTitles, resolveRelatedSummary } from '../../musical-group/data/fetchRelatedReading'
-import { normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
+import { enwikiArticleUrl, normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
+import type { MorelikeSuggestionHit } from '../../musical-group/data/fetchMorelikeSuggestions'
 import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
 import type { HomeRelated } from '../../musical-group/data/types'
+import { normalizeQid } from '../../musical-group/data/wikidataApi'
 
 import type { WikitaLiteModuleId } from '../data/homeModuleIds'
 import { useWikitaLiteModuleSuggestionPreferencesSingleton } from './useWikitaLiteModuleSuggestionPreferences'
@@ -12,6 +15,19 @@ import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSugg
 
 const MAX_INTERESTS = 10
 const RELATED_PREVIEW_LIMIT = 5
+
+export type InterestsPreviewSource = 'morelike' | 'random'
+
+function mapSuggestionHitToRelated(hit: MorelikeSuggestionHit): HomeRelated {
+  return {
+    title: hit.title,
+    description: hit.description,
+    thumbnailUrl: hit.thumbnail?.url,
+    articleUrl: enwikiArticleUrl(hit.title),
+    itemId: normalizeQid(hit.wikibaseItem) ?? undefined,
+    relatedToTitle: '',
+  }
+}
 
 export function useWikitaLiteInterestsPage(moduleId?: WikitaLiteModuleId) {
   const router = useRouter()
@@ -38,6 +54,7 @@ export function useWikitaLiteInterestsPage(moduleId?: WikitaLiteModuleId) {
   const draftInterests = ref<string[]>([...readInterests()])
   const relatedItems = ref<HomeRelated[]>([])
   const relatedLoading = ref(false)
+  const previewSource = ref<InterestsPreviewSource>('morelike')
   const relatedSeedTitle = ref<string | null>(draftInterests.value[0] ?? null)
 
   let relatedAbort: AbortController | null = null
@@ -77,14 +94,30 @@ export function useWikitaLiteInterestsPage(moduleId?: WikitaLiteModuleId) {
     )
   }
 
+  async function loadRandomPreview(signal: AbortSignal): Promise<void> {
+    previewSource.value = 'random'
+    relatedLoading.value = true
+    relatedItems.value = []
+    relatedSeedTitle.value = null
+
+    try {
+      const hits = await fetchRandomSuggestions(RELATED_PREVIEW_LIMIT, signal)
+      relatedItems.value = hits.map(mapSuggestionHitToRelated)
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return
+      relatedItems.value = []
+    } finally {
+      if (!signal.aborted) relatedLoading.value = false
+    }
+  }
+
   async function loadRelatedPreview(signal: AbortSignal): Promise<void> {
     if (!draftInterests.value.length) {
-      relatedItems.value = []
-      relatedLoading.value = false
-      relatedSeedTitle.value = null
+      await loadRandomPreview(signal)
       return
     }
 
+    previewSource.value = 'morelike'
     const seed = relatedSeedTitle.value ?? draftInterests.value[0]
     if (!seed) {
       relatedItems.value = []
@@ -148,6 +181,7 @@ export function useWikitaLiteInterestsPage(moduleId?: WikitaLiteModuleId) {
     draftInterests,
     relatedItems,
     relatedLoading,
+    previewSource,
     addInterest,
     removeInterest,
     discardAndClose,

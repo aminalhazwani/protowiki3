@@ -1,146 +1,67 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import MobileWrapper from '@/components/MobileWrapper.vue'
 
-import { CdxButton } from '@wikimedia/codex'
-
-import WikitaLiteFullscreenHeader from '../wikita-lite/components/WikitaLiteFullscreenHeader.vue'
-import WikitaLiteFullscreenShell from '../wikita-lite/components/WikitaLiteFullscreenShell.vue'
-import WikitaLiteSuggestionConfigureToggles from '../wikita-lite/components/WikitaLiteSuggestionConfigureToggles.vue'
-import { useWikitaLiteDismissedModulesSingleton } from '../wikita-lite/composables/useWikitaLiteDismissedModules'
+import WikitaLiteFullscreenDialogShell from '../wikita-lite/components/WikitaLiteFullscreenDialogShell.vue'
+import WikitaLiteHomeLayoutConfigureList from '../wikita-lite/components/WikitaLiteHomeLayoutConfigureList.vue'
+import { useWikitaLiteHomeLayout } from '../wikita-lite/composables/useWikitaLiteHomeLayout'
 import { useWikitaLiteRoute } from '../wikita-lite/composables/useWikitaLiteRoute'
-import { useWikitaLiteSuggestionPreferencesSingleton } from '../wikita-lite/composables/useWikitaLiteSuggestionPreferences'
-import { CONFIGURE_INTERESTS_PAGE } from '../wikita-lite/routes'
+import { initWikitaLiteUrlState } from '../wikita-lite/composables/useWikitaLiteUrlState'
+import type { ConfigurableHomeModuleId } from '../wikita-lite/data/homeLayout'
+import { WIKITA_LITE_HOME } from '../wikita-lite/routes'
 
 definePage({
   meta: {
-    title: 'Wikita-lite — Configure',
-    description: 'Configure personalized suggestion sources for Wikita-lite.',
+    title: 'Wikita-lite — Home layout',
+    description: 'Configure which modules appear on the Wikita-lite Home feed.',
   },
 })
 
-const router = useRouter()
-const { pushRoute } = useWikitaLiteRoute()
-const { preferences, listInterests, commitInterests, interestsVersion } =
-  useWikitaLiteSuggestionPreferencesSingleton()
-const { dismissedEntries, restore } = useWikitaLiteDismissedModulesSingleton()
+initWikitaLiteUrlState()
 
-const savedInterests = computed(() => {
-  interestsVersion.value
-  return listInterests()
-})
+const { replaceRoute } = useWikitaLiteRoute()
+const { configureOrder, isModuleEnabledInConfigure, setModuleEnabled, setConfigureOrder } =
+  useWikitaLiteHomeLayout()
 
-function closeConfigure() {
-  router.back()
+function closeConfigure(): void {
+  // Keep layout params from this page — router.back() would restore pre-configure query.
+  void replaceRoute(WIKITA_LITE_HOME)
 }
 
-function openInterests() {
-  void pushRoute(CONFIGURE_INTERESTS_PAGE)
+async function onToggleEnabled(id: ConfigurableHomeModuleId, enabled: boolean): Promise<void> {
+  await setModuleEnabled(id, enabled)
 }
 
-function removeInterest(title: string) {
-  const key = title.toLowerCase()
-  commitInterests(savedInterests.value.filter((entry) => entry.toLowerCase() !== key))
+async function onReorder(order: ConfigurableHomeModuleId[]): Promise<void> {
+  await setConfigureOrder(order)
 }
 </script>
 
 <template>
-  <WikitaLiteFullscreenShell>
-    <WikitaLiteFullscreenHeader title="Configure" @close="closeConfigure" />
-
-    <div class="wikita-lite-configure">
-      <WikitaLiteSuggestionConfigureToggles
-        v-model:use-saved-pages="preferences.useSavedPages"
-        v-model:use-editing-history="preferences.useEditingHistory"
-        v-model:use-interests="preferences.useInterests"
-        :interests="savedInterests"
-        @add-interest="openInterests"
-        @remove-interest="removeInterest"
-      />
-
-      <section v-if="dismissedEntries.length" class="wikita-lite-configure__dismissed">
-        <h3 class="wikita-lite-configure__dismissed-label">Dismissed modules</h3>
-        <ul class="wikita-lite-configure__dismissed-list">
-          <li
-            v-for="entry in dismissedEntries"
-            :key="entry.moduleId"
-            class="wikita-lite-configure__dismissed-item"
-          >
-            <span class="wikita-lite-configure__dismissed-title">{{ entry.title }}</span>
-            <CdxButton weight="quiet" @click="restore(entry.moduleId)">
-              Restore
-            </CdxButton>
-          </li>
-        </ul>
-      </section>
-
-      <div class="wikita-lite-configure__footer">
-        <CdxButton
-          class="wikita-lite-configure__done"
-          size="large"
-          @click="closeConfigure"
-        >
-          Done
-        </CdxButton>
+  <MobileWrapper max-width="412px" :show-frame-border="false">
+    <WikitaLiteFullscreenDialogShell title="Home layout" @close="closeConfigure">
+      <div class="wikita-lite-configure-home-layout">
+        <p class="wikita-lite-configure-home-layout__hint">Drag to rearrange sections</p>
+        <WikitaLiteHomeLayoutConfigureList
+          :order="configureOrder"
+          :is-enabled="isModuleEnabledInConfigure"
+          @update:enabled="onToggleEnabled"
+          @reorder="onReorder"
+        />
       </div>
-    </div>
-  </WikitaLiteFullscreenShell>
+    </WikitaLiteFullscreenDialogShell>
+  </MobileWrapper>
 </template>
 
 <style scoped>
-.wikita-lite-configure {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--spacing-150, 24px);
-  min-height: 0;
-  padding: var(--spacing-50, 8px) var(--spacing-100, 16px) var(--spacing-200, 32px);
-}
-
-.wikita-lite-configure__dismissed {
+.wikita-lite-configure-home-layout {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-50, 8px);
-}
-
-.wikita-lite-configure__dismissed-label {
-  margin: 0;
-  color: var(--color-base, #202122);
-  font-size: var(--font-size-medium, 1rem);
-  line-height: var(--line-height-medium, 1.375rem);
-}
-
-.wikita-lite-configure__dismissed-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-50, 8px);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.wikita-lite-configure__dismissed-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: var(--spacing-100, 16px);
+  padding-bottom: var(--spacing-150, 24px);
 }
 
-.wikita-lite-configure__dismissed-title {
-  font-size: var(--font-size-medium, 1rem);
-  line-height: var(--line-height-medium, 1.375rem);
-}
-
-.wikita-lite-configure__footer {
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  margin-top: auto;
-  padding-top: var(--spacing-100, 16px);
-}
-
-.wikita-lite-configure__done {
-  width: 100%;
-  max-width: none;
+.wikita-lite-configure-home-layout__hint {
+  margin: 0;
+  color: var(--color-subtle, #54595d);
 }
 </style>

@@ -8,6 +8,14 @@ const preferencesVersion = ref(0)
 const interestsVersion = ref(0)
 let prefsInitialized = false
 
+function preferencesFingerprint(prefs: SuggestionPreferences): string {
+  return `s${prefs.useSavedPages ? 1 : 0}e${prefs.useEditingHistory ? 1 : 0}w${prefs.useWatchlist ? 1 : 0}i${prefs.useInterests ? 1 : 0}`
+}
+
+function interestsFingerprint(titles: string[]): string {
+  return normalizeInterestTitles(titles).join('|')
+}
+
 export function useWikitaLiteSuggestionPreferences() {
   const { state, patchState } = useWikitaLiteUrlState()
 
@@ -18,13 +26,20 @@ export function useWikitaLiteSuggestionPreferences() {
     },
   })
 
+  let lastPreferencesFingerprint = preferencesFingerprint(state.value.suggestionPreferences)
+  let lastInterestsFingerprint = interestsFingerprint(state.value.interests)
+
   watch(
     () => state.value.suggestionPreferences,
-    () => {
+    (prefs) => {
+      const fingerprint = preferencesFingerprint(prefs)
       if (!prefsInitialized) {
         prefsInitialized = true
+        lastPreferencesFingerprint = fingerprint
         return
       }
+      if (fingerprint === lastPreferencesFingerprint) return
+      lastPreferencesFingerprint = fingerprint
       preferencesVersion.value += 1
     },
     { deep: true },
@@ -32,7 +47,10 @@ export function useWikitaLiteSuggestionPreferences() {
 
   watch(
     () => state.value.interests,
-    () => {
+    (interests) => {
+      const fingerprint = interestsFingerprint(interests)
+      if (fingerprint === lastInterestsFingerprint) return
+      lastInterestsFingerprint = fingerprint
       interestsVersion.value += 1
     },
     { deep: true },

@@ -27,6 +27,7 @@ interface Props {
   separation?: WikitaLiteCardSeparation
   actionLabel: string
   actionIcon?: Icon
+  actionActive?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -39,6 +40,7 @@ const props = withDefaults(defineProps<Props>(), {
   thumbnailSize: 'default',
   forceThumbnail: true,
   actionIcon: undefined,
+  actionActive: false,
 })
 
 const injectedSeparation = inject(WIKITA_LITE_CARD_SEPARATION, null)
@@ -117,26 +119,22 @@ function onActionClick(event: MouseEvent) {
         <span v-else class="wikita-lite-card-with-action__description">{{ description }}</span>
       </template>
 
-      <template v-if="showSupporting || actionLabel" #supporting-text>
-        <div class="wikita-lite-card-with-action__footer">
-          <WikitaLiteSupportingRow
-            v-if="showSupporting"
-            class="wikita-lite-card-with-action__supporting"
-            :icon="supportingIcon"
-          >
-            {{ supportingText }}
-          </WikitaLiteSupportingRow>
-          <CdxButton
-            class="wikita-lite-card-with-action__action"
-            weight="normal"
-            @click="onActionClick($event); $emit('action-click', $event)"
-          >
-            <CdxIcon v-if="actionIcon" :icon="actionIcon" />
-            {{ actionLabel }}
-          </CdxButton>
-        </div>
+      <template v-if="showSupporting" #supporting-text>
+        <WikitaLiteSupportingRow :icon="supportingIcon">
+          {{ supportingText }}
+        </WikitaLiteSupportingRow>
       </template>
     </CdxCard>
+
+    <CdxButton
+      class="wikita-lite-card-with-action__action"
+      weight="quiet"
+      :aria-label="actionLabel"
+      :aria-pressed="actionActive"
+      @click="onActionClick($event); $emit('action-click', $event)"
+    >
+      <CdxIcon v-if="actionIcon" :icon="actionIcon" />
+    </CdxButton>
   </article>
 </template>
 
@@ -168,6 +166,10 @@ function onActionClick(event: MouseEvent) {
   pointer-events: none;
 }
 
+.wikita-lite-card-with-action__card :deep(.cdx-card__text) {
+  padding-inline-end: calc(var(--min-size-interactive-touch, 32px) + var(--spacing-25, 4px));
+}
+
 .wikita-lite-card-with-action__description {
   display: -webkit-box;
   overflow: hidden;
@@ -190,21 +192,12 @@ function onActionClick(event: MouseEvent) {
   background-color: #ffe49c;
 }
 
-.wikita-lite-card-with-action__footer {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
-}
-
-.wikita-lite-card-with-action__supporting {
-  width: 100%;
-}
-
 .wikita-lite-card-with-action__action {
+  position: absolute;
+  top: var(--spacing-75, 12px);
+  right: var(--spacing-75, 12px);
+  z-index: 2;
   pointer-events: auto;
-  align-self: flex-start;
-  margin-top: var(--spacing-50, 8px);
 }
 
 .wikita-lite-card-with-action :deep(.cdx-card__text__supporting-text) {

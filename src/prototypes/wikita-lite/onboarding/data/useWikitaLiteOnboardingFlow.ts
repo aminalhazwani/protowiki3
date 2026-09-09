@@ -10,11 +10,15 @@ import { defaultOnboardingInterests } from './defaultOnboardingInterests'
  * The route's query string is the single source of truth: every screen reads
  * from and writes to it, so each step is deep-linkable, shareable, and gets
  * browser back/forward for free.
+ *
+ * Interest pre-fill on the interests step comes from `?title=` only (the article
+ * the user saved or started account creation from). `?interests=` is written
+ * only after the user edits on that step.
  */
 
 export const ONBOARDING_SCREENS = [
   'search',
-  'read',
+  'article',
   'account',
   'welcome',
   'survey',
@@ -28,7 +32,7 @@ export type SurveyChoice = 'read' | 'edit' | 'both'
 
 const SURVEY_CHOICES: SurveyChoice[] = ['read', 'edit', 'both']
 
-const DEFAULT_SCREEN: OnboardingScreen = 'read'
+const DEFAULT_SCREEN: OnboardingScreen = 'article'
 
 function firstString(value: LocationQuery[string]): string {
   if (Array.isArray(value)) return value[0] ?? ''
@@ -39,10 +43,24 @@ function isScreen(value: string): value is OnboardingScreen {
   return (ONBOARDING_SCREENS as readonly string[]).includes(value)
 }
 
+export function parseOnboardingScreen(raw: string): OnboardingScreen {
+  if (raw === 'read') return 'article'
+  return isScreen(raw) ? raw : DEFAULT_SCREEN
+}
+
+function readExplicitInterests(query: LocationQuery): string[] {
+  const raw = query.interests
+  if (raw === undefined) return []
+  const list = Array.isArray(raw) ? raw : [raw]
+  return list.map((item) => (item ?? '').trim()).filter(Boolean)
+}
+
+function normalizeArticleTitle(raw: string): string {
+  return raw.replace(/_/g, ' ').trim()
+}
+
 export interface OnboardingFlowPatch {
   title?: string
-  searchedTitle?: string
-  saveTitle?: string
   username?: string
   survey?: SurveyChoice | ''
   interests?: string[]
@@ -53,8 +71,8 @@ export interface OnboardingFlowPatch {
 export interface OnboardingFlowState {
   screen: ComputedRef<OnboardingScreen>
   title: ComputedRef<string>
-  searchedTitle: ComputedRef<string>
-  saveTitle: ComputedRef<string>
+  /** Virtual pre-fill from `?title=` when `?interests=` is absent. */
+  prefillInterests: ComputedRef<string[]>
   username: ComputedRef<string>
   survey: WritableComputedRef<SurveyChoice | ''>
   interests: WritableComputedRef<string[]>
@@ -77,8 +95,6 @@ export type FlowPatch = OnboardingFlowPatch
 function onboardingPatchToUrlPatch(patch: OnboardingFlowPatch): WikitaLiteUrlStatePatch {
   const out: WikitaLiteUrlStatePatch = {}
   if ('title' in patch) out.title = patch.title?.trim() || ''
-  if ('searchedTitle' in patch) out.searchedTitle = patch.searchedTitle?.trim() || ''
-  if ('saveTitle' in patch) out.saveTitle = patch.saveTitle?.trim() || ''
   if ('username' in patch) out.username = patch.username?.trim() || ''
   if ('survey' in patch) out.survey = patch.survey || ''
   if ('email' in patch) out.email = patch.email?.trim() || ''
@@ -107,16 +123,19 @@ export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
   const route = useRoute()
   const router = useRouter()
 
-  const screen = computed<OnboardingScreen>(() => {
-    const raw = firstString(route.query.screen)
-    return isScreen(raw) ? raw : DEFAULT_SCREEN
-  })
+  const screen = computed<OnboardingScreen>(() =>
+    parseOnboardingScreen(firstString(route.query.screen)),
+  )
 
   const title = computed(() => firstString(route.query.title).trim())
-  const searchedTitle = computed(() => firstString(route.query.searchedTitle).trim())
-  const saveTitle = computed(() => firstString(route.query.saveTitle).trim())
+
   const username = computed(() => firstString(route.query.username).trim())
+
   const email = computed(() => firstString(route.query.email).trim())
+
+  const prefillInterests = computed(() =>
+    defaultOnboardingInterests([normalizeArticleTitle(title.value)]),
+  )
 
   function patch(next: OnboardingFlowPatch): Promise<void> {
     return router
@@ -126,11 +145,16 @@ export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
 
   function goTo(target: OnboardingScreen, next?: OnboardingFlowPatch): Promise<void> {
     const updates = next ? onboardingPatchToUrlPatch(next) : {}
+
+    if (target === 'home') {
+      updates.title = ''
+    }
+
     return router
       .push({
         query: mergeQuery(route.query, {
           ...updates,
-          screen: target === DEFAULT_SCREEN ? undefined : target,
+          screen: target,
         }),
       })
       .then(() => undefined)
@@ -148,16 +172,9 @@ export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
 
   const interests = computed<string[]>({
     get() {
-      const raw = route.query.interests
-      if (raw === undefined) {
-        return defaultOnboardingInterests({
-          searchedTitle: searchedTitle.value,
-          saveTitle: saveTitle.value,
-          title: title.value,
-        })
-      }
-      const list = Array.isArray(raw) ? raw : [raw]
-      return list.map((item) => (item ?? '').trim()).filter(Boolean)
+      const explicit = readExplicitInterests(route.query)
+      if (route.query.interests !== undefined) return explicit
+      return prefillInterests.value
     },
     set(value) {
       patch({ interests: value })
@@ -167,15 +184,23 @@ export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
   const hasExplicitInterests = computed(() => route.query.interests !== undefined)
 
   const returnTo = computed<OnboardingScreen | ''>(() => {
-    const raw = firstString(route.query.returnTo)
+    const raw = firstString(route.query.returnTo).trim()
+    if (!raw) return ''
+    if (raw === 'read') return 'article'
     return isScreen(raw) ? raw : ''
   })
+
+  // Drop legacy session-scoped seeds from an earlier iteration.
+  try {
+    sessionStorage.removeItem('wikita-lite-onboarding-interest-seeds')
+  } catch {
+    // ignore
+  }
 
   return {
     screen,
     title,
-    searchedTitle,
-    saveTitle,
+    prefillInterests,
     username,
     survey,
     interests,

@@ -16,9 +16,9 @@ export const MENTOR_ASSIGNED = {
     "We've assigned you an experienced editor to answer your questions about editing.",
   cta: 'Ask your mentor a question about editing',
   profile: {
-    name: 'Panini!',
-    initial: 'P',
-    bio: "Hello! I'm Panini. I enjoy writing about video games, music, and random stuff nobody sees. I'm here to help! If you have questions, feel free to ask them! I'll get to answering right away, as long as you give me like 3 days to do so (oops).",
+    name: 'Samwalton9',
+    initial: 'S',
+    bio: "Hi! I'm Sam. I like helping on articles about video games and TV shows mainly. I also do a lot of moderating! I've been editing for quite a long time now so I'm happy to answer any questions you might have.",
     editingSince: 'Editing since 2020',
   },
 } as const

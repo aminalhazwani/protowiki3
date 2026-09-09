@@ -12,7 +12,24 @@ export interface UserPageLists {
   lang: string
   watchlist: string[]
   readingList: string[]
+  /** Epoch ms when each readingList entry was saved; index-aligned with readingList. */
+  readingListSavedAt: number[]
   editedPages: string[]
+}
+
+export const READING_LIST_SAVED_AT_DAY_MS = 24 * 60 * 60 * 1000
+
+/** Fill missing reading-list timestamps with staggered synthetic values. */
+export function backfillReadingListSavedAt(
+  titles: readonly string[],
+  times: readonly number[] = [],
+): number[] {
+  const now = Date.now()
+  return titles.map((_, index) => {
+    const value = times[index]
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value
+    return now - index * READING_LIST_SAVED_AT_DAY_MS
+  })
 }
 
 export interface Config {
@@ -36,12 +53,14 @@ export const DEFAULT_USER_PAGE_LISTS: Record<ConfigUser, UserPageLists> = {
     lang: 'en',
     watchlist: [],
     readingList: [],
+    readingListSavedAt: [],
     editedPages: [],
   },
   new: {
     lang: 'en',
     watchlist: [],
     readingList: [],
+    readingListSavedAt: [],
     editedPages: [],
   },
   experienced: {
@@ -64,12 +83,14 @@ export const DEFAULT_USER_PAGE_LISTS: Record<ConfigUser, UserPageLists> = {
       'Dada',
       'Surrealism',
     ],
+    readingListSavedAt: [],
     editedPages: ['Wet Leg', 'Jade Thirlwall', 'Confidence Man (band)', 'Gorillaz'],
   },
   real: {
     lang: 'en',
     watchlist: [],
     readingList: [],
+    readingListSavedAt: [],
     editedPages: [],
   },
 }
@@ -80,7 +101,7 @@ export const DEFAULT_CONFIG: Config = {
   theme: 'light',
   appPlatform: 'auto',
   webSkin: 'auto',
-  user: 'new',
+  user: 'logged-out',
   realUsername: '',
   apiContact: '',
   knownLanguages: [...DEFAULT_KNOWN_LANGUAGES],
@@ -202,13 +223,16 @@ export function resetUserPageLists(user: ConfigUser): UserPageLists {
 }
 
 function userPageListsEqual(a: UserPageLists, b: UserPageLists): boolean {
-  const arraysEqual = (x: string[], y: string[]) =>
+  const stringArraysEqual = (x: string[], y: string[]) =>
+    x.length === y.length && x.every((v, i) => v === y[i])
+  const numberArraysEqual = (x: number[], y: number[]) =>
     x.length === y.length && x.every((v, i) => v === y[i])
   return (
     a.lang === b.lang &&
-    arraysEqual(a.watchlist, b.watchlist) &&
-    arraysEqual(a.readingList, b.readingList) &&
-    arraysEqual(a.editedPages, b.editedPages)
+    stringArraysEqual(a.watchlist, b.watchlist) &&
+    stringArraysEqual(a.readingList, b.readingList) &&
+    numberArraysEqual(a.readingListSavedAt, b.readingListSavedAt) &&
+    stringArraysEqual(a.editedPages, b.editedPages)
   )
 }
 
@@ -222,12 +246,49 @@ function resolveApiContact(rawContact: string): string {
   return normalized.length ? normalized : DEFAULT_API_CONTACT
 }
 
-/** `fetch` headers for Wikimedia API requests (`Api-User-Agent`). */
-export function wikimediaApiFetchHeaders(purpose?: string, apiContact?: string): HeadersInit {
+/** Stable UA token for wikita-lite Growth demo sessions. */
+export const WIKITA_LITE_PROTOTYPE_UA_TOKEN = 'growth-home-prototype-user'
+
+let prototypeUserAgentUsername = ''
+
+/** Set the onboarding username appended to Wikimedia API User-Agent strings. */
+export function setPrototypeUserAgentUsername(username: string): void {
+  prototypeUserAgentUsername = sanitizeUserAgentToken(username)
+}
+
+/** Clear the prototype username suffix (e.g. when leaving wikita-lite). */
+export function clearPrototypeUserAgentUsername(): void {
+  prototypeUserAgentUsername = ''
+}
+
+/** Strip characters unsafe for HTTP User-Agent header values. */
+export function sanitizeUserAgentToken(raw: string): string {
+  return raw
+    .replace(/[\0-\x1f\x7f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+function prototypeUserAgentSuffix(): string {
+  if (!prototypeUserAgentUsername) return ''
+  return `${WIKITA_LITE_PROTOTYPE_UA_TOKEN}/${prototypeUserAgentUsername}`
+}
+
+/** Full Wikimedia API User-Agent string (without the header name). */
+export function formatWikimediaApiUserAgent(purpose?: string, apiContact?: string): string {
   const tag = purpose?.trim()
   const contact = resolveApiContact(apiContact ?? DEFAULT_API_CONTACT)
   const base = `${PROTOWIKI_API_USER_AGENT} (${PROTOWIKI_API_PROJECT_URL}; ${contact})`
-  return { 'Api-User-Agent': tag ? `${base} ${tag}` : base }
+  const parts = [base]
+  if (tag) parts.push(tag)
+  const usernameSuffix = prototypeUserAgentSuffix()
+  if (usernameSuffix) parts.push(usernameSuffix)
+  return parts.join(' ')
+}
+
+/** `fetch` headers for Wikimedia API requests (`Api-User-Agent`). */
+export function wikimediaApiFetchHeaders(purpose?: string, apiContact?: string): HeadersInit {
+  return { 'Api-User-Agent': formatWikimediaApiUserAgent(purpose, apiContact) }
 }
 
 const STORAGE_KEY = 'protowiki-prototype-user-config'
@@ -257,10 +318,12 @@ function isConfigUser(value: unknown): value is ConfigUser {
 }
 
 function cloneUserPageLists(lists: UserPageLists): UserPageLists {
+  const readingList = [...lists.readingList]
   return {
     lang: lists.lang,
     watchlist: [...lists.watchlist],
-    readingList: [...lists.readingList],
+    readingList,
+    readingListSavedAt: backfillReadingListSavedAt(readingList, lists.readingListSavedAt ?? []),
     editedPages: [...lists.editedPages],
   }
 }
@@ -279,6 +342,13 @@ function cloneUserPageListsMap(
 function parseStringArray(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null
   return value.filter((item): item is string => typeof item === 'string')
+}
+
+function parseNumberArray(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null
+  const parsed = value.map((item) => (typeof item === 'number' ? item : Number(item)))
+  if (parsed.some((item) => !Number.isFinite(item))) return null
+  return parsed
 }
 
 function mergeUserPageLists(user: ConfigUser, stored: unknown): UserPageLists {
@@ -300,6 +370,12 @@ function mergeUserPageLists(user: ConfigUser, stored: unknown): UserPageLists {
       merged[key] = parsed
     }
   }
+
+  const parsedSavedAt = parseNumberArray(record.readingListSavedAt)
+  merged.readingListSavedAt = backfillReadingListSavedAt(
+    merged.readingList,
+    parsedSavedAt ?? [],
+  )
 
   return merged
 }

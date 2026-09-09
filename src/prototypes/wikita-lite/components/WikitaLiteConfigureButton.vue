@@ -3,7 +3,12 @@ import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconConfigure } from '@wikimedia/codex-icons'
 
 import { useWikitaLiteRoute } from '../composables/useWikitaLiteRoute'
-import { CONFIGURE_PAGE } from '../routes'
+import type { WikitaLiteUrlStatePatch } from '../data/urlStateSchema'
+import {
+  CONFIGURE_HOME_PAGE,
+  isPersonalizationReturnPath,
+  PERSONALIZATION_PAGE,
+} from '../routes'
 
 interface Props {
   label?: string
@@ -11,14 +16,18 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  label: 'Configure suggestions',
-  to: CONFIGURE_PAGE,
+  label: 'Home layout',
+  to: CONFIGURE_HOME_PAGE,
 })
 
-const { pushRoute } = useWikitaLiteRoute()
+const { pushRoute, route } = useWikitaLiteRoute()
 
 function openConfigure() {
-  void pushRoute(props.to)
+  let patch: WikitaLiteUrlStatePatch | undefined
+  if (props.to === PERSONALIZATION_PAGE && isPersonalizationReturnPath(route.path)) {
+    patch = { personalizationReturn: route.path }
+  }
+  void pushRoute(props.to, patch)
 }
 </script>
 

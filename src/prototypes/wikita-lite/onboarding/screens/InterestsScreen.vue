@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import {
   CdxField,
   CdxMessage,
@@ -49,20 +49,33 @@ function sameSet(a: string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i])
 }
 
+let syncingFromInterests = false
+
 watch(
   interests,
-  (list) => {
+  async (list) => {
+    syncingFromInterests = true
     if (!sameSet(selected.value.map(String), list)) selected.value = [...list]
     if (!sameSet(inputChips.value.map((c) => String(c.value)), list)) {
       inputChips.value = list.map((title) => ({ value: title, label: title }))
     }
+    await nextTick()
+    syncingFromInterests = false
   },
   { immediate: true },
 )
 
 watch(selected, (values) => {
+  if (syncingFromInterests) return
   const titles = values.map(String)
-  if (!sameSet(titles, interests.value)) props.flow.interests.value = titles
+  if (sameSet(titles, interests.value)) return
+  if (
+    !props.flow.hasExplicitInterests.value &&
+    sameSet(titles, props.flow.prefillInterests.value)
+  ) {
+    return
+  }
+  props.flow.interests.value = titles
 })
 
 const menuItems = ref<MenuItemData[]>([])

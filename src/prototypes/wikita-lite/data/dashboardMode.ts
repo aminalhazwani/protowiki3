@@ -1,3 +1,5 @@
+import type { SurveyChoice } from '../onboarding/data/useWikitaLiteOnboardingFlow'
+
 export const SIMPLIFIED_MODULE_IDS = [
   'suggestedEdits',
   'furtherReading',
@@ -7,42 +9,31 @@ export const SIMPLIFIED_MODULE_IDS = [
 
 export type SimplifiedModuleId = (typeof SIMPLIFIED_MODULE_IDS)[number]
 
-export type WikitaLiteDashboardMode = 'both' | 'read' | 'edit' | 'advanced'
+export type WikitaLiteDashboardMode = 'both' | 'read' | 'edit'
 
-export type SimplifiedDashboardMode = Exclude<WikitaLiteDashboardMode, 'advanced'>
+export const DASHBOARD_MODES: WikitaLiteDashboardMode[] = ['both', 'read', 'edit']
 
-export const DASHBOARD_MODES: WikitaLiteDashboardMode[] = [
-  'both',
-  'read',
-  'edit',
-  'advanced',
-]
+export const DEFAULT_DASHBOARD_MODE: WikitaLiteDashboardMode = 'both'
 
-export const SIMPLIFIED_DASHBOARD_MODES: SimplifiedDashboardMode[] = [
-  'both',
-  'read',
-  'edit',
-]
-
-export const DEFAULT_DASHBOARD_MODE: SimplifiedDashboardMode = 'both'
-
-export const MODE_MODULE_ORDER: Record<SimplifiedDashboardMode, SimplifiedModuleId[]> = {
+export const MODE_MODULE_ORDER: Record<WikitaLiteDashboardMode, SimplifiedModuleId[]> = {
   both: ['suggestedEdits', 'furtherReading', 'impact', 'mentor'],
   read: ['furtherReading', 'suggestedEdits', 'impact', 'mentor'],
   edit: ['suggestedEdits', 'impact', 'mentor', 'furtherReading'],
 }
 
-export function isSimplifiedDashboardMode(
-  mode: WikitaLiteDashboardMode,
-): mode is SimplifiedDashboardMode {
-  return mode !== 'advanced'
-}
-
 export function parseDashboardMode(raw: unknown): WikitaLiteDashboardMode | null {
   if (typeof raw !== 'string') return null
+  if (raw === 'advanced') return null
   return (DASHBOARD_MODES as readonly string[]).includes(raw)
     ? (raw as WikitaLiteDashboardMode)
     : null
+}
+
+export function resolveDashboardMode(
+  urlMode: WikitaLiteDashboardMode | null,
+  survey: SurveyChoice | '',
+): WikitaLiteDashboardMode {
+  return urlMode ?? (survey ? survey : DEFAULT_DASHBOARD_MODE)
 }
 
 export function isSimplifiedModuleId(id: string): id is SimplifiedModuleId {

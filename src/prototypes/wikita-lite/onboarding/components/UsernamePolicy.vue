@@ -1,30 +1,39 @@
 <template>
-  <Transition name="slide-up">
-    <div v-show="visible" class="policy-overlay" @click.self="$emit('close')">
-      <div class="policy-sheet">
-        <div class="policy-header">
-          <h2 class="policy-title">Username policy</h2>
-          <CdxButton weight="quiet" aria-label="Close" @click="$emit('close')">
-            <CdxIcon :icon="cdxIconClose" />
-          </CdxButton>
+  <Teleport :to="overlayTarget!" :disabled="teleportDisabled">
+    <Transition name="slide-up">
+      <div
+        v-show="visible"
+        class="policy-overlay"
+        :class="{ 'policy-overlay--viewport': teleportDisabled }"
+        @click.self="$emit('close')"
+      >
+        <div class="policy-sheet">
+          <div class="policy-header">
+            <h2 class="policy-title">Username policy</h2>
+            <CdxButton weight="quiet" aria-label="Close" @click="$emit('close')">
+              <CdxIcon :icon="cdxIconClose" />
+            </CdxButton>
+          </div>
+          <ul class="policy-list">
+            <li>Consider <b>privacy risks</b> before using your real name.</li>
+            <li>Don't use offensive, misleading, or promotional names.</li>
+            <li>Your username must represent you as an individual, not an organization.</li>
+          </ul>
+          <a
+            href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy"
+            target="_blank"
+            rel="noopener"
+            class="policy-full-link"
+          >Read the full username policy</a>
         </div>
-        <ul class="policy-list">
-          <li>Consider <b>privacy risks</b> before using your real name.</li>
-          <li>Don't use offensive, misleading, or promotional names.</li>
-          <li>Your username must represent you as an individual, not an organization.</li>
-        </ul>
-        <a
-          href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy"
-          target="_blank"
-          rel="noopener"
-          class="policy-full-link"
-        >Read the full username policy</a>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { computed, inject, type Ref } from 'vue'
+
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconClose } from '@wikimedia/codex-icons'
 
@@ -33,15 +42,35 @@ defineProps({
 })
 
 defineEmits(['close'])
+
+const overlayTarget = inject<Ref<HTMLElement | null>>('CdxTeleportTarget', null)
+const teleportDisabled = computed(() => !overlayTarget?.value)
 </script>
 
 <style scoped>
 .policy-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 100;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+/* Fallback when rendered in place (no MobileWrapper overlay target). */
+.policy-overlay--viewport {
+  position: fixed;
+  z-index: 100;
+}
+
+@media (min-width: 480px) {
+  .policy-overlay--viewport {
+    inset-inline: 0;
+    margin-inline: auto;
+    width: min(100%, var(--mobile-wrapper-max-width, 412px));
+  }
 }
 
 .policy-sheet {

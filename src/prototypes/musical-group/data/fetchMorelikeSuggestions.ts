@@ -1,5 +1,4 @@
 import { normalizeLang, wikiHostFromLang, wikimediaApiFetchHeaders } from '@/config'
-
 import { normalizeEnwikiTitle } from './enwikiTitle'
 
 export interface MorelikeSuggestionHit {
@@ -87,17 +86,28 @@ export async function fetchMorelikeSuggestions(
     .map(mapPage)
 }
 
+/** Minimum mainspace article size for interest-picker random suggestions (`grnminsize`). */
+export const RANDOM_SUGGESTION_MIN_BYTES = 5000
+
+export interface RandomSuggestionsOptions {
+  /** Minimum article size in bytes (`grnminsize` on the random generator). */
+  minSize?: number
+}
+
 /** Random mainspace articles when there is no seed interest yet. */
 export async function fetchRandomSuggestions(
   limit: number,
   signal?: AbortSignal,
   purpose = 'musical-group-morelike-random',
+  options: RandomSuggestionsOptions = {},
 ): Promise<MorelikeSuggestionHit[]> {
+  const minSize = options.minSize ?? RANDOM_SUGGESTION_MIN_BYTES
   const params = new URLSearchParams({
     action: 'query',
     generator: 'random',
     grnnamespace: '0',
-    grnlimit: String(Math.max(limit * 2, limit)),
+    grnfilterredir: 'nonredirects',
+    grnlimit: String(Math.max(limit * 4, 20)),
     prop: 'pageimages|description|pageprops',
     piprop: 'thumbnail',
     pithumbsize: '160',
@@ -106,6 +116,10 @@ export async function fetchRandomSuggestions(
     formatversion: '2',
     origin: '*',
   })
+
+  if (minSize > 0) {
+    params.set('grnminsize', String(minSize))
+  }
 
   const hits = (await fetchGeneratorPages(params, purpose, signal)).map(mapPage)
   const withThumb = hits.filter((hit) => hit.thumbnail?.url)

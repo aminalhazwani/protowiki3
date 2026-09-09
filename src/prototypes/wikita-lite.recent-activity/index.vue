@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { provideWikitaLiteSaveFeedback } from '../wikita-lite/composables/useWikitaLiteSaveFeedback'
 import { useWikitaLiteRecentActivityPage } from '../wikita-lite/composables/useWikitaLiteRecentActivityPage'
+import WikitaLiteConfigureButton from '../wikita-lite/components/WikitaLiteConfigureButton.vue'
 import MobileSubpageHeader from '../wikita-lite/components/MobileSubpageHeader.vue'
 import WikitaLiteShell from '../wikita-lite/components/WikitaLiteShell.vue'
 import RecentActivityModule from '../wikita-lite/modules/RecentActivityModule.vue'
-import { MODULE_TITLES } from '../wikita-lite/routes'
+import { MODULE_TITLES, PERSONALIZATION_PAGE } from '../wikita-lite/routes'
 
 definePage({
   meta: {
     title: 'Wikita-lite — Review changes',
-    description: 'Recent edits on saved pages in Wikita-lite.',
+    description: 'Recent edits on pages from your Personalization settings in Wikita-lite.',
   },
 })
 
@@ -28,9 +29,16 @@ const {
 
 <template>
   <WikitaLiteShell :title="null">
-    <MobileSubpageHeader :title="MODULE_TITLES.reviewChanges" />
+    <MobileSubpageHeader :title="MODULE_TITLES.reviewChanges">
+      <template #actions>
+        <WikitaLiteConfigureButton
+          :to="PERSONALIZATION_PAGE"
+          label="Personalization"
+        />
+      </template>
+    </MobileSubpageHeader>
     <RecentActivityModule
-      v-if="mode === 'saved'"
+      v-if="mode === 'personalized'"
       standalone
       :saved-items="savedItems"
       :saved-items-loading="savedItemsLoading"

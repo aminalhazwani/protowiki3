@@ -73,7 +73,7 @@ watch(open, async (isOpen) => {
   </CdxPopover>
 </template>
 
-<!-- Teleports into MobileWrapper overlay; wide-viewport sheet layout via mobile-wrapper-overlays.css. -->
+<!-- Teleports into MobileWrapper overlay; sheet layout via mobile-wrapper-overlays.css. -->
 <style>
 .save-pages-sheet .cdx-popover__header__title {
   font-family: var(--font-family-base, sans-serif);

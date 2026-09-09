@@ -18,6 +18,15 @@ export function editedPagesKey(): string {
     .join('|')
 }
 
+/** Stable fingerprint of the active user's watchlist titles. */
+export function watchlistKey(): string {
+  const config = loadConfig()
+  return (config.userPageLists[config.user]?.watchlist ?? [])
+    .map((title) => title.toLowerCase())
+    .sort()
+    .join('|')
+}
+
 /** Stable fingerprint of the saved-pages library. Changes on add/remove/re-save. */
 export function bookmarksKey(): string {
   return listBookmarks()
@@ -61,9 +70,14 @@ export function contributeRandomCacheKey(date = new Date()): string {
   return `contribute-random:${utcDayKey(date)}`
 }
 
+/** Daily cache key for the Daily reads home preview — one fetch per UTC day. */
+export function dailyReadsPreviewCacheKey(date = new Date()): string {
+  return `daily-reads:${utcDayKey(date)}`
+}
+
 /** Fingerprint of suggestion preference toggles. */
 export function suggestionPrefsKeyFrom(prefs: SuggestionPreferences): string {
-  return `prefs:s${prefs.useSavedPages ? 1 : 0}e${prefs.useEditingHistory ? 1 : 0}i${prefs.useInterests ? 1 : 0}`
+  return `prefs:s${prefs.useSavedPages ? 1 : 0}e${prefs.useEditingHistory ? 1 : 0}w${prefs.useWatchlist ? 1 : 0}i${prefs.useInterests ? 1 : 0}`
 }
 
 export function suggestionPrefsKey(): string {
@@ -72,7 +86,7 @@ export function suggestionPrefsKey(): string {
 
 /** Combined dependency key for personalized suggestion feeds (global prefs). */
 export function suggestionFeedsKey(savedItems: HomeSavedItem[] = []): string {
-  return `${savedPagesListKey(savedItems)}|${editedPagesKey()}|${interestsKey()}|${suggestionPrefsKey()}`
+  return `${savedPagesListKey(savedItems)}|${editedPagesKey()}|${watchlistKey()}|${interestsKey()}|${suggestionPrefsKey()}`
 }
 
 /** Dependency key for Suggested edits when module-specific prefs may differ from global. */
@@ -83,5 +97,5 @@ export function helpWantedFeedsKey(
 ): string {
   const interestFingerprint =
     interestTitles !== undefined ? interestsKeyFrom(interestTitles) : interestsKey()
-  return `${savedPagesListKey(savedItems)}|${editedPagesKey()}|${interestFingerprint}|${suggestionPrefsKeyFrom(prefs)}`
+  return `${savedPagesListKey(savedItems)}|${editedPagesKey()}|${watchlistKey()}|${interestFingerprint}|${suggestionPrefsKeyFrom(prefs)}`
 }

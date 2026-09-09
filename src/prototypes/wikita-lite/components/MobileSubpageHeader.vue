@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconArrowNext } from '@wikimedia/codex-icons'
+
+import { useWikitaLiteSubpageBack } from '../composables/useWikitaLiteSubpageBack'
 
 interface Props {
   title: string
@@ -14,11 +15,7 @@ withDefaults(defineProps<Props>(), {
   bleed: true,
 })
 
-const router = useRouter()
-
-function goBack() {
-  router.back()
-}
+const { goBack } = useWikitaLiteSubpageBack()
 </script>
 
 <template>

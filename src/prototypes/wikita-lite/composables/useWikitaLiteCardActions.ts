@@ -3,7 +3,12 @@ import { ref, type Ref } from 'vue'
 import { useConfig } from '@/composables/useConfig'
 
 import { useWikitaSaveFeedback } from '../../musical-group/composables/useWikitaSaveFeedback'
-import { enwikiArticleUrl, normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
+import {
+  EN_WIKI_HOST,
+  enwikiArticleUrl,
+  normalizeEnwikiTitle,
+  resolveExternalUrl,
+} from '../../musical-group/data/enwikiTitle'
 import { isEditThanked, toggleEditThank } from '../../musical-group/data/editThanks'
 import { useWikitaLiteListsSingleton } from './useWikitaLiteLists'
 
@@ -28,6 +33,25 @@ export function savedItemHref(item: { enwikiTitle?: string; title: string }): st
 
 export function helpWantedHref(item: { enwikiTitle?: string; title: string }): string | undefined {
   return savedItemHref(item)
+}
+
+/** True when the href navigates to production English Wikipedia (leaves the prototype). */
+export function isLeavePrototypeHref(href: string): boolean {
+  const trimmed = href.trim()
+  if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('./')) return false
+
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+    return false
+  }
+
+  try {
+    const resolved = resolveExternalUrl(trimmed)
+    const url = new URL(resolved, typeof window !== 'undefined' ? window.location.href : 'https://example.com')
+    const host = url.hostname.toLowerCase()
+    return host === EN_WIKI_HOST || host === `www.${EN_WIKI_HOST}`
+  } catch {
+    return false
+  }
 }
 
 function savedTitleKey(title: string): string {

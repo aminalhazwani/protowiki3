@@ -5,7 +5,7 @@ import WikitaLiteConfigureButton from '../wikita-lite/components/WikitaLiteConfi
 import MobileSubpageHeader from '../wikita-lite/components/MobileSubpageHeader.vue'
 import WikitaLiteShell from '../wikita-lite/components/WikitaLiteShell.vue'
 import RelatedModule from '../wikita-lite/modules/RelatedModule.vue'
-import { MODULE_TITLES } from '../wikita-lite/routes'
+import { MODULE_TITLES, PERSONALIZATION_PAGE } from '../wikita-lite/routes'
 
 definePage({
   meta: {
@@ -24,7 +24,10 @@ const { relatedItems, relatedLoading, relatedLoadingMore, loadSentinel } =
   <WikitaLiteShell :title="null">
     <MobileSubpageHeader :title="MODULE_TITLES.furtherReading">
       <template #actions>
-        <WikitaLiteConfigureButton />
+        <WikitaLiteConfigureButton
+          :to="PERSONALIZATION_PAGE"
+          label="Personalization"
+        />
       </template>
     </MobileSubpageHeader>
     <RelatedModule

@@ -14,16 +14,26 @@ import {
   DEFAULT_SUGGESTION_PREFERENCES,
   type SuggestionPreferences,
 } from '../../musical-group/data/suggestionPreferences'
+import { backfillReadingListSavedAt } from '@/config'
+
 import { normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
 import { normalizeInterestTitles } from '../../musical-group/data/interests'
 import { normalizeQid } from '../../musical-group/data/wikidataApi'
-import { defaultOnboardingInterests } from '../onboarding/data/defaultOnboardingInterests'
 import type { OnboardingScreen, SurveyChoice } from '../onboarding/data/useWikitaLiteOnboardingFlow'
-import { ONBOARDING_SCREENS } from '../onboarding/data/useWikitaLiteOnboardingFlow'
+import {
+  ONBOARDING_SCREENS,
+  parseOnboardingScreen,
+} from '../onboarding/data/useWikitaLiteOnboardingFlow'
 import { DEFAULT_CARD_BORDERS_PREFERENCE } from './cardBorders'
 import { DEFAULT_CARD_RADIUS_PREFERENCE } from './cardRadius'
-import { DEFAULT_DASHBOARD_MODE, parseDashboardMode, type WikitaLiteDashboardMode } from './dashboardMode'
+import {
+  DEFAULT_DASHBOARD_MODE,
+  parseDashboardMode,
+  resolveDashboardMode,
+  type WikitaLiteDashboardMode,
+} from './dashboardMode'
 import { DEFAULT_HIDE_TAB_BAR_PREFERENCE } from './hideTabBar'
+import { parseHomeLayoutOverrides, serializeHomeLayoutOverrides, type HomeLayoutOverrides } from './homeLayout'
 import {
   CONTRIBUTE_MODULE_IDS,
   EXPLORE_READ_MODULE_IDS,
@@ -34,7 +44,12 @@ import { DEFAULT_MODULE_MENU_MODE_PREFERENCE } from './moduleMenuMode'
 import { pruneExpiredDismissals, type DismissedModules } from './moduleDismissals'
 import type { TabPinnedModules } from './modulePins'
 import { DEFAULT_MODULE_SUGGESTION_CONFIG } from './moduleSuggestionPreferences'
-import { DEFAULT_WIKITA_LITE_VIEW, parseWikitaLiteView, type WikitaLiteView } from '../routes'
+import {
+  DEFAULT_WIKITA_LITE_VIEW,
+  isPersonalizationReturnPath,
+  parseWikitaLiteView,
+  type WikitaLiteView,
+} from '../routes'
 
 const ALL_DISMISSABLE_MODULE_IDS = [
   ...new Set([
@@ -55,6 +70,17 @@ const SURVEY_CHOICES: SurveyChoice[] = ['read', 'edit', 'both']
 
 export const WIKITA_LITE_ROUTE_PREFIX = '/wikita-lite'
 
+/** Post-onboarding overlay screens driven by `?screen=` on Home. */
+export const HOME_OVERLAY_SCREENS = ['splash'] as const
+
+export type HomeOverlayScreen = (typeof HOME_OVERLAY_SCREENS)[number]
+
+export type WikitaLiteScreen = OnboardingScreen | HomeOverlayScreen
+
+export function isHomeOverlayScreen(value: string): value is HomeOverlayScreen {
+  return (HOME_OVERLAY_SCREENS as readonly string[]).includes(value)
+}
+
 export function isWikitaLiteRoute(path: string): boolean {
   return path === WIKITA_LITE_ROUTE_PREFIX || path.startsWith(`${WIKITA_LITE_ROUTE_PREFIX}/`)
 }
@@ -69,14 +95,14 @@ export interface WikitaLiteUrlState {
   view: WikitaLiteView
   mode: WikitaLiteDashboardMode
   onboarded: boolean
-  screen: OnboardingScreen
+  screen: WikitaLiteScreen
   title: string
-  searchedTitle: string
-  saveTitle: string
   username: string
   email: string
   survey: SurveyChoice | ''
   interests: string[]
+  /** True once `interests` has been written to the URL (including explicit empty). */
+  interestsTouched: boolean
   returnTo: OnboardingScreen | ''
   user: ConfigUser
   realUser: string
@@ -86,6 +112,7 @@ export interface WikitaLiteUrlState {
   langs: string[]
   displayName: string
   saved: string[]
+  savedTs: number[]
   edited: string[]
   watchlist: string[]
   suggestionPreferences: SuggestionPreferences
@@ -101,16 +128,17 @@ export interface WikitaLiteUrlState {
   mentorAssigned: boolean | null
   mentorBannerDismissed: boolean
   lists: UserList[]
+  homeLayout: HomeLayoutOverrides
+  /** Transient: subpage to return to after closing Personalization. */
+  personalizationReturn: string
 }
 
 export type WikitaLiteUrlStatePatch = Partial<{
   view: WikitaLiteView | null
   mode: WikitaLiteDashboardMode | null
   onboarded: boolean | null
-  screen: OnboardingScreen | null
+  screen: WikitaLiteScreen | null
   title: string | null
-  searchedTitle: string | null
-  saveTitle: string | null
   username: string | null
   email: string | null
   survey: SurveyChoice | '' | null
@@ -124,6 +152,7 @@ export type WikitaLiteUrlStatePatch = Partial<{
   langs: string[] | null
   displayName: string | null
   saved: string[] | null
+  savedTs: number[] | null
   edited: string[] | null
   watchlist: string[] | null
   suggestionPreferences: SuggestionPreferences | null
@@ -138,6 +167,8 @@ export type WikitaLiteUrlStatePatch = Partial<{
   mentorAssigned: boolean | null
   mentorBannerDismissed: boolean | null
   lists: UserList[] | null
+  homeLayout: HomeLayoutOverrides | null
+  personalizationReturn: string | null
 }>
 
 export function defaultWikitaLiteUrlState(): WikitaLiteUrlState {
@@ -145,14 +176,13 @@ export function defaultWikitaLiteUrlState(): WikitaLiteUrlState {
     view: DEFAULT_WIKITA_LITE_VIEW,
     mode: DEFAULT_DASHBOARD_MODE,
     onboarded: false,
-    screen: 'read',
+    screen: 'article',
     title: '',
-    searchedTitle: '',
-    saveTitle: '',
     username: '',
     email: '',
     survey: '',
     interests: [],
+    interestsTouched: false,
     returnTo: '',
     user: DEFAULT_CONFIG.user,
     realUser: DEFAULT_CONFIG.realUsername,
@@ -162,6 +192,7 @@ export function defaultWikitaLiteUrlState(): WikitaLiteUrlState {
     langs: [...DEFAULT_KNOWN_LANGUAGES],
     displayName: '',
     saved: [],
+    savedTs: [],
     edited: [],
     watchlist: [],
     suggestionPreferences: { ...DEFAULT_SUGGESTION_PREFERENCES },
@@ -180,6 +211,8 @@ export function defaultWikitaLiteUrlState(): WikitaLiteUrlState {
     mentorAssigned: null,
     mentorBannerDismissed: false,
     lists: [],
+    homeLayout: { homeOff: [], homeOn: [], homeOrder: [] },
+    personalizationReturn: '',
   }
 }
 
@@ -192,6 +225,12 @@ function stringArray(value: LocationQuery[string]): string[] {
   if (value === undefined) return []
   const list = Array.isArray(value) ? value : [value]
   return list.map((item) => (item ?? '').trim()).filter(Boolean)
+}
+
+function numberArray(value: LocationQuery[string]): number[] {
+  return stringArray(value)
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item) && item > 0)
 }
 
 function parseBoolFlag(raw: string, defaultValue: boolean): boolean {
@@ -273,19 +312,34 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
     ? (surveyRaw as SurveyChoice)
     : ''
 
-  const resolvedMode: WikitaLiteDashboardMode =
-    urlMode ?? (survey && survey !== '' ? survey : DEFAULT_DASHBOARD_MODE)
+  const resolvedMode = resolveDashboardMode(urlMode, survey)
+
+  const onboarded = firstString(query.onboarded) === '1'
 
   const screenRaw = firstString(query.screen)
-  const screen = isScreen(screenRaw) ? screenRaw : defaults.screen
+  const screen: WikitaLiteScreen =
+    screenRaw === 'splash'
+      ? 'splash'
+      : screenRaw
+        ? parseOnboardingScreen(screenRaw)
+        : onboarded
+          ? defaults.screen
+          : 'splash'
 
-  const returnToRaw = firstString(query.returnTo)
-  const returnTo = isScreen(returnToRaw) ? returnToRaw : ''
+  const returnToRaw = firstString(query.returnTo).trim()
+  const returnTo =
+    returnToRaw === 'read'
+      ? 'article'
+      : isScreen(returnToRaw)
+        ? returnToRaw
+        : ''
 
   const userRaw = firstString(query.user)
   const user = VALID_USERS.includes(userRaw as ConfigUser)
     ? (userRaw as ConfigUser)
-    : defaults.user
+    : onboarded
+      ? 'new'
+      : defaults.user
 
   const themeRaw = firstString(query.theme)
   const theme = VALID_THEMES.includes(themeRaw as ConfigTheme)
@@ -308,25 +362,26 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
     : defaults.langs
 
   const title = firstString(query.title).trim()
-  const searchedTitle = firstString(query.searchedTitle).trim()
-  const saveTitle = firstString(query.saveTitle).trim()
-  const explicitInterests =
-    query.interests !== undefined ? normalizeInterestTitles(stringArray(query.interests)) : null
+  const personalizationReturnRaw = firstString(query.personalizationReturn).trim()
+  const personalizationReturn = isPersonalizationReturnPath(personalizationReturnRaw)
+    ? personalizationReturnRaw
+    : ''
+  const interestsTouched = query.interests !== undefined
+  const explicitInterests = interestsTouched
+    ? normalizeInterestTitles(stringArray(query.interests))
+    : null
 
   return {
     view,
     mode: resolvedMode,
-    onboarded: firstString(query.onboarded) === '1',
+    onboarded,
     screen,
     title,
-    searchedTitle,
-    saveTitle,
     username: firstString(query.username).trim(),
     email: firstString(query.email).trim(),
     survey,
-    interests:
-      explicitInterests ??
-      defaultOnboardingInterests({ searchedTitle, saveTitle, title }),
+    interests: explicitInterests ?? [],
+    interestsTouched,
     returnTo,
     user,
     realUser: firstString(query.realUser).trim(),
@@ -336,6 +391,10 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
     langs,
     displayName: firstString(query.displayName).trim(),
     saved: stringArray(query.saved).map((t) => normalizeEnwikiTitle(t) ?? t),
+    savedTs: backfillReadingListSavedAt(
+      stringArray(query.saved).map((t) => normalizeEnwikiTitle(t) ?? t),
+      numberArray(query.savedTs),
+    ),
     edited: stringArray(query.edited).map((t) => normalizeEnwikiTitle(t) ?? t),
     watchlist: stringArray(query.watchlist).map((t) => normalizeEnwikiTitle(t) ?? t),
     suggestionPreferences: {
@@ -345,6 +404,10 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
         DEFAULT_SUGGESTION_PREFERENCES.useEditingHistory,
       ),
       useInterests: parsePrefBool(firstString(query.prefInterests), DEFAULT_SUGGESTION_PREFERENCES.useInterests),
+      useWatchlist: parsePrefBool(
+        firstString(query.prefWatchlist),
+        DEFAULT_SUGGESTION_PREFERENCES.useWatchlist,
+      ),
     },
     helpWantedOverrides: {
       useDefaultSettings: parseBoolFlag(firstString(query.hwDefault), true),
@@ -383,6 +446,12 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
     lists: stringArray(query.list)
       .map(parseListEntry)
       .filter((entry): entry is UserList => entry !== null),
+    homeLayout: parseHomeLayoutOverrides({
+      homeOff: firstString(query.homeOff),
+      homeOn: firstString(query.homeOn),
+      homeOrder: firstString(query.homeOrder),
+    }),
+    personalizationReturn,
   }
 }
 
@@ -412,18 +481,26 @@ export function serializeWikitaLiteState(
   if (state.mode !== DEFAULT_DASHBOARD_MODE) next.mode = state.mode
   if (state.onboarded) next.onboarded = '1'
 
-  if (state.screen !== defaults.screen && !state.onboarded) {
+  if (state.screen === 'splash') {
+    next.screen = 'splash'
+  } else if (!state.onboarded) {
     next.screen = state.screen
   }
-  if (state.title && !state.onboarded) next.title = state.title
-  if (state.searchedTitle && !state.onboarded) next.searchedTitle = state.searchedTitle
-  if (state.saveTitle && !state.onboarded) next.saveTitle = state.saveTitle
+  if (state.title && !state.onboarded && state.screen !== 'home') {
+    next.title = state.title
+  }
   if (state.username && !state.onboarded) next.username = state.username
   if (state.email && !state.onboarded) next.email = state.email
   if (state.survey) next.survey = state.survey
   if (state.returnTo && !state.onboarded) next.returnTo = state.returnTo
 
-  if (state.interests.length) next.interests = state.interests
+  if (state.interestsTouched) {
+    if (state.interests.length) {
+      next.interests = state.interests
+    } else {
+      next.interests = ''
+    }
+  }
 
   if (state.user !== DEFAULT_CONFIG.user) next.user = state.user
   if (state.realUser) next.realUser = state.realUser
@@ -437,7 +514,12 @@ export function serializeWikitaLiteState(
 
   if (state.displayName) next.displayName = state.displayName
 
-  if (state.saved.length) next.saved = state.saved
+  if (state.saved.length) {
+    next.saved = state.saved
+    if (state.savedTs.length === state.saved.length) {
+      next.savedTs = state.savedTs.map(String)
+    }
+  }
   if (state.edited.length) next.edited = state.edited
   if (state.watchlist.length) next.watchlist = state.watchlist
 
@@ -453,9 +535,14 @@ export function serializeWikitaLiteState(
     state.suggestionPreferences.useInterests,
     DEFAULT_SUGGESTION_PREFERENCES.useInterests,
   )
+  const prefWatchlist = prefToFlag(
+    state.suggestionPreferences.useWatchlist,
+    DEFAULT_SUGGESTION_PREFERENCES.useWatchlist,
+  )
   if (prefSaved !== undefined) next.prefSaved = prefSaved
   if (prefHistory !== undefined) next.prefHistory = prefHistory
   if (prefInterests !== undefined) next.prefInterests = prefInterests
+  if (prefWatchlist !== undefined) next.prefWatchlist = prefWatchlist
 
   if (!state.helpWantedOverrides.useDefaultSettings) next.hwDefault = '0'
   const hwPrefSaved = prefToFlag(
@@ -513,6 +600,15 @@ export function serializeWikitaLiteState(
     next.list = state.lists.map(serializeListEntry)
   }
 
+  const homeLayoutSerialized = serializeHomeLayoutOverrides(state.mode, state.homeLayout)
+  if (homeLayoutSerialized.homeOff) next.homeOff = homeLayoutSerialized.homeOff
+  if (homeLayoutSerialized.homeOn) next.homeOn = homeLayoutSerialized.homeOn
+  if (homeLayoutSerialized.homeOrder) next.homeOrder = homeLayoutSerialized.homeOrder
+
+  if (state.personalizationReturn) {
+    next.personalizationReturn = state.personalizationReturn
+  }
+
   return next
 }
 
@@ -528,17 +624,18 @@ export function mergeWikitaLiteQuery(
       : {}),
     ...(patch.mode !== undefined && patch.mode !== null ? { mode: patch.mode } : {}),
     ...(patch.onboarded !== undefined && patch.onboarded !== null ? { onboarded: patch.onboarded } : {}),
-    ...(patch.screen !== undefined && patch.screen !== null ? { screen: patch.screen } : {}),
-    ...(patch.title !== undefined && patch.title !== null ? { title: patch.title } : {}),
-    ...(patch.searchedTitle !== undefined && patch.searchedTitle !== null
-      ? { searchedTitle: patch.searchedTitle }
+    ...(patch.screen !== undefined
+      ? { screen: patch.screen ?? defaultWikitaLiteUrlState().screen }
       : {}),
-    ...(patch.saveTitle !== undefined && patch.saveTitle !== null ? { saveTitle: patch.saveTitle } : {}),
+    ...(patch.title !== undefined && patch.title !== null ? { title: patch.title } : {}),
     ...(patch.username !== undefined && patch.username !== null ? { username: patch.username } : {}),
     ...(patch.email !== undefined && patch.email !== null ? { email: patch.email } : {}),
     ...(patch.survey !== undefined && patch.survey !== null ? { survey: patch.survey } : {}),
     ...(patch.interests !== undefined && patch.interests !== null
-      ? { interests: normalizeInterestTitles(patch.interests) }
+      ? {
+          interests: normalizeInterestTitles(patch.interests),
+          interestsTouched: true,
+        }
       : {}),
     ...(patch.returnTo !== undefined && patch.returnTo !== null ? { returnTo: patch.returnTo } : {}),
     ...(patch.user !== undefined && patch.user !== null ? { user: patch.user } : {}),
@@ -551,6 +648,7 @@ export function mergeWikitaLiteQuery(
       ? { displayName: patch.displayName }
       : {}),
     ...(patch.saved !== undefined && patch.saved !== null ? { saved: patch.saved } : {}),
+    ...(patch.savedTs !== undefined && patch.savedTs !== null ? { savedTs: patch.savedTs } : {}),
     ...(patch.edited !== undefined && patch.edited !== null ? { edited: patch.edited } : {}),
     ...(patch.watchlist !== undefined && patch.watchlist !== null ? { watchlist: patch.watchlist } : {}),
     ...(patch.suggestionPreferences !== undefined && patch.suggestionPreferences !== null
@@ -579,6 +677,17 @@ export function mergeWikitaLiteQuery(
       ? { mentorBannerDismissed: patch.mentorBannerDismissed }
       : {}),
     ...(patch.lists !== undefined && patch.lists !== null ? { lists: patch.lists } : {}),
+    ...(patch.homeLayout !== undefined && patch.homeLayout !== null
+      ? { homeLayout: patch.homeLayout }
+      : {}),
+    ...(patch.personalizationReturn !== undefined
+      ? { personalizationReturn: patch.personalizationReturn ?? '' }
+      : {}),
+  }
+
+  if (patch.mode === undefined || patch.mode === null) {
+    const urlMode = parseDashboardMode(firstString(current.mode))
+    merged.mode = resolveDashboardMode(urlMode, merged.survey)
   }
 
   return serializeWikitaLiteState(merged, current)
@@ -593,8 +702,7 @@ export function stripWikitaLiteQuery(query: LocationQuery): LocationQueryRaw {
     'onboarded',
     'screen',
     'title',
-    'searchedTitle',
-    'saveTitle',
+    'interestSeed',
     'username',
     'email',
     'survey',
@@ -608,11 +716,13 @@ export function stripWikitaLiteQuery(query: LocationQuery): LocationQueryRaw {
     'langs',
     'displayName',
     'saved',
+    'savedTs',
     'edited',
     'watchlist',
     'prefSaved',
     'prefHistory',
     'prefInterests',
+    'prefWatchlist',
     'hwDefault',
     'hwPrefSaved',
     'hwPrefHistory',
@@ -626,9 +736,15 @@ export function stripWikitaLiteQuery(query: LocationQuery): LocationQueryRaw {
     'hideTabBar',
     'moduleMenus',
     'bannerDismissed',
+    'splashDismissed',
     'mentorAssigned',
     'mentorBannerDismissed',
     'list',
+    'homeOff',
+    'homeOn',
+    'homeOrder',
+    'configure',
+    'personalizationReturn',
   ])
 
   for (const key of Object.keys(next)) {
@@ -649,6 +765,7 @@ export function stateToConfigPatch(state: WikitaLiteUrlState) {
     realUsername: state.realUser,
     knownLanguages: state.langs,
     readingList: state.saved,
+    readingListSavedAt: backfillReadingListSavedAt(state.saved, state.savedTs),
     editedPages: state.edited,
     watchlist: state.watchlist,
   }

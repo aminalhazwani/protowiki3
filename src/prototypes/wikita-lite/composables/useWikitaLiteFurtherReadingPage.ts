@@ -2,7 +2,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 
-import { helpWantedFeedsKey } from '../../musical-group/data/cacheKeys'
+import { dailyReadsPreviewCacheKey, helpWantedFeedsKey } from '../../musical-group/data/cacheKeys'
 import { suggestionSeedItems } from '../../musical-group/data/getSuggestionSeeds'
 import { getCachedRelatedFeed } from '../../musical-group/data/homeTabCache'
 import {
@@ -59,7 +59,7 @@ export function useWikitaLiteFurtherReadingPage() {
       return true
     }
 
-    const preview = getCachedDailyReadsPreview(key)
+    const preview = getCachedDailyReadsPreview(dailyReadsPreviewCacheKey())
     if (preview?.length) {
       relatedItems.value = preview
       loading.value = false

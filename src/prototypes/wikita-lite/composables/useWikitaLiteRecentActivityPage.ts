@@ -2,38 +2,50 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 
-import { readingListKey } from '../data/readingListSavedPages'
+import { hasSuggestionSeeds, suggestionSeedItems } from '../../musical-group/data/getSuggestionSeeds'
+import { getCachedSavedSummaries } from '../../musical-group/data/homeTabCache'
+import type { HomeRecentChange, HomeSavedItem } from '../../musical-group/data/types'
 import { fetchReadingListSummaries } from '../data/fetchReadingListSummaries'
+import { readingListKey, readingListToSavedItems } from '../data/readingListSavedPages'
 import {
   loadNextRandomRecentChange,
   restoreRandomRecentChangesFeed,
   type RandomRecentChangesFeed,
 } from '../../musical-group/data/fetchRandomRecentChanges'
-import { getCachedSavedSummaries } from '../../musical-group/data/homeTabCache'
-import type { HomeRecentChange, HomeSavedItem } from '../../musical-group/data/types'
+import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSuggestionPreferences'
 import {
   isSentinelNearViewport,
   useViewportInfiniteScroll,
 } from './useViewportInfiniteScroll'
 
-function useSavedRecentActivityPage(readingListTitles: string[]) {
-  const dependencyKey = readingListKey()
-  const cachedSummaries = getCachedSavedSummaries(dependencyKey)
-
-  const savedItems = ref<HomeSavedItem[]>(cachedSummaries ?? [])
-  const savedItemsLoading = ref(Boolean(!cachedSummaries?.length))
+function usePersonalizedRecentActivityPage(
+  initialSavedItems: HomeSavedItem[],
+  readingListTitles?: string[],
+) {
+  const { preferences, listInterests } = useWikitaLiteSuggestionPreferencesSingleton()
+  const savedItems = ref<HomeSavedItem[]>(
+    suggestionSeedItems(initialSavedItems, preferences.value, listInterests()),
+  )
+  const savedItemsLoading = ref(Boolean(readingListTitles?.length))
 
   onMounted(async () => {
-    try {
-      savedItems.value = await fetchReadingListSummaries(readingListTitles)
-    } catch {
-      if (!savedItems.value.length) savedItems.value = []
+    if (!readingListTitles?.length) {
+      savedItemsLoading.value = false
+      return
     }
-    savedItemsLoading.value = false
+
+    try {
+      const enriched = await fetchReadingListSummaries(readingListTitles)
+      savedItems.value = suggestionSeedItems(enriched, preferences.value, listInterests())
+    } catch {
+      // Keep synthetic seed items on failure.
+    } finally {
+      savedItemsLoading.value = false
+    }
   })
 
   return {
-    mode: 'saved' as const,
+    mode: 'personalized' as const,
     savedItems,
     savedItemsLoading,
     recentChanges: ref<HomeRecentChange[]>([]),
@@ -154,9 +166,20 @@ function useRandomRecentActivityPage() {
 
 export function useWikitaLiteRecentActivityPage() {
   const { currentUserPageLists } = useConfig()
+  const { preferences, listInterests } = useWikitaLiteSuggestionPreferencesSingleton()
   const readingListTitles = currentUserPageLists.value.readingList
-  if (readingListTitles.length) {
-    return useSavedRecentActivityPage(readingListTitles)
+  const dependencyKey = readingListKey()
+  const cachedSummaries = getCachedSavedSummaries(dependencyKey)
+  const savedItems = readingListTitles.length
+    ? cachedSummaries ?? readingListToSavedItems(readingListTitles)
+    : []
+
+  if (hasSuggestionSeeds(savedItems, preferences.value, listInterests())) {
+    return usePersonalizedRecentActivityPage(
+      savedItems,
+      readingListTitles.length ? readingListTitles : undefined,
+    )
   }
+
   return useRandomRecentActivityPage()
 }

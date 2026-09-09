@@ -42,21 +42,20 @@ export function completeWikitaLiteOnboarding(flow: OnboardingFlowState): void {
 
   const interests = normalizeInterestTitles(flow.interests.value)
   const username = flow.username.value.trim()
-  const survey = flow.survey.value
+  const survey = flow.survey.value || 'both'
 
   void patchState({
     onboarded: true,
+    user: 'new',
     displayName: username || undefined,
-    survey: survey || '',
+    survey,
+    mode: survey,
     interests,
-    screen: 'read',
+    screen: 'article',
     title: '',
-    searchedTitle: '',
-    saveTitle: '',
     username: '',
     email: '',
     returnTo: '',
-    ...(survey ? { mode: survey } : {}),
   })
 }
 
@@ -70,6 +69,6 @@ export function loadStoredSurveyChoice(): SurveyChoice | '' {
 }
 
 /** Persisted onboarding survey maps 1:1 to simplified dashboard mode. */
-export function loadStoredDashboardMode(): SurveyChoice | '' {
-  return loadStoredSurveyChoice()
+export function loadStoredDashboardMode(): SurveyChoice {
+  return loadStoredSurveyChoice() || 'both'
 }

@@ -29,7 +29,10 @@ import MusicalGroupSearch from './MusicalGroupSearch.vue'
 import MusicalGroupTitleRow from './MusicalGroupTitleRow.vue'
 import { useEntityExternalLinks } from './useEntityExternalLinks'
 import { useMusicalGroupRoute } from './useMusicalGroupRoute'
-import { scrollMusicalGroupPageToTop, scrollMusicalGroupTabIntoView } from './musicalGroupScrollOffset'
+import {
+  scrollMusicalGroupPageToTop,
+  scrollMusicalGroupTabIntoView,
+} from './musicalGroupScrollOffset'
 
 import { CdxProgressBar } from '@wikimedia/codex'
 
@@ -40,6 +43,7 @@ definePage({
   meta: {
     title: 'Wikita',
     description: 'Browse Wikidata items in Wikita.',
+    hidden: true,
   },
 })
 
@@ -63,8 +67,11 @@ const { activeTab, activeHomeTab, goToHomeTab, goToContribute } = useMusicalGrou
 provideWikitaSaveFeedback()
 provideWikitaUiSkin(uiSkin)
 
-const { links: externalLinks, loading: linksLoading, error: linksError } =
-  useEntityExternalLinks(itemId)
+const {
+  links: externalLinks,
+  loading: linksLoading,
+  error: linksError,
+} = useEntityExternalLinks(itemId)
 
 watch(headerVariant, (variant) => {
   saveHeaderVariantPreference(variant)
@@ -462,7 +469,8 @@ async function onFloatingGoContribute() {
   padding-top: calc(var(--spacing-50) + var(--musical-group-title-collapse-padding, 0px));
 }
 
-.musical-group-page[data-tabs-stuck] .musical-group-tabs:not(.musical-group-tabs--wikipedia)::before {
+.musical-group-page[data-tabs-stuck]
+  .musical-group-tabs:not(.musical-group-tabs--wikipedia)::before {
   bottom: calc(100% - 1px);
   height: calc(var(--spacing-50) + 1px);
 }

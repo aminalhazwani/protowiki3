@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted } from 'vue'
 
+import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 
 import { useWikitaLiteCardBordersSingleton } from '../composables/useWikitaLiteCardBorders'
+import { useWikitaLiteChromeHeaderRight } from '../composables/useWikitaLiteChromeHeaderRight'
 import { useWikitaLiteCardRadiusSingleton } from '../composables/useWikitaLiteCardRadius'
+import { useWikitaLiteLeavePrototype } from '../composables/useWikitaLiteLeavePrototype'
 import { initWikitaLiteUrlState } from '../composables/useWikitaLiteUrlState'
 import { useWikitaLiteView } from '../composables/useWikitaLiteView'
+import WikitaLiteLeavePrototypeDialog from './WikitaLiteLeavePrototypeDialog.vue'
 
 initWikitaLiteUrlState()
-import { SHOW_WIKITA_LITE_FLOATING_NAV } from '../routes'
+import { SHOW_WIKITA_LITE_CHROME_MENU, SHOW_WIKITA_LITE_FLOATING_NAV } from '../routes'
 import '../wikita-lite-shell.css'
 import WikitaLiteChromeMenuPopover from './WikitaLiteChromeMenuPopover.vue'
 import WikitaLiteFloatingNav from './WikitaLiteFloatingNav.vue'
@@ -28,8 +32,10 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const { isHomeFeed, goHome, scrollToTop } = useWikitaLiteView()
+const { onLeaveCapture } = useWikitaLiteLeavePrototype()
 const { cardRadiusStyle } = useWikitaLiteCardRadiusSingleton()
 const { hideCardBorders } = useWikitaLiteCardBordersSingleton()
+const { headerRight } = useWikitaLiteChromeHeaderRight()
 
 const isSubpage = computed(() => props.title === null)
 
@@ -45,7 +51,7 @@ onMounted(async () => {
 
 <template>
   <MobileWrapper>
-    <div class="wikita-lite-shell-root">
+    <div class="wikita-lite-shell-root" @click.capture="onLeaveCapture">
       <ChromeWrapper
         skin="mobile"
         :last-edited-notice="false"
@@ -53,12 +59,16 @@ onMounted(async () => {
         :show-footer="!isSubpage"
         :brand-link="false"
       >
-        <template v-if="!isSubpage" #menu>
-          <WikitaLiteChromeMenuPopover />
+        <template v-if="!isSubpage" #header>
+          <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false">
+            <template v-if="SHOW_WIKITA_LITE_CHROME_MENU" #menu>
+              <WikitaLiteChromeMenuPopover />
+            </template>
+          </ChromeHeader>
         </template>
         <SpecialPageWrapper
-          :title="title"
-          :help="Boolean(title)"
+          :title="isSubpage ? null : undefined"
+          :help="Boolean(title && !isSubpage)"
           :actions="props.actions"
           class="wikita-lite-shell"
           :class="{
@@ -68,6 +78,9 @@ onMounted(async () => {
           }"
           :style="cardRadiusStyle"
         >
+          <template v-if="!isSubpage && title" #header>
+            <h3 class="special-page-wrapper__title">{{ title }}</h3>
+          </template>
           <template v-if="$slots.actions" #actions>
             <slot name="actions" />
           </template>
@@ -79,6 +92,8 @@ onMounted(async () => {
         :home-active="isHomeFeed"
         @go-home="goHome"
       />
+      <slot name="overlay" />
+      <WikitaLiteLeavePrototypeDialog />
     </div>
   </MobileWrapper>
 </template>

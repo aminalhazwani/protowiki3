@@ -60,7 +60,7 @@ function onInput(event: Event): void {
 function read(title: string): void {
   const trimmed = title.trim()
   if (!trimmed.length) return
-  props.flow.goTo('read', { title: trimmed, searchedTitle: trimmed })
+  void props.flow.goTo('article', { title: trimmed })
 }
 
 function goBack(): void {
@@ -72,7 +72,7 @@ function goBack(): void {
     router.back()
     return
   }
-  props.flow.goTo('read')
+  props.flow.goTo('article')
 }
 
 onMounted(() => {

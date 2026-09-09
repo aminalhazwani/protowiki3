@@ -40,7 +40,7 @@ export async function fetchInterestSearchResults(
 
   const openSearchResponse = await fetchWikimedia(openSearchUrl, {
     signal,
-    headers: wikimediaApiFetchHeaders('wikita-lite-interests-opensearch'),
+    headers: wikimediaApiFetchHeaders(),
   })
   if (!openSearchResponse.ok) return []
 
@@ -66,7 +66,7 @@ export async function fetchInterestSearchResults(
 
   const queryResponse = await fetchWikimedia(queryUrl, {
     signal,
-    headers: wikimediaApiFetchHeaders('wikita-lite-interests-search'),
+    headers: wikimediaApiFetchHeaders(),
   })
 
   const enrichedByTitle = new Map<string, { thumbnailUrl?: string; description?: string }>()

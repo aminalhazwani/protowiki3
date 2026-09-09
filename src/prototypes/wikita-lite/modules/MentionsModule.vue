@@ -95,6 +95,7 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
         :force-thumbnail="true"
         :action-label="saveLabel(item.title)"
         :action-icon="saveIcon(item.itemId, item.title)"
+        :action-active="relatedReadingSaved(item.title)"
         @action-click="onRelatedReadingSave(item.itemId, item.title, item.thumbnailUrl)"
       />
 

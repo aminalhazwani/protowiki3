@@ -167,7 +167,7 @@ const showHeaderNav = computed(
  * Minerva / mobile — sans title (global `h1` is serif Heading 1); xx-large reads
  * smaller than xxx-large without the desktop title-rule line under the header.
  */
-.special-page-wrapper[data-skin='mobile'] .special-page-wrapper__title {
+.special-page-wrapper[data-skin='mobile'] h1.special-page-wrapper__title {
   padding-bottom: 0;
   font-family:
     var(--font-family-system-sans, system-ui, sans-serif), var(--font-family-base, sans-serif);

@@ -18,7 +18,7 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
   showBell: true,
-  showUser: true,
+  showUser: false,
 })
 
 const variant = defineModel<WikitaChromeHeaderVariant>('variant', { default: 'black' })

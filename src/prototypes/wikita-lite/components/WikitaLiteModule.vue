@@ -4,18 +4,18 @@ import type { RouteLocationRaw } from 'vue-router'
 import { RouterLink } from 'vue-router'
 
 import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
-import type { MenuItemValue } from '@wikimedia/codex'
-import { cdxIconCheck, cdxIconConfigure, cdxIconEllipsis, cdxIconNext, cdxIconPushPin } from '@wikimedia/codex-icons'
+import type { MenuGroupData, MenuItemData, MenuItemValue } from '@wikimedia/codex'
+import { cdxIconConfigure, cdxIconEllipsis, cdxIconNext, cdxIconPushPin } from '@wikimedia/codex-icons'
 
 import { useWikitaLiteCardBordersSingleton } from '../composables/useWikitaLiteCardBorders'
-import { useWikitaLiteDismissedModulesSingleton } from '../composables/useWikitaLiteDismissedModules'
 import { useWikitaLiteModuleMenuModeSingleton } from '../composables/useWikitaLiteModuleMenuMode'
 import { useWikitaLitePinnedModulesSingleton } from '../composables/useWikitaLitePinnedModules'
 import { useWikitaLitePreserveScroll } from '../composables/useWikitaLitePreserveScroll'
 import { useWikitaLiteRoute } from '../composables/useWikitaLiteRoute'
 import { useWikitaLiteView } from '../composables/useWikitaLiteView'
 import { isOverflowModuleId, type WikitaLiteModuleId } from '../data/homeModuleIds'
-import { HELP_WANTED_CONFIGURE_PAGE } from '../routes'
+import { isPersonalizedModule } from '../data/personalizedModuleIds'
+import { PERSONALIZATION_PAGE } from '../routes'
 import { WIKITA_LITE_CARD_SEPARATION, type WikitaLiteCardSeparation } from '../wikita-lite-card'
 
 interface Props {
@@ -36,9 +36,8 @@ const props = withDefaults(defineProps<Props>(), {
 const { hideCardBorders } = useWikitaLiteCardBordersSingleton()
 const { useModuleMenuMode } = useWikitaLiteModuleMenuModeSingleton()
 const { isPinned, togglePin } = useWikitaLitePinnedModulesSingleton()
-const { dismiss } = useWikitaLiteDismissedModulesSingleton()
 const { activeView, isHome } = useWikitaLiteView()
-const { captureScroll, restoreScroll, preserveScrollFor } = useWikitaLitePreserveScroll()
+const { captureScroll, restoreScroll } = useWikitaLitePreserveScroll()
 const { pushRoute } = useWikitaLiteRoute()
 
 const menuSelected = ref<MenuItemValue | null>(null)
@@ -65,67 +64,40 @@ const showPinButton = computed(() => {
   return activeView.value === 'edit'
 })
 
-const pinMenuLabel = computed(() => {
-  if (!props.moduleId) return ''
-  const pinned = isPinned(props.moduleId)
-  if (!isHome.value) {
-    return pinned ? 'Unpin from home' : 'Pin to home'
-  }
-  return pinned ? 'Unpin from top' : 'Pin to top'
-})
-
 const unpinAriaLabel = computed(() =>
   !isHome.value ? 'Unpin from home' : 'Unpin from top',
 )
 
-const overflowMenuItems = computed(() => {
+const aboutLabel = computed(() => `About ${props.title.toLowerCase()}`)
+
+const overflowMenuItems = computed((): (MenuItemData | MenuGroupData)[] => {
   if (!props.moduleId) return []
 
-  const items = []
+  const aboutItem: MenuItemData = { value: 'about', label: aboutLabel.value }
 
-  if (props.moduleId === 'suggestedEdits') {
-    items.push({
-      value: 'configure',
-      label: 'Configure',
-      icon: cdxIconConfigure,
-    })
+  if (isPersonalizedModule(props.moduleId)) {
+    return [
+      { value: 'configure', label: 'Configure', icon: cdxIconConfigure },
+      {
+        hideLabel: true,
+        label: aboutLabel.value,
+        items: [aboutItem],
+      },
+    ]
   }
 
-  items.push({
-    value: 'pin',
-    label: pinMenuLabel.value,
-    icon: cdxIconPushPin,
-  })
-
-  items.push({
-    value: 'dismiss',
-    label: 'Dismiss',
-    icon: cdxIconCheck,
-  })
-
-  return items
+  return [aboutItem]
 })
 
 watch(menuSelected, (value) => {
-  if (value === 'pin' && props.moduleId) {
-    preserveScrollFor(() => {
-      togglePin(props.moduleId!)
-      menuSelected.value = null
-    })
-    return
-  }
-
-  if (value === 'dismiss' && props.moduleId) {
-    preserveScrollFor(() => {
-      dismiss(props.moduleId!)
-      menuSelected.value = null
-    })
-    return
-  }
-
-  if (value === 'configure' && props.moduleId === 'suggestedEdits') {
+  if (value === 'about') {
     menuSelected.value = null
-    void pushRoute(HELP_WANTED_CONFIGURE_PAGE)
+    return
+  }
+
+  if (value === 'configure') {
+    menuSelected.value = null
+    void pushRoute(PERSONALIZATION_PAGE)
   }
 })
 
@@ -153,9 +125,9 @@ provide(WIKITA_LITE_CARD_SEPARATION, effectiveCardSeparation)
   >
     <div v-if="showOverflowMenu" class="wikita-lite-module__header">
       <div class="wikita-lite-module__title-group">
-        <h3 class="wikita-lite-module__title">
+        <h4 class="wikita-lite-module__title">
           {{ title }}
-        </h3>
+        </h4>
         <CdxButton
           v-if="moduleIsPinned && showPinButton"
           weight="quiet"
@@ -176,6 +148,7 @@ provide(WIKITA_LITE_CARD_SEPARATION, effectiveCardSeparation)
           v-model:selected="menuSelected"
           class="wikita-lite-module__overflow-button"
           :menu-items="overflowMenuItems"
+          :menu-config="{ renderInPlace: true }"
           weight="quiet"
           size="medium"
           aria-label="Module actions"
@@ -190,15 +163,15 @@ provide(WIKITA_LITE_CARD_SEPARATION, effectiveCardSeparation)
       :to="to"
       class="wikita-lite-module__title-link"
     >
-      <h3 class="wikita-lite-module__title">{{ title }}</h3>
+      <h4 class="wikita-lite-module__title">{{ title }}</h4>
       <CdxButton weight="quiet" class="wikita-lite-module__arrow-button" :aria-hidden="true" tabindex="-1">
         <CdxIcon :icon="cdxIconNext" />
       </CdxButton>
     </RouterLink>
 
-    <h3 v-else class="wikita-lite-module__title wikita-lite-module__title--static">
+    <h4 v-else class="wikita-lite-module__title wikita-lite-module__title--static">
       {{ title }}
-    </h3>
+    </h4>
 
     <div class="wikita-lite-module__cards">
       <slot />
@@ -250,11 +223,36 @@ provide(WIKITA_LITE_CARD_SEPARATION, effectiveCardSeparation)
 }
 
 .wikita-lite-module__overflow-button-wrap {
+  position: relative;
   flex-shrink: 0;
 }
 
 .wikita-lite-module__overflow-button {
   flex-shrink: 0;
+}
+
+.wikita-lite-module__overflow-button :deep(.cdx-menu-button__menu-wrapper) {
+  position: relative;
+}
+
+/*
+ * renderInPlace + useFloatingMenu sizes the menu to available viewport width and
+ * shifts it with transform — that pushes the panel off the left edge on narrow
+ * screens. Anchor to the trigger instead (Codex menu-button default intent).
+ */
+.wikita-lite-module__overflow-button :deep(.cdx-menu-button__menu) {
+  position: absolute !important;
+  top: 100% !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: 0 !important;
+  inset-inline-start: auto !important;
+  inset-inline-end: 0 !important;
+  transform: none !important;
+  width: max-content !important;
+  min-width: 8rem !important;
+  max-width: 16rem !important;
+  margin-top: 4px;
 }
 
 .wikita-lite-module__arrow-button {

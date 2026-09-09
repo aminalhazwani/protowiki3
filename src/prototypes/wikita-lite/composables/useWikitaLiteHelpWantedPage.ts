@@ -2,27 +2,25 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 
-import { fetchReadingListSummaries } from '../data/fetchReadingListSummaries'
-import { readingListToSavedItems } from '../data/readingListSavedPages'
+import { resolveReadingListSavedItems } from '../data/readingListSavedPages'
 import {
   loadNextRandomEditSuggestion,
   restoreRandomEditSuggestionsFeed,
   type RandomEditSuggestionsFeed,
 } from '../../musical-group/data/fetchRandomEditSuggestions'
+import { hasSuggestionSeeds } from '../../musical-group/data/getSuggestionSeeds'
 import type { HomeHelpWanted, HomeSavedItem } from '../../musical-group/data/types'
 import { useContributeSuggestionsFeed } from '../../musical-group/useContributeSuggestionsFeed'
-import { useWikitaLiteModuleSuggestionPreferencesSingleton } from './useWikitaLiteModuleSuggestionPreferences'
+import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSuggestionPreferences'
 import {
   isSentinelNearViewport,
   useViewportInfiniteScroll,
 } from './useViewportInfiniteScroll'
 
-function usePersonalizedHelpWantedPage(
-  initialSavedItems: HomeSavedItem[],
-  readingListTitles?: string[],
-) {
-  const savedItems = ref<HomeSavedItem[]>(initialSavedItems)
-  const pageActive = ref(true)
+function usePersonalizedHelpWantedPage() {
+  const { currentUserPageLists } = useConfig()
+  const savedItems = ref<HomeSavedItem[]>([])
+  const pageActive = ref(false)
   const loadSentinel = ref<HTMLElement | null>(null)
   let fillingViewport = false
 
@@ -80,19 +78,13 @@ function usePersonalizedHelpWantedPage(
   })
 
   onMounted(async () => {
+    const readingListTitles = currentUserPageLists.value.readingList
+    savedItems.value = readingListTitles.length
+      ? resolveReadingListSavedItems(readingListTitles)
+      : []
+    pageActive.value = true
     await nextTick()
     void fillViewport()
-
-    if (!readingListTitles?.length) return
-
-    try {
-      const enriched = await fetchReadingListSummaries(readingListTitles)
-      if (enriched.length) {
-        savedItems.value = enriched
-      }
-    } catch {
-      // Keep synthetic items on failure.
-    }
   })
 
   return {
@@ -211,18 +203,14 @@ function useRandomHelpWantedPage() {
 
 export function useWikitaLiteHelpWantedPage() {
   const { currentUserPageLists } = useConfig()
-  const { hasModuleSuggestionSeeds } = useWikitaLiteModuleSuggestionPreferencesSingleton()
+  const { preferences, listInterests } = useWikitaLiteSuggestionPreferencesSingleton()
   const readingListTitles = currentUserPageLists.value.readingList
+  const savedItems = readingListTitles.length
+    ? resolveReadingListSavedItems(readingListTitles)
+    : []
 
-  if (readingListTitles.length) {
-    return usePersonalizedHelpWantedPage(
-      readingListToSavedItems(readingListTitles),
-      readingListTitles,
-    )
-  }
-
-  if (hasModuleSuggestionSeeds('suggestedEdits', [])) {
-    return usePersonalizedHelpWantedPage([])
+  if (hasSuggestionSeeds(savedItems, preferences.value, listInterests())) {
+    return usePersonalizedHelpWantedPage()
   }
 
   return useRandomHelpWantedPage()

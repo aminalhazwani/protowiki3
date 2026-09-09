@@ -5,7 +5,7 @@ import WikitaLiteConfigureButton from '../wikita-lite/components/WikitaLiteConfi
 import MobileSubpageHeader from '../wikita-lite/components/MobileSubpageHeader.vue'
 import WikitaLiteShell from '../wikita-lite/components/WikitaLiteShell.vue'
 import HelpWantedModule from '../wikita-lite/modules/HelpWantedModule.vue'
-import { HELP_WANTED_CONFIGURE_PAGE, MODULE_TITLES } from '../wikita-lite/routes'
+import { MODULE_TITLES, PERSONALIZATION_PAGE } from '../wikita-lite/routes'
 
 definePage({
   meta: {
@@ -25,8 +25,8 @@ const { helpWanted, helpWantedLoading, helpWantedLoadingMore, loadSentinel } =
     <MobileSubpageHeader :title="MODULE_TITLES.suggestedEdits">
       <template #actions>
         <WikitaLiteConfigureButton
-          :to="HELP_WANTED_CONFIGURE_PAGE"
-          label="Configure suggested edits"
+          :to="PERSONALIZATION_PAGE"
+          label="Personalization"
         />
       </template>
     </MobileSubpageHeader>

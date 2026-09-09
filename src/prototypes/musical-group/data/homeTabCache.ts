@@ -9,6 +9,7 @@ import type {
   HomeTranslationSuggestion,
   HomeTrending,
 } from './types'
+import { utcDayKey } from './cacheKeys'
 import { readVersionedStore, setVersionedEntry, writeVersionedStore } from './wikitaCache'
 
 const STORAGE_KEY = 'musical-group-home-cache'
@@ -299,9 +300,10 @@ interface CachedDailyReadsPreviewEntry {
 }
 
 export function getCachedDailyReadsPreview(dependencyKey: string): HomeRelated[] | null {
-  const data = getEntry<CachedDailyReadsPreviewEntry>('dailyReadsPreview', dependencyKey)?.data
-  if (!data?.length) return null
-  return data
+  const entry = getEntry<CachedDailyReadsPreviewEntry>('dailyReadsPreview', dependencyKey)
+  if (!entry?.data?.length) return null
+  if (utcDayKey(new Date(entry.fetchedAt)) !== utcDayKey()) return null
+  return entry.data
 }
 
 export function setCachedDailyReadsPreview(dependencyKey: string, data: HomeRelated[]): void {
@@ -355,7 +357,6 @@ export function clearCachedSuggestionFeeds(): void {
   for (const key of Object.keys(entries)) {
     if (
       key === 'helpWanted' ||
-      key === 'dailyReadsPreview' ||
       key.startsWith('related:') ||
       key.startsWith('contribute:') ||
       key === 'homeMentions'
