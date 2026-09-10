@@ -12,6 +12,18 @@ import {
   fetchUserEditedPages,
 } from '../data/fetchUserEditedPages'
 
+interface Props {
+  /** Accordion label. */
+  title?: string
+  /** Sits under the label, so it reads while the accordion is collapsed. */
+  description?: string
+}
+
+withDefaults(defineProps<Props>(), {
+  title: 'Advanced personalization',
+  description: 'Just for this prototype. Not part of the proposed design.',
+})
+
 const {
   currentUserPageLists,
   setCurrentUserPageList,
@@ -82,7 +94,8 @@ const readingListText = computed({
 
 <template>
   <CdxAccordion class="wikita-lite-personalization-advanced" separation="minimal">
-    <template #title>Advanced</template>
+    <template #title>{{ title }}</template>
+    <template #description>{{ description }}</template>
 
     <div class="wikita-lite-personalization-advanced__fields">
       <CdxField>
