@@ -162,21 +162,21 @@ function formatStat(value: number | string | undefined): string {
 
 .impact-module__empty-headline {
   margin: 0;
-  font-size: var(--font-size-medium, 0.875rem);
+  font-size: var(--font-size-medium, 1rem);
   font-weight: bold;
   line-height: var(--line-height-medium, 1.375rem);
 }
 
 .impact-module__empty-body {
   margin: 0;
-  font-size: var(--font-size-medium, 0.875rem);
-  line-height: var(--line-height-medium, 1.375rem);
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-small, 1.25rem);
 }
 
 .impact-module__empty-caption {
   margin: 0;
   font-size: var(--font-size-small, 0.8125rem);
-  line-height: var(--line-height-small, 1.25rem);
+  line-height: var(--line-height-x-small, 1.25rem);
 }
 
 .impact-module__empty-cta {

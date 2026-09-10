@@ -32,7 +32,7 @@ const { wikitaLiteRoute } = useWikitaLiteRoute()
 
 .wikita-lite-interests-empty__body {
   margin: 0;
-  font-size: var(--font-size-medium, 0.875rem);
+  font-size: var(--font-size-medium, 1rem);
   line-height: var(--line-height-medium, 1.375rem);
   color: var(--color-subtle, #54595d);
 }
