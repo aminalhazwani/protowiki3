@@ -68,12 +68,13 @@ function onOpenChange(open: boolean): void {
   line-height: var(--line-height-x-large, 1.5);
 }
 
+.wikita-lite-leave-prototype-sheet .cdx-popover__body {
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-medium, 1.625rem);
+}
+
 .wikita-lite-leave-prototype-sheet .cdx-popover__footer__actions .cdx-button {
   box-sizing: border-box;
   width: 100%;
-  min-height: 3rem;
-  padding-block: var(--spacing-100, 16px);
-  font-size: var(--font-size-medium, 1rem);
-  font-weight: var(--font-weight-bold);
 }
 </style>
