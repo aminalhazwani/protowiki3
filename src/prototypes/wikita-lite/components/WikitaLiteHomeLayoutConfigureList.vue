@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch, type CSSProperties } from 'vue'
-import { CdxIcon, CdxToggleSwitch } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxToggleSwitch } from '@wikimedia/codex'
 import { cdxIconDraggableVertical } from '@wikimedia/codex-icons'
 
 import {
@@ -185,8 +185,9 @@ onBeforeUnmount(() => setGrabbingCursor(false))
       }"
       :data-module-id="moduleId"
     >
-      <div
+      <CdxButton
         class="wikita-lite-home-layout-configure-list__handle"
+        weight="quiet"
         aria-label="Drag to reorder"
         @pointerdown="onDragHandlePointerDown(moduleId, $event)"
         @touchstart.prevent="suppressLongPress"
@@ -194,7 +195,7 @@ onBeforeUnmount(() => setGrabbingCursor(false))
         @selectstart.prevent="suppressLongPress"
       >
         <CdxIcon :icon="cdxIconDraggableVertical" />
-      </div>
+      </CdxButton>
       <CdxToggleSwitch
         class="wikita-lite-home-layout-configure-list__toggle"
         :model-value="isEnabled(moduleId)"
@@ -212,9 +213,14 @@ onBeforeUnmount(() => setGrabbingCursor(false))
     :style="dragLiftStyle"
     aria-hidden="true"
   >
-    <div class="wikita-lite-home-layout-configure-list__handle" aria-hidden="true">
+    <CdxButton
+      class="wikita-lite-home-layout-configure-list__handle"
+      weight="quiet"
+      aria-hidden="true"
+      tabindex="-1"
+    >
       <CdxIcon :icon="cdxIconDraggableVertical" />
-    </div>
+    </CdxButton>
     <CdxToggleSwitch
       class="wikita-lite-home-layout-configure-list__toggle"
       :model-value="isEnabled(draggingId)"
@@ -258,27 +264,26 @@ onBeforeUnmount(() => setGrabbingCursor(false))
   visibility: hidden;
 }
 
+/* Only exists while dragging. Transparent so the lift doesn't paint a slab over
+   the rows it passes; the block padding is geometry only (see LIFT_PADDING_PX). */
 .wikita-lite-home-layout-configure-list__lift {
-  background: var(--background-color-base, #fff);
+  background: transparent;
   padding-block: var(--spacing-50, 8px);
 }
 
+/* Codex owns the 32px icon-only frame and the quiet hover/active fills; these
+   are the drag affordances on top. The `:hover` selector is needed because
+   Codex's own `.cdx-button:enabled:hover` sets `cursor: pointer`. */
 .wikita-lite-home-layout-configure-list__handle {
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-base, #202122);
   touch-action: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.wikita-lite-home-layout-configure-list__handle,
+.wikita-lite-home-layout-configure-list__handle:enabled:hover {
   cursor: grab;
 }
 
@@ -289,7 +294,7 @@ onBeforeUnmount(() => setGrabbingCursor(false))
   user-select: none;
 }
 
-.wikita-lite-home-layout-configure-list__handle:active {
+.wikita-lite-home-layout-configure-list__handle:enabled:active {
   cursor: grabbing;
 }
 
