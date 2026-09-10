@@ -164,7 +164,7 @@ function formatStat(value: number | string | undefined): string {
   margin: 0;
   font-size: var(--font-size-medium, 1rem);
   font-weight: bold;
-  line-height: var(--line-height-medium, 1.375rem);
+  line-height: var(--line-height-small, 1.25rem);
 }
 
 .impact-module__empty-body {

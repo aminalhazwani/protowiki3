@@ -101,7 +101,7 @@ function mentorAvatarThumbnail(initial: string) {
   font-family: var(--font-family-serif);
   font-size: var(--font-size-medium);
   font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-medium);
+  line-height: var(--line-height-small);
   color: var(--color-base);
 }
 
