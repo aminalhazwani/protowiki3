@@ -304,3 +304,15 @@ hr {
   padding-bottom: var(--spacing-50, 8px);
   border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
 }
+
+/* ---------- Codex overrides ---------- */
+
+/*
+ * Codex hardcodes `.cdx-dialog__body { font-family: sans-serif }`, so dialog
+ * copy drops out of the platform stack every other surface inherits from
+ * `body`. Put it back on the token-driven stack — same declaration as `body`.
+ */
+.cdx-dialog__body {
+  font-family:
+    var(--font-family-system-sans, system-ui, sans-serif), var(--font-family-base, sans-serif);
+}

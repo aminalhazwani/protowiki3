@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { CdxButton, CdxDialog, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxDialog, CdxIcon, type PrimaryModalAction } from '@wikimedia/codex'
 import { cdxIconClose } from '@wikimedia/codex-icons'
 
 interface Props {
   title: string
   closeLabel?: string
+  /** Renders Codex's own footer button — no button injected into the body. */
+  primaryAction?: PrimaryModalAction | null
 }
 
 withDefaults(defineProps<Props>(), {
   closeLabel: 'Close',
+  primaryAction: null,
 })
 
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; primary: [] }>()
 
 const shellEl = ref<HTMLElement | null>(null)
 const bodyScrolls = ref(false)
@@ -56,7 +59,10 @@ function onDialogClose(open: boolean): void {
       :fixed-height="true"
       render-in-place
       :title="title"
+      :primary-action="primaryAction"
+      :stacked-actions="true"
       @update:open="onDialogClose"
+      @primary="emit('primary')"
     >
       <template #header>
         <div class="wikita-lite-fullscreen-dialog-shell__header">
