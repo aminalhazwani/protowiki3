@@ -19,6 +19,6 @@ export const MENTOR_ASSIGNED = {
     name: 'Samwalton9',
     initial: 'S',
     bio: "Hi! I'm Sam. I like helping on articles about video games and TV shows mainly. I also do a lot of moderating! I've been editing for quite a long time now so I'm happy to answer any questions you might have.",
-    editingSince: 'Editing since 2020',
+    editingSince: 'Editing since 2011',
   },
 } as const
