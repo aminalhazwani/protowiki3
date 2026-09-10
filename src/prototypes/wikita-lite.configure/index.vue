@@ -38,9 +38,12 @@ async function onReorder(order: ConfigurableHomeModuleId[]): Promise<void> {
 
 <template>
   <MobileWrapper max-width="412px" :show-frame-border="false">
-    <WikitaLiteFullscreenDialogShell title="Home layout" @close="closeConfigure">
+    <WikitaLiteFullscreenDialogShell
+      title="Home layout"
+      subtitle="Drag to rearrange sections"
+      @close="closeConfigure"
+    >
       <div class="wikita-lite-configure-home-layout">
-        <p class="wikita-lite-configure-home-layout__hint">Drag to rearrange sections</p>
         <WikitaLiteHomeLayoutConfigureList
           :order="configureOrder"
           :is-enabled="isModuleEnabledInConfigure"
@@ -58,10 +61,5 @@ async function onReorder(order: ConfigurableHomeModuleId[]): Promise<void> {
   flex-direction: column;
   gap: var(--spacing-100, 16px);
   padding-bottom: var(--spacing-150, 24px);
-}
-
-.wikita-lite-configure-home-layout__hint {
-  margin: 0;
-  color: var(--color-subtle, #54595d);
 }
 </style>
