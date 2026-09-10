@@ -39,29 +39,34 @@ const { goBack } = useWikitaLiteSubpageBack()
 </template>
 
 <style scoped>
+/* 48px toolbar: 32px controls inside a uniform 8px padding box. The bottom
+   rule is a box-shadow rather than a border so it sits *outside* those 48px —
+   the bar measures 48px and the hairline is drawn under it. */
 .mobile-subpage-header {
   display: flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
   box-sizing: border-box;
   width: 100%;
-  min-height: 2.75rem;
+  min-height: 3rem;
   margin: 0 0 var(--spacing-75, 12px);
-  padding-bottom: var(--spacing-50, 8px);
-  border-bottom: 1px solid var(--border-color-base, #a2a9b1);
+  padding: var(--spacing-50, 8px);
+  box-shadow: 0 1px 0 var(--border-color-base, #a2a9b1);
 }
 
+/* Pull the bar out of the page's horizontal inset so it (and its rule) runs
+   edge to edge, while the content below keeps that inset. The host surface
+   publishes its own inset as `--mobile-subpage-inset`, so the two stay in sync. */
 .mobile-subpage-header--bleed {
-  --mobile-subpage-bleed: var(--spacing-50, 8px);
+  --mobile-subpage-bleed: var(--mobile-subpage-inset, var(--spacing-50, 8px));
   width: calc(100% + 2 * var(--mobile-subpage-bleed));
   margin-top: calc(-1 * var(--mobile-subpage-bleed));
   margin-inline: calc(-1 * var(--mobile-subpage-bleed));
-  padding-inline: var(--mobile-subpage-bleed);
 }
 
 .mobile-subpage-header__back {
   flex-shrink: 0;
-  width: 2.75rem;
+  width: 2rem;
 }
 
 .mobile-subpage-header__title {
@@ -84,11 +89,11 @@ const { goBack } = useWikitaLiteSubpageBack()
   flex-shrink: 0;
   align-items: center;
   justify-content: flex-end;
-  width: 2.75rem;
+  width: 2rem;
 }
 
 .mobile-subpage-header__spacer {
   flex-shrink: 0;
-  width: 2.75rem;
+  width: 2rem;
 }
 </style>

@@ -81,10 +81,22 @@ onMounted(() => {
   width: 100%;
 }
 
+/*
+ * Full-bleed scroller. The container that hosts the tabs sets
+ * --wikita-lite-tabs-bleed to its own inline padding; the track then escapes
+ * that padding with a matching negative margin and restores it as its own
+ * padding, so tabs scroll to the viewport edge instead of being clipped while
+ * the first and last tab still line up with the surrounding content.
+ * Defaults to 0 — no bleed unless a container opts in.
+ */
 .wikita-lite-daily-reads-tabs__track {
   display: flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
+  box-sizing: content-box;
+  margin-inline: calc(-1 * var(--wikita-lite-tabs-bleed, 0px));
+  padding-inline: var(--wikita-lite-tabs-bleed, 0px);
+  scroll-padding-inline: var(--wikita-lite-tabs-bleed, 0px);
   overflow-x: auto;
   overscroll-behavior-x: none;
   touch-action: pan-x;
