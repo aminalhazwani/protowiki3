@@ -93,7 +93,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
-  box-sizing: content-box;
   margin-inline: calc(-1 * var(--wikita-lite-tabs-bleed, 0px));
   padding-inline: var(--wikita-lite-tabs-bleed, 0px);
   scroll-padding-inline: var(--wikita-lite-tabs-bleed, 0px);
