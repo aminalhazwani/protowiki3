@@ -81,7 +81,7 @@ const readingListText = computed({
 </script>
 
 <template>
-  <CdxAccordion class="wikita-lite-personalization-advanced" separation="divider">
+  <CdxAccordion class="wikita-lite-personalization-advanced" separation="minimal">
     <template #title>Advanced</template>
 
     <div class="wikita-lite-personalization-advanced__fields">
@@ -131,12 +131,12 @@ const readingListText = computed({
 </template>
 
 <style scoped>
-.wikita-lite-personalization-advanced__fields {
+/*.wikita-lite-personalization-advanced__fields {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-100, 16px);
   padding-top: var(--spacing-75, 12px);
-}
+}*/
 
 .wikita-lite-personalization-advanced :deep(.cdx-text-input) {
   width: 100%;
