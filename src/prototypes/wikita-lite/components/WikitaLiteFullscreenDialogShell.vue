@@ -6,7 +6,7 @@ import { cdxIconClose } from '@wikimedia/codex-icons'
 interface Props {
   title: string
   closeLabel?: string
-  /** Renders Codex's own footer button — no button injected into the body. */
+  /** Renders a large primary button in the dialog footer — no button injected into the body. */
   primaryAction?: PrimaryModalAction | null
 }
 
@@ -59,7 +59,6 @@ function onDialogClose(open: boolean): void {
       :fixed-height="true"
       render-in-place
       :title="title"
-      :primary-action="primaryAction"
       :stacked-actions="true"
       @update:open="onDialogClose"
       @primary="emit('primary')"
@@ -80,6 +79,24 @@ function onDialogClose(open: boolean): void {
       </template>
 
       <slot />
+
+      <template
+        v-if="primaryAction"
+        #footer
+      >
+        <div class="cdx-dialog__footer__actions">
+          <CdxButton
+            class="cdx-dialog__footer__primary-action"
+            weight="primary"
+            size="large"
+            :action="primaryAction.actionType"
+            :disabled="primaryAction.disabled"
+            @click="emit('primary')"
+          >
+            {{ primaryAction.label }}
+          </CdxButton>
+        </div>
+      </template>
     </CdxDialog>
   </div>
 </template>
