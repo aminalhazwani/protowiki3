@@ -169,7 +169,7 @@ const showSupporting = computed(
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-75, 12px);
+  gap: var(--spacing-50, 8px);
   box-sizing: border-box;
   width: 100%;
   padding: var(--spacing-75, 12px);
@@ -186,7 +186,7 @@ const showSupporting = computed(
 .wikita-lite-card-with-chip__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-50, 8px);
+  gap: var(--spacing-25, 4px);
   align-self: flex-start;
 }
 
