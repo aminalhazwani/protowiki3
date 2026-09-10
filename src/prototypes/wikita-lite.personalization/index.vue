@@ -31,7 +31,11 @@ function closePersonalization(): void {
 
 <template>
   <MobileWrapper max-width="412px" :show-frame-border="false">
-    <WikitaLiteFullscreenDialogShell title="Personalization" @close="closePersonalization">
+    <WikitaLiteFullscreenDialogShell
+      title="Personalization"
+      subtitle="Choose which activity shapes the recommendations on your Home."
+      @close="closePersonalization"
+    >
       <WikitaLitePersonalizationPanel />
     </WikitaLiteFullscreenDialogShell>
   </MobileWrapper>

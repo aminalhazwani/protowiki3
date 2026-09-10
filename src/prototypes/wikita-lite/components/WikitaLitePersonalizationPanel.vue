@@ -120,10 +120,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="wikita-lite-personalization-panel">
-    <p class="wikita-lite-personalization-panel__intro">
-      Choose which activity shapes the recommendations on your Home.
-    </p>
-
     <div class="wikita-lite-personalization-panel__toggles">
       <WikitaLitePersonalizationToggleRow
         label="Interests or topics"
@@ -187,13 +183,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--spacing-150, 24px);
   padding-bottom: var(--spacing-150, 24px);
-}
-
-.wikita-lite-personalization-panel__intro {
-  margin: 0;
-  color: var(--color-subtle, #54595d);
-  font-size: var(--font-size-medium, 1rem);
-  line-height: var(--line-height-small, 1.375rem);
 }
 
 .wikita-lite-personalization-panel__toggles {
