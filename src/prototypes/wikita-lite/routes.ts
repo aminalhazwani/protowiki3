@@ -52,8 +52,11 @@ export const VIEW_TAB_LABELS: Record<WikitaLiteView, string> = {
   contribute: 'Contribute',
 }
 
-/** Floating home button — always shown on WikitaLiteShell routes. */
-export const SHOW_WIKITA_LITE_FLOATING_NAV = true
+/**
+ * Floating home button on WikitaLiteShell routes. Off also drops the bottom
+ * clearance the button reserves (`--with-nav` in wikita-lite-shell.css).
+ */
+export const SHOW_WIKITA_LITE_FLOATING_NAV = false
 
 /** Prototype dev menu (card radius, URL reset, …) in WikitaLiteShell header. */
 export const SHOW_WIKITA_LITE_CHROME_MENU = false

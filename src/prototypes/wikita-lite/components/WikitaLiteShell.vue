@@ -88,7 +88,7 @@ onMounted(async () => {
         </SpecialPageWrapper>
       </ChromeWrapper>
       <WikitaLiteFloatingNav
-        v-show="SHOW_WIKITA_LITE_FLOATING_NAV"
+        v-if="SHOW_WIKITA_LITE_FLOATING_NAV"
         :home-active="isHomeFeed"
         @go-home="goHome"
       />
