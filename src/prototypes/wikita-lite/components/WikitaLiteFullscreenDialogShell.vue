@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { CdxButton, CdxDialog, CdxIcon, type PrimaryModalAction } from '@wikimedia/codex'
-import { cdxIconClose } from '@wikimedia/codex-icons'
+import { CdxButton, CdxDialog, type PrimaryModalAction } from '@wikimedia/codex'
 
 interface Props {
   title: string
+  /** Description under the title. Codex renders it in the dialog header. */
+  subtitle?: string | null
   closeLabel?: string
   /** Renders a large primary button in the dialog footer — no button injected into the body. */
   primaryAction?: PrimaryModalAction | null
 }
 
 withDefaults(defineProps<Props>(), {
+  subtitle: null,
   closeLabel: 'Close',
   primaryAction: null,
 })
@@ -59,25 +61,13 @@ function onDialogClose(open: boolean): void {
       :fixed-height="true"
       render-in-place
       :title="title"
+      :subtitle="subtitle"
+      :use-close-button="true"
+      :close-button-label="closeLabel"
       :stacked-actions="true"
       @update:open="onDialogClose"
       @primary="emit('primary')"
     >
-      <template #header>
-        <div class="wikita-lite-fullscreen-dialog-shell__header">
-          <h3 class="wikita-lite-fullscreen-dialog-shell__title">{{ title }}</h3>
-          <CdxButton
-            class="wikita-lite-fullscreen-dialog-shell__close"
-            weight="quiet"
-            :icon-only="true"
-            :aria-label="closeLabel"
-            @click="emit('close')"
-          >
-            <CdxIcon :icon="cdxIconClose" />
-          </CdxButton>
-        </div>
-      </template>
-
       <slot />
 
       <template
@@ -163,24 +153,5 @@ function onDialogClose(open: boolean): void {
 
 .wikita-lite-fullscreen-dialog-shell--scrolls :deep(.cdx-dialog__header) {
   border-bottom: var(--border-width-base, 1px) solid var(--border-color-muted, #c8ccd1);
-}
-
-.wikita-lite-fullscreen-dialog-shell__header {
-  display: flex;
-  flex: 1;
-  align-items: flex-start;
-  gap: var(--spacing-100, 16px);
-}
-
-.wikita-lite-fullscreen-dialog-shell__title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-}
-
-.wikita-lite-fullscreen-dialog-shell__close {
-  flex-shrink: 0;
-  width: 2rem;
-  margin-inline-end: -8px;
 }
 </style>
