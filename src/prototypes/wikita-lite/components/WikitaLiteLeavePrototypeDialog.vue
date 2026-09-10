@@ -70,7 +70,7 @@ function onOpenChange(open: boolean): void {
 
 .wikita-lite-leave-prototype-sheet .cdx-popover__body {
   font-size: var(--font-size-medium, 1rem);
-  line-height: var(--line-height-medium, 1.625rem);
+  line-height: var(--line-height-small, 1.5rem);
 }
 
 .wikita-lite-leave-prototype-sheet .cdx-popover__footer__actions .cdx-button {
