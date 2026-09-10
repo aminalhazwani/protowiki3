@@ -183,7 +183,7 @@ provide(WIKITA_LITE_CARD_SEPARATION, effectiveCardSeparation)
 .wikita-lite-module {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-50, 8px);
+  gap: var(--spacing-25, 4px);
   width: 100%;
 }
 

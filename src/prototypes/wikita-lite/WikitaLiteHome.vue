@@ -1021,11 +1021,10 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
 .wikita-lite-home__panel {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-100, 16px);
+  gap: var(--spacing-150, 24px);
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  padding-top: var(--spacing-100, 16px);
 }
 
 .wikita-lite-home__loading {

@@ -46,6 +46,5 @@ function openConfigure() {
 <style scoped>
 .wikita-lite-configure-button {
   flex-shrink: 0;
-  width: 2.75rem;
 }
 </style>

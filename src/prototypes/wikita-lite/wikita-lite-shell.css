@@ -44,7 +44,7 @@
 }
 
 .special-page-wrapper.wikita-lite-shell[data-skin='mobile'] {
-  padding-inline: var(--spacing-50, 8px);
+  padding-inline: var(--spacing-100, 16px);
 }
 
 /* Drill-down subpages — no chrome header; sticky title bar + filter tabs. */
@@ -161,7 +161,7 @@
   box-sizing: border-box;
   width: 100%;
   max-width: none;
-  margin-bottom: var(--spacing-50, 8px);
+  /*margin-bottom: var(--spacing-50, 8px);*/
 }
 
 /* Card text column should consume space beside the thumbnail. */

@@ -144,9 +144,7 @@ const showHeaderNav = computed(
   justify-content: space-between;
   gap: var(--spacing-100, 16px);
   width: 100%;
-  /* margin-top: calc(var(--spacing-25) * -1); */
   margin-bottom: var(--spacing-50);
-  /* padding-bottom: 2px; */
   border-bottom: 1px solid var(--border-color-base, #a2a9b1);
 }
 
@@ -180,6 +178,7 @@ const showHeaderNav = computed(
 .special-page-wrapper[data-skin='mobile'] .special-page-wrapper__header {
   border-bottom: none;
   padding-bottom: 0;
+  margin-bottom: var(--spacing-150);
 }
 
 .special-page-wrapper__header-aside {
@@ -217,8 +216,7 @@ const showHeaderNav = computed(
 }
 
 .special-page-wrapper[data-skin='mobile'] {
-  padding: var(--spacing-100);
-  padding-block: var(--spacing-150);
+  padding: var(--spacing-100) var(--spacing-100) var(--spacing-300);
 }
 
 .special-page-wrapper[data-skin='mobile'] .special-page-wrapper__help {
