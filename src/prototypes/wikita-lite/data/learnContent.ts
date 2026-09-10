@@ -3,7 +3,9 @@
 export const LEARN_MENTOR = {
   title: 'Your mentor',
   description: 'Ask your mentor a question about editing.',
-  supportingText: 'Yoda101, Active 2 hours ago',
+  /** Two supporting signals: who the mentor is, then when they were last active. */
+  mentorName: 'Yoda101',
+  lastActiveLabel: 'Active 2 hours ago',
 } as const
 
 export const LEARN_GUIDE = {

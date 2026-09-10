@@ -20,6 +20,7 @@ import {
   type HomeRecentChangeFlag,
   type HomeSavedItem,
 } from '../../musical-group/data/types'
+import { splitEditMetaLabel } from '../../musical-group/data/fetchRecentChanges'
 import { useActivityFeed } from '../../musical-group/useActivityFeed'
 import WikitaLiteCardWithChip, {
   type WikitaLiteChip,
@@ -31,6 +32,7 @@ import {
   useViewportInfiniteScroll,
 } from '../composables/useViewportInfiniteScroll'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
+import type { WikitaLiteSupportingSignal } from '../data/supportingSignals'
 
 interface Props {
   standalone?: boolean
@@ -201,6 +203,12 @@ function changeChips(change: HomeRecentChange): WikitaLiteChip[] {
   return chips
 }
 
+/** Who edited, then when — two signals rather than one comma-joined string. */
+function editSignals(change: HomeRecentChange): WikitaLiteSupportingSignal[] {
+  const { editor, relative } = splitEditMetaLabel(change.editedLabel)
+  return [{ icon: cdxIconUserAvatar, text: editor }, { text: relative }]
+}
+
 const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () => props.standalone })
 </script>
 
@@ -228,8 +236,7 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
           :chips="chips"
           :title="change.title"
           :description="change.editSummary"
-          :supporting-text="change.editedLabel"
-          :supporting-icon="cdxIconUserAvatar"
+          :supporting-signals="editSignals(change)"
           :force-thumbnail="false"
         />
 
@@ -240,8 +247,7 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
             :chips="chips"
             :title="change.title"
             :description="change.editSummary"
-            :supporting-text="change.editedLabel"
-            :supporting-icon="cdxIconUserAvatar"
+            :supporting-signals="editSignals(change)"
             :force-thumbnail="false"
           />
 
@@ -257,9 +263,7 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
               {{ change.editSummary }}
             </template>
             <template #supporting-text>
-              <WikitaLiteSupportingRow :icon="cdxIconUserAvatar">
-                {{ change.editedLabel }}
-              </WikitaLiteSupportingRow>
+              <WikitaLiteSupportingRow :signals="editSignals(change)" />
             </template>
           </CdxCard>
         </template>

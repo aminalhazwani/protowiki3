@@ -6,6 +6,10 @@ import type { Icon } from '@wikimedia/codex-icons'
 
 import WikitaLiteSupportingRow from './WikitaLiteSupportingRow.vue'
 import {
+  visibleSupportingSignals,
+  type WikitaLiteSupportingSignal,
+} from '../data/supportingSignals'
+import {
   WIKITA_LITE_CARD_CLASS_SEPARATION_BORDERLESS,
   WIKITA_LITE_CARD_CLASS_SEPARATION_DIVIDER,
   WIKITA_LITE_CARD_CLASS_SEPARATION_NONE,
@@ -28,6 +32,8 @@ interface Props {
   description?: string
   supportingText?: string
   supportingIcon?: Icon
+  /** Several bullet-joined signals, instead of `supportingText` + `supportingIcon`. */
+  supportingSignals?: WikitaLiteSupportingSignal[]
   thumbnailUrl?: string
   forceThumbnail?: boolean
   separation?: WikitaLiteCardSeparation
@@ -38,6 +44,7 @@ const props = withDefaults(defineProps<Props>(), {
   description: undefined,
   supportingText: undefined,
   supportingIcon: undefined,
+  supportingSignals: undefined,
   thumbnailUrl: undefined,
   forceThumbnail: true,
 })
@@ -71,7 +78,12 @@ const thumbnail = computed(() =>
 )
 
 const showSupporting = computed(
-  () => Boolean(props.supportingText?.trim() || props.supportingIcon),
+  () =>
+    Boolean(
+      props.supportingText?.trim() ||
+        props.supportingIcon ||
+        visibleSupportingSignals(props.supportingSignals).length,
+    ),
 )
 </script>
 
@@ -122,7 +134,7 @@ const showSupporting = computed(
         </template>
 
         <template v-if="showSupporting" #supporting-text>
-          <WikitaLiteSupportingRow :icon="supportingIcon">
+          <WikitaLiteSupportingRow :icon="supportingIcon" :signals="supportingSignals">
             {{ supportingText }}
           </WikitaLiteSupportingRow>
         </template>

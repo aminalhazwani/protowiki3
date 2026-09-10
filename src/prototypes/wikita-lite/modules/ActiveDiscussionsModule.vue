@@ -3,15 +3,17 @@ import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { RouterLink } from 'vue-router'
 
-import { CdxButton, CdxCard, CdxIcon, CdxProgressBar } from '@wikimedia/codex'
-import { cdxIconSpeechBubble } from '@wikimedia/codex-icons'
+import { CdxButton, CdxCard, CdxProgressBar } from '@wikimedia/codex'
+import { cdxIconSpeechBubbles } from '@wikimedia/codex-icons'
 
 import type { HomeActiveDiscussion } from '../../musical-group/data/types'
 import WikitaLiteDailyReadsTabs from '../components/WikitaLiteDailyReadsTabs.vue'
+import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 import { useWikitaLiteActiveDiscussionsTabs } from '../composables/useWikitaLiteActiveDiscussionsTabs'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { activeDiscussionCategoryLabel } from '../data/activeDiscussionLabels'
+import type { WikitaLiteSupportingSignal } from '../data/supportingSignals'
 
 interface Props {
   standalone?: boolean
@@ -34,6 +36,17 @@ const props = withDefaults(defineProps<Props>(), {
 defineEmits<{
   retry: []
 }>()
+
+/** Comment count, then the latest reply's relative time. */
+function discussionSignals(discussion: HomeActiveDiscussion): WikitaLiteSupportingSignal[] {
+  return [
+    {
+      icon: cdxIconSpeechBubbles,
+      text: `${discussion.commentCount} ${discussion.commentCount === 1 ? 'comment' : 'comments'}`,
+    },
+    { text: discussion.latestCommentLabel },
+  ]
+}
 
 const { tabs, activeTabId, showTabs, filteredItems } = useWikitaLiteActiveDiscussionsTabs({
   items: () => props.items,
@@ -88,14 +101,7 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
             {{ activeDiscussionCategoryLabel(discussion.noticeboardTitle) }}
           </template>
           <template #supporting-text>
-            <div class="active-discussions-module__meta wikita-lite-supporting-row">
-              <span class="active-discussions-module__stat">
-                <CdxIcon :icon="cdxIconSpeechBubble" size="small" />
-                {{ discussion.commentCount }}
-                {{ discussion.commentCount === 1 ? 'comment' : 'comments' }},
-                {{ discussion.latestCommentLabel }}
-              </span>
-            </div>
+            <WikitaLiteSupportingRow :signals="discussionSignals(discussion)" />
           </template>
         </CdxCard>
       </div>
@@ -145,16 +151,5 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
   flex-direction: column;
   align-items: flex-start;
   gap: var(--spacing-50, 8px);
-}
-
-.active-discussions-module__meta {
-  flex-wrap: wrap;
-  gap: var(--spacing-50, 8px);
-}
-
-.active-discussions-module__stat {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-25, 4px);
 }
 </style>

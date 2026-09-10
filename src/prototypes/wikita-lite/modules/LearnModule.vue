@@ -33,9 +33,12 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
         {{ LEARN_MENTOR.description }}
       </template>
       <template #supporting-text>
-        <WikitaLiteSupportingRow :icon="cdxIconUserAvatar">
-          {{ LEARN_MENTOR.supportingText }}
-        </WikitaLiteSupportingRow>
+        <WikitaLiteSupportingRow
+          :signals="[
+            { icon: cdxIconUserAvatar, text: LEARN_MENTOR.mentorName },
+            { text: LEARN_MENTOR.lastActiveLabel },
+          ]"
+        />
       </template>
     </CdxCard>
 

@@ -177,6 +177,15 @@
   margin-top: 3px;
 }
 
+/* Icons for the second and later signals sit inline in the text run rather than
+   as flex items, so they need baseline alignment and their own trailing gap
+   instead of the row's flex `gap`. */
+.wikita-lite-shell .wikita-lite-supporting-row .wikita-lite-supporting-row__inline-icon {
+  margin-top: 0;
+  margin-inline-end: var(--spacing-25, 4px);
+  vertical-align: text-bottom;
+}
+
 .wikita-lite-shell .wikita-lite-supporting-row__text {
   flex: 1;
   min-width: 0;

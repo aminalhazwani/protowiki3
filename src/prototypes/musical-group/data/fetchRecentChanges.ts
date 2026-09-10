@@ -131,6 +131,19 @@ export function formatEditMetaLabel(timestamp: string, user: string): string {
   return `${editor}, ${relative}`
 }
 
+/**
+ * Splits {@link formatEditMetaLabel} back into its two signals, for surfaces
+ * that render the editor and the relative time separately.
+ *
+ * Splits on the *last* separator: usernames may contain a comma, the relative
+ * time never does.
+ */
+export function splitEditMetaLabel(label: string): { editor: string; relative: string } {
+  const at = label.lastIndexOf(', ')
+  if (at === -1) return { editor: label.trim(), relative: '' }
+  return { editor: label.slice(0, at).trim(), relative: label.slice(at + 2).trim() }
+}
+
 /** Footer status for activity cards. */
 export function formatEditStatusLabel(
   reverted: boolean,
