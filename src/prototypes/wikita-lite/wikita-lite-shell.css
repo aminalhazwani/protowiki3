@@ -1,5 +1,8 @@
-/* Shared horizontal inset for all Wikita-lite routes (home + drill-downs). */
+/* Shared horizontal inset for all Wikita-lite routes (home + drill-downs).
+   Published as `--mobile-subpage-inset` too, so a full-bleed subpage header
+   pulls out by exactly this much (see MobileSubpageHeader). */
 .special-page-wrapper.wikita-lite-shell {
+  --mobile-subpage-inset: var(--spacing-50, 8px);
   padding-inline: var(--spacing-50, 8px);
 }
 
@@ -44,17 +47,28 @@
 }
 
 .special-page-wrapper.wikita-lite-shell[data-skin='mobile'] {
+  --mobile-subpage-inset: var(--spacing-100, 16px);
   padding-inline: var(--spacing-100, 16px);
+}
+
+/*
+ * Filter tabs run full-bleed: the track escapes the shell's inline padding so
+ * the row scrolls to the column edge instead of being clipped, and re-pads
+ * itself by the same amount so the first and last tab stay aligned with the
+ * surrounding content. The value must match the padding the track sits inside.
+ */
+.special-page-wrapper.wikita-lite-shell .wikita-lite-daily-reads-tabs {
+  --wikita-lite-tabs-bleed: var(--mobile-subpage-inset, var(--spacing-50, 8px));
 }
 
 /* Drill-down subpages — no chrome header; sticky title bar + filter tabs. */
 .wikita-lite-shell--subpage {
   --wikita-lite-safe-area-top: env(safe-area-inset-top, 0px);
-  --wikita-lite-subpage-top-inset: max(var(--spacing-100, 16px), var(--wikita-lite-safe-area-top));
-  --wikita-lite-subpage-toolbar-height: 2.75rem;
+  /* 48px toolbar (8px padding + 32px controls), plus the notch inset when the
+     device has one. Its 1px rule is a box-shadow, so it is not part of this. */
+  --wikita-lite-subpage-toolbar-height: 3rem;
   --wikita-lite-subpage-header-offset: calc(
-    var(--wikita-lite-subpage-top-inset) + var(--wikita-lite-subpage-toolbar-height) +
-      var(--spacing-50, 8px) + 1px
+    var(--wikita-lite-safe-area-top) + var(--wikita-lite-subpage-toolbar-height)
   );
 }
 
@@ -70,8 +84,9 @@
   box-sizing: border-box;
   min-height: var(--wikita-lite-subpage-header-offset);
   margin-bottom: 0;
-  padding-top: var(--wikita-lite-subpage-top-inset);
-  padding-bottom: var(--spacing-50, 8px);
+  /* Keep the 8px top padding and let a notch push the bar down, rather than
+     replacing the padding with the inset. */
+  padding-top: calc(var(--spacing-50, 8px) + var(--wikita-lite-safe-area-top));
   background-color: var(--background-color-base, #fff);
 }
 
@@ -84,11 +99,11 @@
   top: calc(var(--wikita-lite-subpage-header-offset) - 1px);
   z-index: 3;
   box-sizing: border-box;
-  width: calc(100% + 2 * var(--spacing-50, 8px));
+  width: calc(100% + 2 * var(--mobile-subpage-inset, var(--spacing-50, 8px)));
   margin-top: -1px;
-  margin-inline: calc(-1 * var(--spacing-50, 8px));
+  margin-inline: calc(-1 * var(--mobile-subpage-inset, var(--spacing-50, 8px)));
   padding-top: var(--spacing-50, 8px);
-  padding-inline: var(--spacing-50, 8px);
+  padding-inline: var(--mobile-subpage-inset, var(--spacing-50, 8px));
   padding-bottom: var(--spacing-50, 8px);
   background-color: var(--background-color-base, #fff);
 }
