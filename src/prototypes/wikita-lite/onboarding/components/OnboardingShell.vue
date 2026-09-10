@@ -67,19 +67,38 @@ function onNavigate(): void {
  * dialog body's *box height* changes, but our body is a fixed-height flex child
  * (so it can fill the frame), and async content (images, suggestions) grows the
  * body's scrollHeight without changing its box — so Codex never re-measures.
- * Drive the header/footer borders ourselves instead: observe the body and its
- * content and toggle a class when the body actually overflows. (Adding the 1px
+ * Drive the header/footer borders ourselves instead: compare the body's
+ * scrollHeight against its clientHeight and toggle a class. (Adding the 1px
  * borders shrinks the body, which only makes an overflowing body overflow more,
  * so there's no observer feedback loop.)
+ *
+ * Watching boxes is not enough to know *when* to re-measure: every wrapper from
+ * the body down (`.ob-step-viewport`, `.ob-page`, `.ob-body`) is a clamped flex
+ * child, so a step's async list growing taller changes no observed box — the
+ * extra height only shows up in the body's scrollHeight. So we also watch the
+ * body's subtree for mutations and for late image loads, and re-measure on the
+ * next frame once layout has settled.
  */
 const shellEl = ref<HTMLElement | null>(null)
 const bodyScrolls = ref(false)
 let resizeObserver: ResizeObserver | null = null
+let mutationObserver: MutationObserver | null = null
+let bodyEl: HTMLElement | null = null
+let measureFrame = 0
 
 function measureScroll(): void {
-  const body = shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body')
+  const body = bodyEl ?? shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body')
   if (!body) return
   bodyScrolls.value = body.scrollHeight - body.clientHeight > 1
+}
+
+/** Coalesce bursts of mutations/loads into one measurement after layout. */
+function scheduleMeasure(): void {
+  if (measureFrame) return
+  measureFrame = requestAnimationFrame(() => {
+    measureFrame = 0
+    measureScroll()
+  })
 }
 
 onMounted(() => {
@@ -89,18 +108,29 @@ onMounted(() => {
     window.scrollTo(0, 0)
   }
 
-  const body = shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body')
+  bodyEl = shellEl.value?.querySelector<HTMLElement>('.cdx-dialog__body') ?? null
   measureScroll()
+  if (!bodyEl) return
+
+  // Box changes: the frame resizing (rotation, keyboard, toolbar show/hide).
   resizeObserver = new ResizeObserver(() => measureScroll())
-  if (body) {
-    resizeObserver.observe(body)
-    // Observe the content too, so async height growth (images/suggestions
-    // loading) that leaves the body box unchanged still triggers a re-measure.
-    if (body.firstElementChild) resizeObserver.observe(body.firstElementChild)
-  }
+  resizeObserver.observe(bodyEl)
+  if (bodyEl.firstElementChild) resizeObserver.observe(bodyEl.firstElementChild)
+
+  // Content changes: suggestions arriving, chips added/removed, steps swapping.
+  mutationObserver = new MutationObserver(scheduleMeasure)
+  mutationObserver.observe(bodyEl, { childList: true, subtree: true, characterData: true })
+
+  // Thumbnails that land after their markup and grow the row they sit in.
+  bodyEl.addEventListener('load', scheduleMeasure, true)
 })
 
-onBeforeUnmount(() => resizeObserver?.disconnect())
+onBeforeUnmount(() => {
+  if (measureFrame) cancelAnimationFrame(measureFrame)
+  resizeObserver?.disconnect()
+  mutationObserver?.disconnect()
+  bodyEl?.removeEventListener('load', scheduleMeasure, true)
+})
 
 /**
  * Route the dialog's own dismiss (Esc / backdrop) through the same navigation as
@@ -220,6 +250,17 @@ function onDialogClose(value: boolean): void {
   flex-direction: column;
   flex-grow: 1;
   min-height: 0;
+}
+
+/* Codex latches its own `--dividers` class on the first time the body box
+   changes and never clears it (its watch only runs on box changes, which our
+   fixed-height body stops producing), so its borders would linger on steps
+   that fit. Suppress them and let our class be the only source of truth. */
+.onboarding-shell:not(.onboarding-shell--scrolls)
+  :deep(.cdx-dialog--dividers .cdx-dialog__header),
+.onboarding-shell:not(.onboarding-shell--scrolls)
+  :deep(.cdx-dialog--dividers .cdx-dialog__footer) {
+  border: 0;
 }
 
 /* Scroll dividers, driven by our own overflow detection (see `bodyScrolls`).
