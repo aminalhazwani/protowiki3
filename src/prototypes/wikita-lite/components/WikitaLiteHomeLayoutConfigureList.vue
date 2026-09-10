@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch, type CSSProperties } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { CdxButton, CdxIcon, CdxToggleSwitch } from '@wikimedia/codex'
 import { cdxIconDraggableVertical } from '@wikimedia/codex-icons'
 
@@ -8,23 +8,22 @@ import {
   type ConfigurableHomeModuleId,
 } from '../data/homeLayout'
 
+/**
+ * Pointer reordering for the Home layout rows, ported from the tab-bar
+ * prototype's `useRowDrag`.
+ *
+ * The DOM order never changes mid-drag: the dragged row follows the pointer on
+ * a transform while its siblings slide out of the way, and the array is spliced
+ * once on release. No floating clone of the row, so nothing has to be rebuilt
+ * in a non-interactive state.
+ */
 interface Props {
   order: ConfigurableHomeModuleId[]
   isEnabled: (id: ConfigurableHomeModuleId) => boolean
 }
 
-interface DragState {
-  id: ConfigurableHomeModuleId
-  /** Pointer Y minus the row's vertical center at drag start. */
-  grabOffsetFromItemCenter: number
-  rowHeight: number
-  liftTop: number
-  rowLeft: number
-  rowWidth: number
-}
-
-/** Matches --spacing-50 on the lift; subtract from liftTop so grab position stays stable. */
-const LIFT_PADDING_PX = 8
+/** How long a sibling takes to slide into the gap the dragged row leaves. */
+const ROW_SHIFT_DURATION_MS = 120
 
 const props = defineProps<Props>()
 
@@ -35,68 +34,18 @@ const emit = defineEmits<{
 
 const listEl = ref<HTMLElement | null>(null)
 const localOrder = ref<ConfigurableHomeModuleId[]>([...props.order])
-const draggingId = ref<ConfigurableHomeModuleId | null>(null)
-const dragState = ref<DragState | null>(null)
+const draggingIndex = ref<number | null>(null)
 
 watch(
   () => props.order,
   (next) => {
-    if (draggingId.value) return
+    if (draggingIndex.value !== null) return
     localOrder.value = [...next]
   },
 )
 
-const dragLiftStyle = computed((): CSSProperties | undefined => {
-  if (!dragState.value) return undefined
-  return {
-    position: 'fixed',
-    top: `${dragState.value.liftTop}px`,
-    left: `${dragState.value.rowLeft}px`,
-    width: `${dragState.value.rowWidth}px`,
-    height: `${dragState.value.rowHeight + LIFT_PADDING_PX * 2}px`,
-    zIndex: 1000,
-    pointerEvents: 'none',
-  }
-})
-
 function onToggle(id: ConfigurableHomeModuleId, enabled: boolean): void {
   emit('update:enabled', id, enabled)
-}
-
-function rowElement(id: ConfigurableHomeModuleId): HTMLElement | null {
-  return listEl.value?.querySelector<HTMLElement>(`[data-module-id="${id}"]`) ?? null
-}
-
-function syncLiftAnchorFromPlaceholder(): void {
-  if (!dragState.value || !draggingId.value) return
-  const row = rowElement(draggingId.value)
-  if (!row) return
-  const rect = row.getBoundingClientRect()
-  dragState.value.rowLeft = rect.left
-  dragState.value.rowWidth = rect.width
-}
-
-function targetIndexForItemCenter(itemCenterY: number): number {
-  const list = listEl.value
-  if (!list) return -1
-
-  const rows = list.querySelectorAll<HTMLElement>('[data-module-id]')
-  for (let i = 0; i < rows.length; i++) {
-    const rect = rows[i].getBoundingClientRect()
-    if (itemCenterY < rect.top + rect.height / 2) return i
-  }
-
-  return rows.length - 1
-}
-
-function reorderLocal(fromId: ConfigurableHomeModuleId, toIndex: number): void {
-  const fromIndex = localOrder.value.indexOf(fromId)
-  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
-
-  const next = [...localOrder.value]
-  next.splice(fromIndex, 1)
-  next.splice(toIndex, 0, fromId)
-  localOrder.value = next
 }
 
 function setGrabbingCursor(active: boolean): void {
@@ -108,59 +57,100 @@ function suppressLongPress(event: Event): void {
   event.preventDefault()
 }
 
-function onDragHandlePointerDown(id: ConfigurableHomeModuleId, event: PointerEvent): void {
-  const row = (event.currentTarget as HTMLElement | null)?.closest<HTMLElement>('[data-module-id]')
-  if (!row) return
+/** Moves the row locally for instant feedback, then reports the new order up. */
+function commitMove(from: number, to: number): void {
+  if (from === to) return
 
-  const rect = row.getBoundingClientRect()
-  const rowCenterY = rect.top + rect.height / 2
-  draggingId.value = id
-  dragState.value = {
-    id,
-    grabOffsetFromItemCenter: event.clientY - rowCenterY,
-    rowHeight: rect.height,
-    liftTop: rowCenterY - rect.height / 2 - LIFT_PADDING_PX,
-    rowLeft: rect.left,
-    rowWidth: rect.width,
-  }
+  const next = [...localOrder.value]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  localOrder.value = next
 
-  setGrabbingCursor(true)
-  listEl.value?.setPointerCapture(event.pointerId)
+  emit('reorder', next)
+}
+
+function onHandlePointerDown(event: PointerEvent, index: number): void {
+  if (event.button !== 0 || !listEl.value) return
+
+  const rows = Array.from(listEl.value.children) as HTMLElement[]
+  if (rows.length < 2 || !rows[index]) return
+
   event.preventDefault()
-}
 
-function onListPointerMove(event: PointerEvent): void {
-  if (!draggingId.value || !dragState.value) return
-
-  const itemCenterY = event.clientY - dragState.value.grabOffsetFromItemCenter
-  dragState.value.liftTop = itemCenterY - dragState.value.rowHeight / 2 - LIFT_PADDING_PX
-  syncLiftAnchorFromPlaceholder()
-
-  reorderLocal(draggingId.value, targetIndexForItemCenter(itemCenterY))
-}
-
-function finishDrag(event: PointerEvent): void {
-  if (!draggingId.value || !dragState.value) return
-
-  const itemCenterY = event.clientY - dragState.value.grabOffsetFromItemCenter
-  reorderLocal(draggingId.value, targetIndexForItemCenter(itemCenterY))
-
-  if (listEl.value?.hasPointerCapture(event.pointerId)) {
-    listEl.value.releasePointerCapture(event.pointerId)
+  const handle = event.currentTarget as HTMLElement
+  try {
+    handle.setPointerCapture(event.pointerId)
+  } catch {
+    // Synthetic or already-released pointers: the listeners below still fire.
   }
 
-  const committed = [...localOrder.value]
-  draggingId.value = null
-  dragState.value = null
-  setGrabbingCursor(false)
+  // Measured once: rows keep their layout position for the whole drag.
+  const rects = rows.map((row) => row.getBoundingClientRect())
+  const rowStep = rects[1].top - rects[0].top
+  const from = index
+  const startY = event.clientY
+  let target = index
 
-  const unchanged =
-    committed.length === props.order.length &&
-    committed.every((id, index) => id === props.order[index])
+  draggingIndex.value = index
+  setGrabbingCursor(true)
+  rows.forEach((row, i) => {
+    if (i !== from) row.style.transition = `transform ${ROW_SHIFT_DURATION_MS}ms ease`
+  })
 
-  if (!unchanged) {
-    emit('reorder', committed)
+  const onPointerMove = (moveEvent: PointerEvent): void => {
+    const dy = moveEvent.clientY - startY
+    rows[from].style.transform = `translateY(${dy}px)`
+
+    // Rows whose centre the dragged row has passed give up their slot.
+    const centerY = rects[from].top + rects[from].height / 2 + dy
+    target = rects.filter((rect, i) => i !== from && rect.top + rect.height / 2 < centerY).length
+
+    rows.forEach((row, i) => {
+      if (i === from) return
+      let shift = 0
+      if (from < i && i <= target) shift = -rowStep
+      else if (target <= i && i < from) shift = rowStep
+      row.style.transform = shift ? `translateY(${shift}px)` : ''
+    })
   }
+
+  const finish = (): void => {
+    handle.removeEventListener('pointermove', onPointerMove)
+    handle.removeEventListener('pointerup', finish)
+    handle.removeEventListener('pointercancel', finish)
+    if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId)
+
+    // Drop the transforms in the same frame the array is spliced, so the row
+    // lands in the slot its neighbours already opened up.
+    rows.forEach((row) => {
+      row.style.transform = ''
+      row.style.transition = ''
+    })
+    draggingIndex.value = null
+    setGrabbingCursor(false)
+
+    commitMove(from, target)
+  }
+
+  handle.addEventListener('pointermove', onPointerMove)
+  handle.addEventListener('pointerup', finish)
+  handle.addEventListener('pointercancel', finish)
+}
+
+/** ArrowUp / ArrowDown move the row one slot, keeping focus on its handle. */
+function onHandleKeydown(event: KeyboardEvent, index: number): void {
+  const delta = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
+  if (!delta) return
+
+  const to = index + delta
+  if (to < 0 || to >= localOrder.value.length) return
+
+  event.preventDefault()
+  commitMove(index, to)
+  void nextTick(() => {
+    const row = listEl.value?.children[to]
+    row?.querySelector<HTMLElement>('.wikita-lite-home-layout-configure-list__handle')?.focus()
+  })
 }
 
 onBeforeUnmount(() => setGrabbingCursor(false))
@@ -170,18 +160,15 @@ onBeforeUnmount(() => setGrabbingCursor(false))
   <ul
     ref="listEl"
     class="wikita-lite-home-layout-configure-list"
-    :class="{ 'wikita-lite-home-layout-configure-list--dragging': draggingId !== null }"
-    @pointermove="onListPointerMove"
-    @pointerup="finishDrag"
-    @pointercancel="finishDrag"
+    :class="{ 'wikita-lite-home-layout-configure-list--dragging': draggingIndex !== null }"
     @contextmenu.capture.prevent="suppressLongPress"
   >
     <li
-      v-for="moduleId in localOrder"
+      v-for="(moduleId, index) in localOrder"
       :key="moduleId"
       class="wikita-lite-home-layout-configure-list__item"
       :class="{
-        'wikita-lite-home-layout-configure-list__item--placeholder': draggingId === moduleId,
+        'wikita-lite-home-layout-configure-list__item--dragging': draggingIndex === index,
       }"
       :data-module-id="moduleId"
     >
@@ -189,7 +176,8 @@ onBeforeUnmount(() => setGrabbingCursor(false))
         class="wikita-lite-home-layout-configure-list__handle"
         weight="quiet"
         aria-label="Drag to reorder"
-        @pointerdown="onDragHandlePointerDown(moduleId, $event)"
+        @pointerdown="onHandlePointerDown($event, index)"
+        @keydown="onHandleKeydown($event, index)"
         @touchstart.prevent="suppressLongPress"
         @contextmenu.prevent="suppressLongPress"
         @selectstart.prevent="suppressLongPress"
@@ -206,30 +194,6 @@ onBeforeUnmount(() => setGrabbingCursor(false))
       </CdxToggleSwitch>
     </li>
   </ul>
-
-  <div
-    v-if="dragState && draggingId"
-    class="wikita-lite-home-layout-configure-list__lift"
-    :style="dragLiftStyle"
-    aria-hidden="true"
-  >
-    <CdxButton
-      class="wikita-lite-home-layout-configure-list__handle"
-      weight="quiet"
-      aria-hidden="true"
-      tabindex="-1"
-    >
-      <CdxIcon :icon="cdxIconDraggableVertical" />
-    </CdxButton>
-    <CdxToggleSwitch
-      class="wikita-lite-home-layout-configure-list__toggle"
-      :model-value="isEnabled(draggingId)"
-      align-switch
-      disabled
-    >
-      {{ CONFIGURABLE_HOME_MODULE_LABELS[draggingId] }}
-    </CdxToggleSwitch>
-  </div>
 </template>
 
 <style scoped>
@@ -252,23 +216,19 @@ onBeforeUnmount(() => setGrabbingCursor(false))
   user-select: none;
 }
 
-.wikita-lite-home-layout-configure-list__item,
-.wikita-lite-home-layout-configure-list__lift {
+/* Rows are opaque so the dragged row can pass over them; z-index applies to
+   flex items without positioning, so the dragged one rides on top. */
+.wikita-lite-home-layout-configure-list__item {
   display: flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
   box-sizing: border-box;
+  background-color: var(--background-color-base, #fff);
 }
 
-.wikita-lite-home-layout-configure-list__item--placeholder {
-  visibility: hidden;
-}
-
-/* Only exists while dragging. Transparent so the lift doesn't paint a slab over
-   the rows it passes; the block padding is geometry only (see LIFT_PADDING_PX). */
-.wikita-lite-home-layout-configure-list__lift {
-  background: transparent;
-  padding-block: var(--spacing-50, 8px);
+.wikita-lite-home-layout-configure-list__item--dragging {
+  z-index: 1;
+  background-color: transparent;
 }
 
 /* Codex owns the 32px icon-only frame and the quiet hover/active fills; these
