@@ -94,18 +94,30 @@
   margin-top: 0;
 }
 
+/* Filter tabs live inside the sticky header: the toolbar hands its hairline
+   over to the tabs row so the title and the tabs read as one block. The
+   toolbar's own 8px bottom padding plus the 4px here put 12px between the
+   title and the buttons; 8px below them sits above the rule. */
+.special-page-wrapper.wikita-lite-shell.wikita-lite-shell--subpage
+  .mobile-subpage-header:has(+ .wikita-lite-daily-reads-tabs),
+.special-page-wrapper.wikita-lite-shell.wikita-lite-shell--subpage
+  .mobile-subpage-header:has(+ * .wikita-lite-daily-reads-tabs) {
+  box-shadow: none;
+}
+
 .special-page-wrapper.wikita-lite-shell.wikita-lite-shell--subpage .wikita-lite-daily-reads-tabs {
   position: sticky;
-  top: calc(var(--wikita-lite-subpage-header-offset) - 1px);
+  top: var(--wikita-lite-subpage-header-offset);
   z-index: 3;
   box-sizing: border-box;
   width: calc(100% + 2 * var(--mobile-subpage-inset, var(--spacing-50, 8px)));
-  margin-top: -1px;
   margin-inline: calc(-1 * var(--mobile-subpage-inset, var(--spacing-50, 8px)));
-  padding-top: var(--spacing-50, 8px);
+  padding-top: var(--spacing-25, 4px);
   padding-inline: var(--mobile-subpage-inset, var(--spacing-50, 8px));
   padding-bottom: var(--spacing-50, 8px);
   background-color: var(--background-color-base, #fff);
+  /* Hairline outside the padding box, matching how the toolbar draws its own. */
+  box-shadow: 0 1px 0 var(--border-color-base, #a2a9b1);
 }
 
 .special-page-wrapper.wikita-lite-shell.wikita-lite-shell--subpage .wikita-lite-daily-reads-tabs__track {
