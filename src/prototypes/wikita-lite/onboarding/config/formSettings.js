@@ -58,7 +58,7 @@ export const baseSettings = {
       behaviors: {
         emailValidation: true, // "Email validation" (default on)
         hideDescription: true, // "Hide description text"
-        hideOptionalFlag: true, // "Hide (recommended) flag"
+        hideOptionalFlag: false, // "Hide (optional) flag"
       },
     },
   },
