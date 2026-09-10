@@ -39,7 +39,9 @@ onMounted(() => {
   resizeObserver = new ResizeObserver(() => measureScroll())
   if (body) {
     resizeObserver.observe(body)
-    if (body.firstElementChild) resizeObserver.observe(body.firstElementChild)
+    // The slot content, skipping the zero-height focus holder ahead of it.
+    const content = body.querySelector<HTMLElement>(':scope > :not([data-dialog-focus-holder])')
+    if (content) resizeObserver.observe(content)
   }
 })
 
@@ -48,6 +50,7 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
 function onDialogClose(open: boolean): void {
   if (!open) emit('close')
 }
+
 </script>
 
 <template>
@@ -68,6 +71,24 @@ function onDialogClose(open: boolean): void {
       @update:open="onDialogClose"
       @primary="emit('primary')"
     >
+      <!--
+        Focus holder. On open, Codex's focus trap focuses the first focusable
+        node in the dialog body, which would be a control the reader never
+        picked (the first drag handle in the Home layout list). This sits ahead
+        of the slot so the trap lands here instead, leaving the dialog with
+        nothing selected and Tab starting from the top.
+
+        `tabindex="-1"` keeps it out of the tab order while still accepting
+        programmatic focus. It is an `<a>` rather than a `<div>` because the
+        trap only looks for focusable tags and non-negative `[tabindex]`, so a
+        `tabindex="-1"` div would be skipped over and the handle focused again.
+      -->
+      <a
+        class="wikita-lite-fullscreen-dialog-shell__focus-holder"
+        data-dialog-focus-holder
+        tabindex="-1"
+      />
+
       <slot />
 
       <template
@@ -149,6 +170,12 @@ function onDialogClose(open: boolean): void {
   flex-grow: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+.wikita-lite-fullscreen-dialog-shell__focus-holder {
+  flex: 0 0 auto;
+  height: 0;
+  outline: none;
 }
 
 .wikita-lite-fullscreen-dialog-shell--scrolls :deep(.cdx-dialog__header) {
