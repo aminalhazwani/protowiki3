@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxIcon } from '@wikimedia/codex'
-import { cdxIconArticleSearch } from '@wikimedia/codex-icons'
+import { cdxIconImage } from '@wikimedia/codex-icons'
 
 import type { TitleSearchResult } from '../data/titleSearch'
 
@@ -28,7 +28,7 @@ defineEmits<{
       <button type="button" class="title-search-results__item" @click="$emit('select', result.title)">
         <span class="title-search-results__thumb">
           <img v-if="result.thumbnailSrc" :src="result.thumbnailSrc" alt="" />
-          <CdxIcon v-else :icon="cdxIconArticleSearch" size="small" />
+          <CdxIcon v-else :icon="cdxIconImage" size="small" />
         </span>
         <span class="title-search-results__text">
           <span class="title-search-results__title">{{ result.title }}</span>
@@ -101,7 +101,10 @@ defineEmits<{
   border-radius: var(--border-radius-base, 2px);
   background-color: var(--background-color-interactive-subtle, #f8f9fa);
   overflow: hidden;
-  color: var(--color-subtle);
+}
+
+.title-search-results__thumb .cdx-icon {
+  color: var(--color-placeholder, #72777d);
 }
 
 .title-search-results__thumb img {
