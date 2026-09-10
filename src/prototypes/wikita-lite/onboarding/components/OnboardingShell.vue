@@ -143,7 +143,7 @@ function onDialogClose(value: boolean): void {
                 }}</span>
               </Transition>
             </span>
-            <span class="onboarding-shell__counter-total">&nbsp;/ {{ props.total }}</span>
+            <span class="onboarding-shell__counter-total">&nbsp;of {{ props.total }}</span>
           </span>
         </div>
       </template>
