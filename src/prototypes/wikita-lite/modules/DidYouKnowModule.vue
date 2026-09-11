@@ -98,7 +98,7 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
 .did-you-know-module {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-50, 8px);
+  gap: var(--spacing-75, 12px);
   width: 100%;
 }
 

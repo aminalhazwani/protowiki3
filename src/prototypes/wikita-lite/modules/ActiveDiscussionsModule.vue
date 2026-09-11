@@ -127,7 +127,7 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
 .active-discussions-module {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-50, 8px);
+  gap: var(--spacing-75, 12px);
   width: 100%;
 }
 
@@ -135,6 +135,7 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
   display: flex;
   flex-direction: column;
   width: 100%;
+  margin-top: calc(-1*var(--spacing-25, 4px));
 }
 
 .active-discussions-module__error,
