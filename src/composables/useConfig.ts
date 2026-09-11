@@ -4,9 +4,11 @@ import {
   configUserDisplayName,
   configUserPageTitle,
   DEFAULT_CONFIG,
+  formatLangList,
   isDefaultUserPageLists,
   langForUser,
   loadConfig,
+  parseLangList,
   resetUserPageLists,
   saveConfig,
   type ConfigAppPlatform,
@@ -19,16 +21,27 @@ import {
 } from '@/config'
 import { applyAppPlatform } from '@/app-platform'
 import { applyThemePreference, applyWebSkinPreference } from '@/theme'
+import { isWikitaLiteConfigSaveSuppressed } from '@/prototypes/wikita-lite/data/configBridge'
 
 const config = ref<Config>(loadConfig())
 
 watch(
   config,
   (value) => {
+    if (isWikitaLiteConfigSaveSuppressed()) return
     saveConfig(value)
   },
   { deep: true },
 )
+
+export function getMutableConfigRef(): typeof config {
+  return config
+}
+
+/** In-memory config (wikita-lite URL state); falls back to localStorage when unset. */
+export function readActiveConfig(): Config {
+  return config.value
+}
 
 watch(
   () => config.value.theme,
@@ -58,6 +71,9 @@ export function useConfig(): {
   webSkin: Ref<ConfigWebSkin>
   user: Ref<ConfigUser>
   realUsername: Ref<string>
+  apiContact: Ref<string>
+  knownLanguages: Ref<string[]>
+  knownLanguagesText: Ref<string>
   lang: Ref<string>
   realLang: ComputedRef<string>
   displayName: ComputedRef<string>
@@ -65,6 +81,7 @@ export function useConfig(): {
   currentUserPageLists: ComputedRef<UserPageLists>
   isCurrentUserPageListsModified: ComputedRef<boolean>
   setCurrentUserPageList: (field: PageListKey, pages: string[]) => void
+  setReadingListWithTimestamps: (titles: string[], savedAt: number[]) => void
   resetCurrentUserPageLists: () => void
 } {
   const theme = computed({
@@ -99,6 +116,27 @@ export function useConfig(): {
     get: () => config.value.realUsername,
     set: (value: string) => {
       config.value = { ...config.value, realUsername: value }
+    },
+  })
+
+  const apiContact = computed({
+    get: () => config.value.apiContact,
+    set: (value: string) => {
+      config.value = { ...config.value, apiContact: value }
+    },
+  })
+
+  const knownLanguages = computed({
+    get: () => config.value.knownLanguages,
+    set: (value: string[]) => {
+      config.value = { ...config.value, knownLanguages: [...value] }
+    },
+  })
+
+  const knownLanguagesText = computed({
+    get: () => formatLangList(config.value.knownLanguages),
+    set: (value: string) => {
+      config.value = { ...config.value, knownLanguages: parseLangList(value) }
     },
   })
 
@@ -153,6 +191,21 @@ export function useConfig(): {
     }
   }
 
+  function setReadingListWithTimestamps(titles: string[], savedAt: number[]) {
+    const activeUser = user.value
+    config.value = {
+      ...config.value,
+      userPageLists: {
+        ...config.value.userPageLists,
+        [activeUser]: {
+          ...config.value.userPageLists[activeUser],
+          readingList: [...titles],
+          readingListSavedAt: [...savedAt],
+        },
+      },
+    }
+  }
+
   function resetCurrentUserPageLists() {
     const activeUser = user.value
     config.value = {
@@ -172,6 +225,9 @@ export function useConfig(): {
     webSkin,
     user,
     realUsername,
+    apiContact,
+    knownLanguages,
+    knownLanguagesText,
     lang,
     realLang,
     displayName,
@@ -179,6 +235,7 @@ export function useConfig(): {
     currentUserPageLists,
     isCurrentUserPageListsModified,
     setCurrentUserPageList,
+    setReadingListWithTimestamps,
     resetCurrentUserPageLists,
   }
 }
