@@ -150,6 +150,10 @@ export function useWikitaLiteOnboardingFlow(): OnboardingFlowState {
     const updates = next ? onboardingPatchToUrlPatch(next) : {}
 
     if (target === 'home') {
+      // Home drops `?title=`, and the interests list is only a virtual prefill
+      // derived from it until the user edits on the interests step. Materialize
+      // it here so the seed article survives as a real interest.
+      if (updates.interests === undefined) updates.interests = interests.value
       updates.title = ''
     }
 
