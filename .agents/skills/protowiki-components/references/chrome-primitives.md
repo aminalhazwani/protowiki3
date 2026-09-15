@@ -87,6 +87,46 @@ Props: **`theme?`**, **`username?`**, **`wordmarkSrc?`**, **`taglineSrc?`**, **`
 
 Slots: **`#menu`**, **`#logo`**, **`#username`**, **`#nav`**
 
+### Sticky header
+
+Every desktop chrome page gets Vector 2022's condensed sticky bar — no prop, no
+opt-in. The site header scrolls away normally; the bar then slides down over the
+content and stays until the page is back near the top.
+
+`VectorStickyHeader` renders it, and it reads the page subject from
+`src/components/chrome/stickyHeaderSubject.ts`:
+
+- **With an article** — `ArticleHeader` registers its title and hands the bar
+  its **`<h1>`** as the trigger, so the bar appears exactly when the title
+  leaves. Contents: search, the title, talk / history / watch / reading lists /
+  edit, **“N languages”**, user menu.
+- **Without one** (special pages, dashboards, homepages) — nothing registers, so
+  the site nav becomes the trigger and the bar reduces to search plus the user
+  menu. Page-scoped tools would have nothing to act on.
+
+Registering a different subject is a two-call contract, keyed by a per-instance
+token so a late unmount can't clear a newer registration:
+
+```ts
+import {
+  clearStickyHeaderSubject,
+  setStickyHeaderSubject,
+} from '@/components/chrome/stickyHeaderSubject'
+
+const token = Symbol('my-surface')
+setStickyHeaderSubject(token, { title: 'Wet Leg', sentinel: headingEl.value })
+onBeforeUnmount(() => clearStickyHeaderSubject(token))
+```
+
+The interlanguage menu comes from
+`@/components/article/shared/articleLanguageMenu`, the same composable
+**`ArticleHeader`** uses, so both offer identical rows and both swap the chrome's
+UI language on pick. The trigger itself is
+`useScrolledPast` (`src/composables/useScrolledPast.ts`) — an
+`IntersectionObserver`, not a scroll listener. The slide honours
+`prefers-reduced-motion`, and the parked bar is `inert` so it never catches a
+Tab.
+
 ## MinervaChromeHeader
 
 Force mobile Minerva bar regardless of global skin. Prop-driven **`left`** / **`middle`** / **`right`** item arrays — same shape as **`AppChromeHeader`**. No slots.

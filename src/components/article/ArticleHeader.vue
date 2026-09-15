@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, inject, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
-import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconBookmark,
+  cdxIconBookmarkOutline,
   cdxIconDownload,
   cdxIconEdit,
   cdxIconEllipsis,
@@ -11,24 +11,25 @@ import {
   cdxIconHistory,
   cdxIconLanguage,
   cdxIconStar,
-  cdxIconUnStar,
   cdxIconVerticalEllipsis,
 } from '@wikimedia/codex-icons'
 
+import type { ArticleLanguageLink } from './shared/articleLanguageLinks'
 import {
-  DEFAULT_ARTICLE_LANGUAGE_LINKS,
-  type ArticleLanguageLink,
-} from './shared/articleLanguageLinks'
+  ARTICLE_LANGUAGE_COUNT,
+  languagesButtonLabel as formatLanguagesLabel,
+  useArticleLanguageMenu,
+} from './shared/articleLanguageMenu'
+import {
+  clearStickyHeaderSubject,
+  setStickyHeaderSubject,
+} from '@/components/chrome/stickyHeaderSubject'
 import { useConfig } from '@/composables/useConfig'
-import { homeButtonMessage } from '@/i18n/homeButtonMessages'
 import { globalSkin, PROTOWIKI_CHROME_SKIN } from '@/theme'
 import type { Skin } from '@/theme'
-import { setUiLanguage } from '@/uiLanguage'
 
 const LANGUAGES_LABEL = 'Languages'
 const DEFAULT_TAGLINE = 'From Wikipedia, the free encyclopedia'
-
-const internalLanguageLinks = DEFAULT_ARTICLE_LANGUAGE_LINKS
 
 interface Props {
   /** Page title in the Vector-style first heading row (large serif); **`#title`** overrides inner markup. */
@@ -56,10 +57,7 @@ const effectiveSkin = computed<Skin>(() => props.skin ?? inheritedSkin?.value ??
 const { user } = useConfig()
 const isLoggedOut = computed(() => user.value === 'logged-out')
 
-const languagesButtonLabel = computed(() => {
-  const n = props.languagesCount ?? internalLanguageLinks.length
-  return n === 1 ? '1 language' : `${n} languages`
-})
+const languagesButtonLabel = computed(() => formatLanguagesLabel(props.languagesCount))
 
 const emit = defineEmits<{
   talkClick: []
@@ -73,54 +71,44 @@ const emit = defineEmits<{
   languageSelect: [link: ArticleLanguageLink]
 }>()
 
-/** `simple` is a Wikipedia subdomain, not a BCP 47 tag. */
-function languageTag(code: string): string {
-  return code === 'simple' ? 'en' : code
-}
-
 /**
  * Both skins share one Codex menu — desktop labels its button “N languages”,
- * mobile reduces it to the language icon in the toolbar. Items carry the
- * language code as their value.
- *
- * Each row is described by its own translation of `mobile-frontend-home-button`
- * (see `@/i18n/homeButtonMessages`), previewing the chrome label that picking
- * the row swaps in. Both strings carry a `lang` so shaping and fonts follow the
- * row's language rather than the page's.
- *
- * No `url` on purpose: a Codex item with one renders as an anchor, and picking
- * a language would leave the prototype for that wiki instead of swapping the
- * chrome label. The row's `href` still reaches consumers via `languageSelect`.
+ * mobile reduces it to the language icon in the toolbar. The rows, their
+ * `mobile-frontend-home-button` descriptions and the UI-language swap all live
+ * in the shared composable, so the desktop sticky header offers the same menu.
  */
-const languageMenuItems = computed((): MenuButtonItemData[] =>
-  internalLanguageLinks.map((row) => {
-    const tag = languageTag(row.code)
-    return {
-      value: row.code,
-      label: row.label,
-      description: homeButtonMessage(row.code),
-      language: { label: tag, description: tag },
-    }
-  }),
+const { menuItems: languageMenuItems, selection: langSelection } = useArticleLanguageMenu((row) =>
+  emit('languageSelect', row),
 )
 
-const langSelection = ref<MenuItemValue | null>(null)
+/**
+ * Publish the title to the desktop sticky header, and hand it this heading as
+ * the sentinel it watches: the bar slides in once the title has scrolled away.
+ * The token identifies this instance, so a header unmounting after a newer one
+ * registered doesn't clear the newer subject.
+ */
+const titleEl = ref<HTMLElement | null>(null)
+const subjectToken = Symbol('article-header')
 
-watch(langSelection, (value) => {
-  if (value === null) return
-  const row = internalLanguageLinks.find((link) => link.code === value)
-  if (row) {
-    setUiLanguage(row.code)
-    emit('languageSelect', row)
-  }
-  langSelection.value = null
-})
+watch(
+  [() => props.title, titleEl, () => props.languagesCount],
+  ([title, sentinel, languagesCount]) => {
+    setStickyHeaderSubject(subjectToken, {
+      title: (title ?? '').trim(),
+      sentinel,
+      languagesCount: languagesCount ?? ARTICLE_LANGUAGE_COUNT,
+    })
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => clearStickyHeaderSubject(subjectToken))
 </script>
 
 <template>
   <header class="article-header" :data-skin="effectiveSkin">
     <div class="article-header__title-row">
-      <h1 class="article-header__title">
+      <h1 ref="titleEl" class="article-header__title">
         <slot name="title">{{ title }}</slot>
       </h1>
       <div v-if="effectiveSkin === 'desktop'" class="article-header__lang-anchor">
@@ -226,7 +214,7 @@ watch(langSelection, (value) => {
           aria-label="Watch"
           @click="$emit('bookmarkClick')"
         >
-          <CdxIcon :icon="cdxIconStar" />
+          <CdxIcon :icon="cdxIconBookmarkOutline" />
         </button>
         <button
           type="button"
@@ -244,7 +232,7 @@ watch(langSelection, (value) => {
           aria-label="Watch"
           @click="$emit('bookmarkClick')"
         >
-          <CdxIcon :icon="cdxIconUnStar" />
+          <CdxIcon :icon="cdxIconBookmark" />
         </button>
         <button
           type="button"
@@ -482,6 +470,7 @@ watch(langSelection, (value) => {
 .article-header[data-skin='mobile'] .article-header__tab {
   margin-bottom: -1px;
   color: var(--color-subtle);
+  font-weight: var(--font-weight-bold);
 }
 
 .article-header[data-skin='mobile'] .article-header__tab:hover {
@@ -492,6 +481,6 @@ watch(langSelection, (value) => {
 .article-header[data-skin='mobile'] .article-header__tab--active {
   color: var(--color-subtle);
   border-bottom-color: var(--color-subtle);
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-bold);
 }
 </style>

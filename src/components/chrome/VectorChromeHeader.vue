@@ -33,8 +33,11 @@ import {
 } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
-import { removeUrlQueryParam, syncUrlQueryParam } from '@/appearance/url-query'
+import { useScrolledPast } from '@/composables/useScrolledPast'
 import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
+import { stickyHeaderSentinel } from './stickyHeaderSubject'
+import VectorStickyHeader from './VectorStickyHeader.vue'
+import { HOME_ACTIONS, HOME_WEIGHTS, useHomeButtonPlayground } from './homeButtonPlayground'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
 import { homeButtonLabel, uiLanguageTag } from '@/uiLanguage'
@@ -112,48 +115,29 @@ const mainMenuOpen = ref(false)
 const mainMenuAnchor = ref<HTMLElement | null>(null)
 
 /**
- * Home button styling playground, mirroring the Codex demo controls.
- *
- * Each setting round-trips through the URL (`?homeAction=`, `?homeWeight=`,
- * `?homeIconOnly=`) so a configured header can be shared as a link. Params are
- * written only when they differ from the defaults below, keeping clean URLs.
+ * Vector renders Home inline in the end cluster, so it starts framed-free and
+ * labelled; `size` is fixed by the cluster's own 32px sizing, hence no control.
  */
-const HOME_ACTIONS = ['default', 'progressive', 'destructive'] as const
-const HOME_WEIGHTS = ['normal', 'primary', 'quiet'] as const
+const {
+  action: homeAction,
+  weight: homeWeight,
+  iconOnly: homeIconOnly,
+} = useHomeButtonPlayground({
+  action: 'progressive',
+  weight: 'quiet',
+  size: 'medium',
+  iconOnly: false,
+})
 
-type HomeAction = (typeof HOME_ACTIONS)[number]
-type HomeWeight = (typeof HOME_WEIGHTS)[number]
-
-const HOME_ACTION_DEFAULT: HomeAction = 'progressive'
-const HOME_WEIGHT_DEFAULT: HomeWeight = 'quiet'
-
-function readParam(key: string): string | null {
-  if (typeof window === 'undefined') return null
-  return new URLSearchParams(window.location.search).get(key)
-}
-
-function readHomeAction(): HomeAction {
-  const value = readParam('homeAction')
-  return HOME_ACTIONS.includes(value as HomeAction) ? (value as HomeAction) : HOME_ACTION_DEFAULT
-}
-
-function readHomeWeight(): HomeWeight {
-  const value = readParam('homeWeight')
-  return HOME_WEIGHTS.includes(value as HomeWeight) ? (value as HomeWeight) : HOME_WEIGHT_DEFAULT
-}
-
-const homeAction = ref<HomeAction>(readHomeAction())
-const homeWeight = ref<HomeWeight>(readHomeWeight())
-const homeIconOnly = ref(readParam('homeIconOnly') === '1')
-
-function syncParam(key: string, value: string, isDefault: boolean) {
-  if (isDefault) removeUrlQueryParam(key)
-  else syncUrlQueryParam(key, value)
-}
-
-watch(homeAction, (value) => syncParam('homeAction', value, value === HOME_ACTION_DEFAULT))
-watch(homeWeight, (value) => syncParam('homeWeight', value, value === HOME_WEIGHT_DEFAULT))
-watch(homeIconOnly, (value) => syncParam('homeIconOnly', '1', !value))
+/**
+ * Sticky header trigger. An article registers its heading as the sentinel, so
+ * the bar slides in exactly when the title leaves — Vector's own behaviour. On
+ * a page with no article the site nav stands in, and the bar appears once the
+ * chrome itself has scrolled away.
+ */
+const navEl = ref<HTMLElement | null>(null)
+const stickyTrigger = computed(() => stickyHeaderSentinel.value ?? navEl.value)
+const stickyActive = useScrolledPast(stickyTrigger)
 
 const userMenuSelection = ref<MenuItemValue | null>(null)
 
@@ -164,7 +148,7 @@ watch(userMenuSelection, (value) => {
 
 <template>
   <header class="vector-chrome-header" data-skin="desktop" :data-theme="effectiveTheme">
-    <nav class="vector-chrome-header__nav" aria-label="Site">
+    <nav ref="navEl" class="vector-chrome-header__nav" aria-label="Site">
       <div class="vector-chrome-header__start">
         <slot name="menu">
           <span ref="mainMenuAnchor" class="vector-chrome-header__menu-anchor">
@@ -181,7 +165,11 @@ watch(userMenuSelection, (value) => {
           </span>
         </slot>
 
-        <RouterLink class="vector-chrome-header__brand-link" to="/" aria-label="Visit the main page">
+        <RouterLink
+          class="vector-chrome-header__brand-link"
+          to="/"
+          aria-label="Visit the main page"
+        >
           <slot name="logo">
             <span class="vector-chrome-header__wordmarks">
               <img
@@ -277,11 +265,7 @@ watch(userMenuSelection, (value) => {
           <CdxButton v-if="navHas('appearance')" weight="quiet" aria-label="Appearance">
             <CdxIcon :icon="cdxIconAppearance" />
           </CdxButton>
-          <CdxButton
-            v-if="navHas('notifications')"
-            weight="quiet"
-            aria-label="Notifications"
-          >
+          <CdxButton v-if="navHas('notifications')" weight="quiet" aria-label="Notifications">
             <CdxIcon :icon="cdxIconBell" />
           </CdxButton>
           <CdxButton v-if="navHas('notices')" weight="quiet" aria-label="Notices">
@@ -363,6 +347,14 @@ watch(userMenuSelection, (value) => {
         <CdxToggleSwitch v-model="homeIconOnly">Icon only</CdxToggleSwitch>
       </div>
     </CdxPopover>
+
+    <!--
+      Condensed bar that overlays the article once the page has scrolled. Last
+      in the header so it stacks over the nav without needing a higher
+      `z-index`, and outside `__nav` because it's pinned to the viewport rather
+      than laid out in the bar.
+    -->
+    <VectorStickyHeader :active="stickyActive" :theme="effectiveTheme" />
   </header>
 </template>
 
