@@ -38,6 +38,7 @@ import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { stickyHeaderSentinel } from './stickyHeaderSubject'
 import VectorStickyHeader from './VectorStickyHeader.vue'
 import { HOME_ACTIONS, HOME_WEIGHTS, useHomeButtonPlayground } from './homeButtonPlayground'
+import { useStickyHeaderPlayground } from './stickyHeaderPlayground'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
 import { homeButtonLabel, uiLanguageTag } from '@/uiLanguage'
@@ -116,7 +117,8 @@ const mainMenuAnchor = ref<HTMLElement | null>(null)
 
 /**
  * Vector renders Home inline in the end cluster, so it starts framed-free and
- * labelled; `size` is fixed by the cluster's own 32px sizing, hence no control.
+ * labelled; `size` is fixed by the cluster's own 32px sizing and `round` only
+ * means something for Minerva's floating button, so neither gets a control.
  */
 const {
   action: homeAction,
@@ -127,6 +129,7 @@ const {
   weight: 'quiet',
   size: 'medium',
   iconOnly: false,
+  round: false,
 })
 
 /**
@@ -135,6 +138,9 @@ const {
  * a page with no article the site nav stands in, and the bar appears once the
  * chrome itself has scrolled away.
  */
+const { showHome: stickyShowHome, languagesCountOnly: stickyLanguagesCountOnly } =
+  useStickyHeaderPlayground()
+
 const navEl = ref<HTMLElement | null>(null)
 const stickyTrigger = computed(() => stickyHeaderSentinel.value ?? navEl.value)
 const stickyActive = useScrolledPast(stickyTrigger)
@@ -345,6 +351,12 @@ watch(userMenuSelection, (value) => {
         </CdxField>
 
         <CdxToggleSwitch v-model="homeIconOnly">Icon only</CdxToggleSwitch>
+
+        <CdxField class="vector-chrome-header__sticky-field" :is-fieldset="true">
+          <template #label>sticky header</template>
+          <CdxToggleSwitch v-model="stickyShowHome">Home button</CdxToggleSwitch>
+          <CdxToggleSwitch v-model="stickyLanguagesCountOnly">Languages count only</CdxToggleSwitch>
+        </CdxField>
       </div>
     </CdxPopover>
 
@@ -354,7 +366,15 @@ watch(userMenuSelection, (value) => {
       `z-index`, and outside `__nav` because it's pinned to the viewport rather
       than laid out in the bar.
     -->
-    <VectorStickyHeader :active="stickyActive" :theme="effectiveTheme" />
+    <VectorStickyHeader
+      :active="stickyActive"
+      :theme="effectiveTheme"
+      :show-home="stickyShowHome"
+      :home-action="homeAction"
+      :home-weight="homeWeight"
+      :home-icon-only="homeIconOnly"
+      :languages-count-only="stickyLanguagesCountOnly"
+    />
   </header>
 </template>
 
@@ -418,6 +438,18 @@ watch(userMenuSelection, (value) => {
  */
 .vector-chrome-header__menu-panel :deep(.cdx-toggle-switch) {
   align-self: flex-start;
+}
+
+/*
+ * The radio fieldsets above want their inline rows, but two switches side by
+ * side read as one control with a stray label — stack these instead. Scoped to
+ * this fieldset so `action` / `weight` keep their rows.
+ */
+.vector-chrome-header__sticky-field :deep(.cdx-field__control) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-50, 8px);
 }
 
 .vector-chrome-header :slotted(.chrome-header__menu-btn) {

@@ -111,19 +111,21 @@ const mainMenuAnchor = ref<HTMLElement | null>(null)
 
 /**
  * Minerva floats Home over the article instead of seating it in a bar, so it
- * starts framed (`normal`), thumb-sized (`large`) and icon-only — a labelled
- * pill would cover more of the text it sits on.
+ * starts framed (`normal`), thumb-sized (`large`), icon-only and square-ish — a
+ * labelled pill would cover more of the text it sits on.
  */
 const {
   action: homeAction,
   weight: homeWeight,
   size: homeSize,
   iconOnly: homeIconOnly,
+  round: homeRound,
 } = useHomeButtonPlayground({
   action: 'default',
   weight: 'normal',
   size: 'large',
   iconOnly: true,
+  round: false,
 })
 
 /** The control reads as “show the label”; the shared state stores its inverse. */
@@ -276,6 +278,7 @@ const homeShowLabel = computed({
     -->
     <CdxButton
       class="minerva-chrome-header__home-fab"
+      :class="{ 'minerva-chrome-header__home-fab--round': homeRound }"
       :action="homeAction"
       :weight="homeWeight"
       :size="homeSize"
@@ -343,6 +346,7 @@ const homeShowLabel = computed({
         </CdxField>
 
         <CdxToggleSwitch v-model="homeShowLabel">Show label</CdxToggleSwitch>
+        <CdxToggleSwitch v-model="homeRound">Fully round</CdxToggleSwitch>
       </div>
     </CdxPopover>
   </header>
@@ -468,6 +472,20 @@ const homeShowLabel = computed({
   bottom: var(--spacing-75, 12px);
   inset-inline-end: var(--spacing-75, 12px);
   z-index: var(--z-index-fixed, 200);
+}
+
+/*
+ * Fully-round means two different tokens: `border-radius-circle` is a
+ * percentage of each axis, so on the wide labelled button it would bow the
+ * sides into an ellipse. Codex sets `cdx-button--icon-only` itself from the
+ * slot contents, so the shape follows the label without a second flag.
+ */
+.minerva-chrome-header__home-fab--round.cdx-button {
+  border-radius: var(--border-radius-pill, 9999px);
+}
+
+.minerva-chrome-header__home-fab--round.cdx-button.cdx-button--icon-only {
+  border-radius: var(--border-radius-circle, 50%);
 }
 
 /* Narrower than the Vector panel — it has to fit a 320px phone. */

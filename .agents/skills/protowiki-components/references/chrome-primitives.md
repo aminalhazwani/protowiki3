@@ -104,6 +104,15 @@ content and stays until the page is back near the top.
   the site nav becomes the trigger and the bar reduces to search plus the user
   menu. Page-scoped tools would have nothing to act on.
 
+Two knobs sit in the main-menu playground under **sticky header**, both
+round-tripping through the URL like the Home button controls
+(`src/components/chrome/stickyHeaderPlayground.ts`):
+
+| Toggle | Param | Effect |
+| --- | --- | --- |
+| **Home button** | `?stickyHome=1` | Home at the head of the tool cluster, just before talk. Follows the playground's own `action` / `weight` / **Icon only** settings, so both Home buttons stay in step. Site navigation, so it doesn't wait on a registered subject — but like the site header's cluster it stays out of logged-out chrome. |
+| **Languages count only** | `?stickyLangCountOnly=1` | Shortens the interlanguage label to the bare count — **“445”**, not **“445 languages”**. The full phrase stays on as the button's `aria-label`, since a lone number tells a screen reader nothing. |
+
 Registering a different subject is a two-call contract, keyed by a per-instance
 token so a late unmount can't clear a newer registration:
 

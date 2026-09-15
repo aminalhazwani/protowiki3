@@ -7,6 +7,7 @@ import {
   cdxIconEdit,
   cdxIconExpand,
   cdxIconHistory,
+  cdxIconHome,
   cdxIconImageGallery,
   cdxIconLabFlask,
   cdxIconLanguage,
@@ -22,12 +23,15 @@ import {
 } from '@wikimedia/codex-icons'
 
 import {
+  ARTICLE_LANGUAGE_COUNT,
   languagesButtonLabel,
   useArticleLanguageMenu,
 } from '@/components/article/shared/articleLanguageMenu'
 import { useConfig } from '@/composables/useConfig'
+import type { HomeAction, HomeWeight } from './homeButtonPlayground'
 import { stickyHeaderLanguagesCount, stickyHeaderTitle } from './stickyHeaderSubject'
 import type { Theme } from '@/theme'
+import { homeButtonLabel, uiLanguageTag } from '@/uiLanguage'
 
 const { user, displayName } = useConfig()
 
@@ -36,11 +40,24 @@ interface Props {
   active?: boolean
   /** Theme to render under — passed down from the chrome header. */
   theme?: Theme
+  /** Playground knob: Home button at the head of the tool cluster. */
+  showHome?: boolean
+  /** Home styling, shared with the site header's own Home button. */
+  homeAction?: HomeAction
+  homeWeight?: HomeWeight
+  homeIconOnly?: boolean
+  /** Playground knob: shorten the interlanguage label to the bare count. */
+  languagesCountOnly?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   active: false,
   theme: undefined,
+  showHome: false,
+  homeAction: 'progressive',
+  homeWeight: 'quiet',
+  homeIconOnly: false,
+  languagesCountOnly: false,
 })
 
 const isLoggedOut = computed(() => user.value === 'logged-out')
@@ -54,7 +71,16 @@ const title = computed(() => stickyHeaderTitle.value)
  * Vector treats a page with no interlanguage links.
  */
 const hasSubject = computed(() => title.value.length > 0)
-const languagesLabel = computed(() => languagesButtonLabel(stickyHeaderLanguagesCount.value))
+const languagesCount = computed(() => stickyHeaderLanguagesCount.value ?? ARTICLE_LANGUAGE_COUNT)
+const languagesLabel = computed(() => languagesButtonLabel(languagesCount.value))
+/**
+ * Visible text on the interlanguage button. Shortened to the bare count when
+ * the playground asks; the full “N languages” stays on as the `aria-label`,
+ * because “445” on its own tells a screen reader nothing.
+ */
+const languagesButtonText = computed(() =>
+  props.languagesCountOnly ? String(languagesCount.value) : languagesLabel.value,
+)
 
 const { menuItems: languageMenuItems, selection: langSelection } = useArticleLanguageMenu()
 
@@ -110,6 +136,24 @@ watch(userMenuSelection, (value) => {
     <p v-if="title" class="vector-sticky-header__title">{{ title }}</p>
 
     <div class="vector-sticky-header__end">
+      <!--
+        Site navigation, not a page tool, so it doesn't wait on a registered
+        subject the way talk / history / edit do — but it follows the site
+        header in staying out of logged-out chrome.
+      -->
+      <CdxButton
+        v-if="props.showHome && !isLoggedOut"
+        class="vector-sticky-header__home"
+        :weight="props.homeWeight"
+        :action="props.homeAction"
+        :aria-label="props.homeIconOnly ? homeButtonLabel : undefined"
+      >
+        <CdxIcon :icon="cdxIconHome" />
+        <span v-if="!props.homeIconOnly" :lang="uiLanguageTag" dir="auto">
+          {{ homeButtonLabel }}
+        </span>
+      </CdxButton>
+
       <template v-if="hasSubject && !isLoggedOut">
         <CdxButton weight="quiet" aria-label="Talk">
           <CdxIcon :icon="cdxIconSpeechBubbles" />
@@ -137,11 +181,12 @@ watch(userMenuSelection, (value) => {
         v-model:selected="langSelection"
         class="vector-sticky-header__languages"
         weight="quiet"
+        :aria-label="languagesLabel"
         :menu-items="languageMenuItems"
         :menu-config="{ visibleItemLimit: 8 }"
       >
         <CdxIcon :icon="cdxIconLanguage" />
-        <span class="vector-sticky-header__languages-label">{{ languagesLabel }}</span>
+        <span class="vector-sticky-header__languages-label">{{ languagesButtonText }}</span>
         <CdxIcon :icon="cdxIconExpand" size="small" />
       </CdxMenuButton>
 
@@ -248,6 +293,19 @@ watch(userMenuSelection, (value) => {
   min-width: var(--size-icon-medium, 32px);
   height: var(--size-icon-medium, 32px);
   padding: 0.5rem 0.4rem;
+}
+
+/*
+ * Home carries a visible label unless the playground takes it away, so it sizes
+ * to its content and never shrinks — the cluster rule above squares every
+ * button off at 32px, which would clip the label.
+ */
+.vector-sticky-header__end .vector-sticky-header__home.cdx-button {
+  width: auto;
+  flex-shrink: 0;
+  gap: var(--spacing-25, 4px);
+  padding-inline: var(--spacing-50, 8px);
+  white-space: nowrap;
 }
 
 /* Two-icon triggers with a label size to their content instead. */

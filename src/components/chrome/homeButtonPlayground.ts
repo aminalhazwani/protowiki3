@@ -1,14 +1,19 @@
 import { ref, watch, type Ref } from 'vue'
 
-import { removeUrlQueryParam, syncUrlQueryParam } from '@/appearance/url-query'
+import {
+  readEnumParam,
+  readFlagParam,
+  syncPlaygroundFlag,
+  syncPlaygroundParam,
+} from './playgroundParams'
 
 /**
  * Shared state for the Home button styling playground the chrome headers expose
  * behind their main-menu button — the same knobs the Codex Button demo offers.
  *
  * Every setting round-trips through the URL (`?homeAction=`, `?homeWeight=`,
- * `?homeSize=`, `?homeIconOnly=`) so a configured header can be shared as a
- * link, and both skins read the same params: flipping `?skin=` keeps whatever
+ * `?homeSize=`, `?homeIconOnly=`, `?homeRound=`) so a configured header can be
+ * shared as a link, and both skins read the same params: flipping `?skin=` keeps whatever
  * was configured. Params are written only when they differ from the defaults
  * the calling skin passes in, keeping clean URLs.
  */
@@ -27,6 +32,8 @@ export interface HomeButtonDefaults {
   weight: HomeWeight
   size: HomeSize
   iconOnly: boolean
+  /** Trade the button's 2px corners for `border-radius-circle`. */
+  round: boolean
 }
 
 export interface HomeButtonPlayground {
@@ -34,27 +41,7 @@ export interface HomeButtonPlayground {
   weight: Ref<HomeWeight>
   size: Ref<HomeSize>
   iconOnly: Ref<boolean>
-}
-
-function readParam(key: string): string | null {
-  if (typeof window === 'undefined') return null
-  return new URLSearchParams(window.location.search).get(key)
-}
-
-function readEnumParam<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
-  const value = readParam(key)
-  return allowed.includes(value as T) ? (value as T) : fallback
-}
-
-/**
- * Booleans need both states spelled out: the two skins disagree on the default,
- * so “absent” can't stand in for `false` the way it can for a single skin.
- */
-function readFlagParam(key: string, fallback: boolean): boolean {
-  const value = readParam(key)
-  if (value === '1') return true
-  if (value === '0') return false
-  return fallback
+  round: Ref<boolean>
 }
 
 export function useHomeButtonPlayground(defaults: HomeButtonDefaults): HomeButtonPlayground {
@@ -62,18 +49,13 @@ export function useHomeButtonPlayground(defaults: HomeButtonDefaults): HomeButto
   const weight = ref<HomeWeight>(readEnumParam('homeWeight', HOME_WEIGHTS, defaults.weight))
   const size = ref<HomeSize>(readEnumParam('homeSize', HOME_SIZES, defaults.size))
   const iconOnly = ref(readFlagParam('homeIconOnly', defaults.iconOnly))
+  const round = ref(readFlagParam('homeRound', defaults.round))
 
-  function syncParam(key: string, value: string, isDefault: boolean) {
-    if (isDefault) removeUrlQueryParam(key)
-    else syncUrlQueryParam(key, value)
-  }
+  watch(action, (value) => syncPlaygroundParam('homeAction', value, value === defaults.action))
+  watch(weight, (value) => syncPlaygroundParam('homeWeight', value, value === defaults.weight))
+  watch(size, (value) => syncPlaygroundParam('homeSize', value, value === defaults.size))
+  watch(iconOnly, (value) => syncPlaygroundFlag('homeIconOnly', value, defaults.iconOnly))
+  watch(round, (value) => syncPlaygroundFlag('homeRound', value, defaults.round))
 
-  watch(action, (value) => syncParam('homeAction', value, value === defaults.action))
-  watch(weight, (value) => syncParam('homeWeight', value, value === defaults.weight))
-  watch(size, (value) => syncParam('homeSize', value, value === defaults.size))
-  watch(iconOnly, (value) =>
-    syncParam('homeIconOnly', value ? '1' : '0', value === defaults.iconOnly),
-  )
-
-  return { action, weight, size, iconOnly }
+  return { action, weight, size, iconOnly, round }
 }
