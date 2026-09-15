@@ -186,8 +186,7 @@ watch(userMenuSelection, (value) => {
   min-height: 50px;
   padding-inline: var(--spacing-100, 16px);
   background-color: var(--background-color-base, #fff);
-  border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
-  box-shadow: var(--box-shadow-small, 0 1px 2px rgba(0, 0, 0, 0.05));
+  border-bottom: 1px solid var(--background-color-interactive, #eaecf0);
   /*
    * `visibility` is transitioned, not faded: it keeps the parked bar out of hit
    * testing without a `display` swap, which would kill the slide.
