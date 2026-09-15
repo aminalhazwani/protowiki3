@@ -2,11 +2,13 @@
 import { computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { cdxIconHome } from '@wikimedia/codex-icons'
 
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
 import type { HeaderItem } from '@/components/header/headerItems'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
+import { homeButtonLabel } from '@/uiLanguage'
 
 export type MinervaHeaderItem = HeaderItem
 
@@ -214,6 +216,19 @@ function isExternalHref(href: string): boolean {
         </template>
       </div>
     </nav>
+
+    <!--
+      Floating Home affordance. Outside `__nav` because it isn't part of the
+      bar's layout: it's pinned to the viewport, not to the header.
+    -->
+    <CdxButton
+      class="minerva-chrome-header__home-fab"
+      weight="normal"
+      size="large"
+      :aria-label="homeButtonLabel"
+    >
+      <CdxIcon :icon="cdxIconHome" />
+    </CdxButton>
   </header>
 </template>
 
@@ -325,5 +340,17 @@ function isExternalHref(href: string): boolean {
 .minerva-chrome-header__link:hover {
   color: var(--color-subtle, #54595d);
   text-decoration: none;
+}
+
+/*
+ * Pinned to the viewport rather than the header, so it stays in the corner
+ * while the article scrolls. `inset-inline-end` keeps it on the trailing edge,
+ * which mirrors to the left in RTL chrome.
+ */
+.minerva-chrome-header__home-fab.cdx-button {
+  position: fixed;
+  bottom: var(--spacing-75, 12px);
+  inset-inline-end: var(--spacing-75, 12px);
+  z-index: var(--z-index-fixed, 200);
 }
 </style>
