@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
+import {
+  CdxButton,
+  CdxField,
+  CdxIcon,
+  CdxMenuButton,
+  CdxPopover,
+  CdxRadio,
+  CdxToggleSwitch,
+} from '@wikimedia/codex'
 import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconAppearance,
@@ -25,9 +33,11 @@ import {
 } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
+import { removeUrlQueryParam, syncUrlQueryParam } from '@/appearance/url-query'
 import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
+import { homeButtonLabel, uiLanguageTag } from '@/uiLanguage'
 import Search from '../Search.vue'
 
 const { user, displayName } = useConfig()
@@ -97,6 +107,54 @@ const userMenuItems = computed((): MenuButtonItemData[] => [
   { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
 ])
 
+/** Main-menu popover — Home button playground, anchored to the hamburger button. */
+const mainMenuOpen = ref(false)
+const mainMenuAnchor = ref<HTMLElement | null>(null)
+
+/**
+ * Home button styling playground, mirroring the Codex demo controls.
+ *
+ * Each setting round-trips through the URL (`?homeAction=`, `?homeWeight=`,
+ * `?homeIconOnly=`) so a configured header can be shared as a link. Params are
+ * written only when they differ from the defaults below, keeping clean URLs.
+ */
+const HOME_ACTIONS = ['default', 'progressive', 'destructive'] as const
+const HOME_WEIGHTS = ['normal', 'primary', 'quiet'] as const
+
+type HomeAction = (typeof HOME_ACTIONS)[number]
+type HomeWeight = (typeof HOME_WEIGHTS)[number]
+
+const HOME_ACTION_DEFAULT: HomeAction = 'progressive'
+const HOME_WEIGHT_DEFAULT: HomeWeight = 'quiet'
+
+function readParam(key: string): string | null {
+  if (typeof window === 'undefined') return null
+  return new URLSearchParams(window.location.search).get(key)
+}
+
+function readHomeAction(): HomeAction {
+  const value = readParam('homeAction')
+  return HOME_ACTIONS.includes(value as HomeAction) ? (value as HomeAction) : HOME_ACTION_DEFAULT
+}
+
+function readHomeWeight(): HomeWeight {
+  const value = readParam('homeWeight')
+  return HOME_WEIGHTS.includes(value as HomeWeight) ? (value as HomeWeight) : HOME_WEIGHT_DEFAULT
+}
+
+const homeAction = ref<HomeAction>(readHomeAction())
+const homeWeight = ref<HomeWeight>(readHomeWeight())
+const homeIconOnly = ref(readParam('homeIconOnly') === '1')
+
+function syncParam(key: string, value: string, isDefault: boolean) {
+  if (isDefault) removeUrlQueryParam(key)
+  else syncUrlQueryParam(key, value)
+}
+
+watch(homeAction, (value) => syncParam('homeAction', value, value === HOME_ACTION_DEFAULT))
+watch(homeWeight, (value) => syncParam('homeWeight', value, value === HOME_WEIGHT_DEFAULT))
+watch(homeIconOnly, (value) => syncParam('homeIconOnly', '1', !value))
+
 const userMenuSelection = ref<MenuItemValue | null>(null)
 
 watch(userMenuSelection, (value) => {
@@ -109,9 +167,17 @@ watch(userMenuSelection, (value) => {
     <nav class="vector-chrome-header__nav" aria-label="Site">
       <div class="vector-chrome-header__start">
         <slot name="menu">
-          <!-- Mock only — not interactive (FakeMediaWiki uses bare chrome / icon affordances). -->
-          <span class="vector-chrome-header__menu-icon" aria-hidden="true">
-            <CdxIcon :icon="cdxIconMenu" />
+          <span ref="mainMenuAnchor" class="vector-chrome-header__menu-anchor">
+            <CdxButton
+              class="vector-chrome-header__menu-btn"
+              weight="quiet"
+              aria-label="Main menu"
+              :aria-expanded="mainMenuOpen"
+              aria-haspopup="dialog"
+              @click="mainMenuOpen = !mainMenuOpen"
+            >
+              <CdxIcon :icon="cdxIconMenu" />
+            </CdxButton>
           </span>
         </slot>
 
@@ -197,11 +263,16 @@ watch(userMenuSelection, (value) => {
           <CdxButton
             v-if="navHas('home')"
             class="vector-chrome-header__home"
-            weight="quiet"
-            action="progressive"
+            :class="{ 'vector-chrome-header__home--icon-only': homeIconOnly }"
+            :weight="homeWeight"
+            :action="homeAction"
+            :aria-label="homeIconOnly ? homeButtonLabel : undefined"
           >
             <CdxIcon :icon="cdxIconHome" />
-            Home
+            <!-- `mobile-frontend-home-button`, in whichever language the
+                 interlanguage menu last selected. `dir="auto"` keeps RTL
+                 translations (fa, he) from mirroring the whole button. -->
+            <span v-if="!homeIconOnly" :lang="uiLanguageTag" dir="auto">{{ homeButtonLabel }}</span>
           </CdxButton>
           <CdxButton v-if="navHas('appearance')" weight="quiet" aria-label="Appearance">
             <CdxIcon :icon="cdxIconAppearance" />
@@ -248,6 +319,50 @@ watch(userMenuSelection, (value) => {
         </slot>
       </div>
     </nav>
+
+    <!--
+      Anchored to the hamburger but deliberately outside `__nav` / `__start`:
+      with `render-in-place` the popover's backdrop is a static-flow element, so
+      inside either flex row it becomes a flex item and shifts the wordmark.
+    -->
+    <CdxPopover
+      v-model:open="mainMenuOpen"
+      :anchor="mainMenuAnchor"
+      placement="bottom-start"
+      render-in-place
+    >
+      <div class="vector-chrome-header__menu-panel">
+        <CdxField :is-fieldset="true">
+          <template #label>action</template>
+          <CdxRadio
+            v-for="value in HOME_ACTIONS"
+            :key="value"
+            v-model="homeAction"
+            :input-value="value"
+            name="home-action"
+            inline
+          >
+            {{ value }}
+          </CdxRadio>
+        </CdxField>
+
+        <CdxField :is-fieldset="true">
+          <template #label>weight</template>
+          <CdxRadio
+            v-for="value in HOME_WEIGHTS"
+            :key="value"
+            v-model="homeWeight"
+            :input-value="value"
+            name="home-weight"
+            inline
+          >
+            {{ value }}
+          </CdxRadio>
+        </CdxField>
+
+        <CdxToggleSwitch v-model="homeIconOnly">Icon only</CdxToggleSwitch>
+      </div>
+    </CdxPopover>
   </header>
 </template>
 
@@ -289,22 +404,28 @@ watch(userMenuSelection, (value) => {
   gap: var(--spacing-50, 8px);
 }
 
-.vector-chrome-header__menu-icon {
+.vector-chrome-header__menu-anchor {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
-  justify-content: center;
-  min-width: var(--size-icon-medium, 32px);
-  min-height: var(--size-icon-medium, 32px);
-  margin: 0;
-  padding: var(--spacing-25, 4px);
-  padding-inline-start: var(--spacing-50, 8px);
-  border: none;
-  background: transparent;
-  color: var(--color-base, #202122);
-  line-height: 0;
-  cursor: default;
-  pointer-events: none;
+  padding-inline-start: var(--spacing-25, 4px);
+}
+
+.vector-chrome-header__menu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-100, 16px);
+  min-width: 17rem;
+}
+
+/*
+ * CdxToggleSwitch anchors its invisible <input> — the actual control — to the
+ * component's right edge. A stretched column (flex's default `align-items:
+ * stretch`) therefore drags the input away from the visible switch, leaving
+ * only the label clickable. Shrink-wrap it so the two stay aligned.
+ */
+.vector-chrome-header__menu-panel :deep(.cdx-toggle-switch) {
+  align-self: flex-start;
 }
 
 .vector-chrome-header :slotted(.chrome-header__menu-btn) {
@@ -316,7 +437,7 @@ watch(userMenuSelection, (value) => {
   padding-inline-start: var(--spacing-50, 8px);
 }
 
-.vector-chrome-header__menu-icon :deep(svg) {
+.vector-chrome-header__menu-btn :deep(svg) {
   display: block;
 }
 
@@ -405,6 +526,19 @@ a.vector-chrome-header__text-link:hover {
   min-width: var(--size-icon-medium, 32px);
   height: var(--size-icon-medium, 32px);
   padding: 0.5rem 0.4rem;
+}
+
+/*
+ * Home carries a visible label, so it sizes to its content and never shrinks —
+ * the narrow-viewport rule below squares every end-cluster button off at 40px,
+ * which would clip the label. Three classes outrank it.
+ */
+.vector-chrome-header__end .vector-chrome-header__home.cdx-button {
+  width: auto;
+  flex-shrink: 0;
+  gap: var(--spacing-25, 4px);
+  padding-inline: var(--spacing-50, 8px);
+  white-space: nowrap;
 }
 
 /*

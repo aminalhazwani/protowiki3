@@ -1,3 +1,4 @@
+import { watch } from 'vue'
 import type { RouteLocationNormalized, Router } from 'vue-router'
 
 import { applyAppPlatformPreference } from './app-platform'
@@ -17,6 +18,7 @@ import {
   type ConfigWebSkin,
 } from '@/config'
 import { applyThemePreference, applyWebSkinPreference } from '@/theme'
+import { DEFAULT_UI_LANGUAGE, isKnownUiLanguage, uiLanguage } from '@/uiLanguage'
 
 /** Valid `?theme=` query values (`auto` maps to the **Auto** / `system` setting). */
 export type UrlThemeParam = 'light' | 'dark' | 'auto'
@@ -176,6 +178,54 @@ function syncAppOsOnRoute(to: RouteLocationNormalized): void {
   }
 }
 
+// --- UI language (`?uselang=`) — MediaWiki's name for the interface language -
+//
+// Deliberately not `?lang=`: prototypes already use that for the *content* wiki
+// an article is fetched from (see `template-app-article`). `uselang` is what
+// MediaWiki itself calls the interface language, so the two stay distinguishable.
+
+function setUiLanguageFromUrlParam(lang: string): void {
+  if (syncingFromUrl || uiLanguage.value === lang) return
+
+  withSyncFromUrl(() => {
+    uiLanguage.value = lang
+  })
+}
+
+/**
+ * Unlike `?theme=` / `?skin=`, picking a language always writes the param —
+ * sharing a prototype in a given language is the point. Returning to the
+ * default drops it again rather than leaving `?uselang=en` behind.
+ */
+function onUiLanguageChanged(lang: string): void {
+  if (syncingFromUrl) return
+
+  if (lang === DEFAULT_UI_LANGUAGE) {
+    removeUrlQueryParam('uselang')
+    return
+  }
+
+  syncUrlQueryParam('uselang', lang)
+}
+
+function syncUiLanguageFromUrlOnRoute(to: RouteLocationNormalized): void {
+  const urlLang = to.query.uselang
+  if (!isKnownUiLanguage(urlLang)) return
+
+  if (uiLanguage.value !== urlLang) {
+    setUiLanguageFromUrlParam(urlLang)
+  }
+}
+
+/**
+ * `flush: 'sync'` matters: a default (deferred) watcher would run after
+ * `withSyncFromUrl` has already released `syncingFromUrl`, so applying
+ * `?uselang=` at boot would be mistaken for a user picking a language and
+ * written back — against a router whose initial route has not resolved yet,
+ * which lands the page on `/`.
+ */
+watch(uiLanguage, onUiLanguageChanged, { flush: 'sync' })
+
 // --- Boot + router wiring ---------------------------------------------------
 
 function syncOptionalParamFromBoot(
@@ -203,6 +253,10 @@ export function syncAppearanceFromBootUrl(): void {
   syncOptionalParamFromBoot('os', isConfigAppPlatform, (value) => {
     setAppPlatformFromUrl(value as ConfigAppPlatform)
   })
+
+  syncOptionalParamFromBoot('uselang', isKnownUiLanguage, (value) => {
+    setUiLanguageFromUrlParam(value)
+  })
 }
 
 /** Keep appearance URL params and settings aligned after each navigation. */
@@ -213,5 +267,6 @@ export function setupAppearanceUrlSync(instance: Router): void {
     syncThemeFromUrlOnRoute(to)
     syncWebSkinFromUrlOnRoute(to)
     syncAppOsOnRoute(to)
+    syncUiLanguageFromUrlOnRoute(to)
   })
 }
