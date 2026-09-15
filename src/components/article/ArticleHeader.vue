@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue'
-import { CdxButton, CdxIcon, CdxPopover, CdxTextInput } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxMenuButton, CdxPopover, CdxTextInput } from '@wikimedia/codex'
+import type { MenuButtonItemData, MenuItemData, MenuItemValue } from '@wikimedia/codex'
 import {
-  cdxIconDownTriangle,
+  cdxIconBookmark,
   cdxIconDownload,
   cdxIconEdit,
   cdxIconEllipsis,
+  cdxIconExpand,
   cdxIconHistory,
   cdxIconLanguage,
   cdxIconSearch,
   cdxIconSettings,
   cdxIconStar,
   cdxIconUnStar,
+  cdxIconVerticalEllipsis,
 } from '@wikimedia/codex-icons'
 
 import {
@@ -90,6 +93,36 @@ function onLanguagePick(row: ArticleLanguageLink) {
   emit('languageSelect', row)
   closeLangMenu()
 }
+
+/**
+ * Desktop interlanguage control is a Codex menu (mobile keeps the searchable
+ * popover panel). Items carry the wiki href as their value; the settings entry
+ * is pinned as the menu footer.
+ */
+const LANGUAGE_SETTINGS_VALUE = '__language-settings__'
+
+const languageMenuItems = computed((): MenuButtonItemData[] =>
+  internalLanguageLinks.map((row) => ({ value: row.href, label: row.label })),
+)
+
+const languageSettingsFooter: MenuItemData = {
+  value: LANGUAGE_SETTINGS_VALUE,
+  label: 'Language settings',
+  icon: cdxIconSettings,
+}
+
+const langSelection = ref<MenuItemValue | null>(null)
+
+watch(langSelection, (value) => {
+  if (value === null) return
+  if (value === LANGUAGE_SETTINGS_VALUE) {
+    emit('languageSettingsClick')
+  } else {
+    const row = internalLanguageLinks.find((link) => link.href === value)
+    if (row) emit('languageSelect', row)
+  }
+  langSelection.value = null
+})
 </script>
 
 <template>
@@ -99,19 +132,19 @@ function onLanguagePick(row: ArticleLanguageLink) {
         <slot name="title">{{ title }}</slot>
       </h1>
       <div v-if="effectiveSkin === 'desktop'" class="article-header__lang-anchor">
-        <button
-          ref="langAnchor"
-          type="button"
+        <CdxMenuButton
+          v-model:selected="langSelection"
           class="article-header__languages"
-          :aria-expanded="langMenuOpen"
-          aria-haspopup="dialog"
-          :aria-controls="langMenuOpen ? 'article-header-lang-menu' : undefined"
-          @click="langMenuOpen = !langMenuOpen"
+          weight="quiet"
+          action="progressive"
+          :menu-items="languageMenuItems"
+          :menu-config="{ visibleItemLimit: 8 }"
+          :footer="languageSettingsFooter"
         >
-          <CdxIcon class="article-header__lang-icon" :icon="cdxIconLanguage" size="small" />
-          <span>{{ languagesButtonLabel }}</span>
-          <CdxIcon class="article-header__caret" :icon="cdxIconDownTriangle" size="small" />
-        </button>
+          <CdxIcon :icon="cdxIconLanguage" />
+          {{ languagesButtonLabel }}
+          <CdxIcon class="article-header__caret" :icon="cdxIconExpand" size="small" />
+        </CdxMenuButton>
       </div>
     </div>
 
@@ -145,13 +178,25 @@ function onLanguagePick(row: ArticleLanguageLink) {
         <a href="#" class="article-header__action" @click.prevent="$emit('historyClick')">
           View history
         </a>
+        <a href="#" class="article-header__action" @click.prevent="$emit('bookmarkClick')">
+          <CdxIcon :icon="cdxIconStar" size="small" />
+          Watch
+        </a>
         <CdxButton
           class="article-header__icon-btn"
           weight="quiet"
           aria-label="Watch"
           @click="$emit('bookmarkClick')"
         >
-          <CdxIcon :icon="cdxIconUnStar" />
+          <CdxIcon :icon="cdxIconBookmark" />
+        </CdxButton>
+        <CdxButton
+          class="article-header__icon-btn"
+          weight="quiet"
+          aria-label="More options"
+          @click="$emit('moreClick')"
+        >
+          <CdxIcon :icon="cdxIconVerticalEllipsis" />
         </CdxButton>
       </nav>
     </div>
@@ -237,9 +282,10 @@ function onLanguagePick(row: ArticleLanguageLink) {
     </div>
 
     <CdxPopover
+      v-if="effectiveSkin === 'mobile'"
       v-model:open="langMenuOpen"
       :anchor="langAnchor"
-      :placement="effectiveSkin === 'mobile' ? 'bottom-start' : 'bottom-end'"
+      placement="bottom-start"
       render-in-place
     >
       <div id="article-header-lang-menu" class="article-header__lang-panel" @click.stop>
@@ -315,34 +361,14 @@ function onLanguagePick(row: ArticleLanguageLink) {
   flex-shrink: 0;
 }
 
-.article-header__languages {
+.article-header__languages.cdx-button {
   display: inline-flex;
+  gap: var(--spacing-25, 4px);
   align-items: center;
-  gap: var(--spacing-35, 5px);
-  margin: 0;
-  padding: var(--spacing-25, 2px) 0;
-  border: none;
-  background: transparent;
-  font: inherit;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-progressive);
-  cursor: pointer;
-}
-
-.article-header__languages:hover {
-  text-decoration: underline;
-}
-
-.article-header__lang-icon {
-  flex-shrink: 0;
-  color: var(--color-progressive);
 }
 
 .article-header__caret {
   flex-shrink: 0;
-  opacity: 0.85;
-  color: var(--color-progressive);
 }
 
 .article-header__lang-panel {
@@ -402,7 +428,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
   padding: 0;
   border-block: 1px solid var(--border-color-subtle);
   margin: 0;
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-system-sans);
   font-size: var(--font-size-small, 14px);
 }
 
@@ -410,7 +436,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header__actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-75, 12px);
+  gap: var(--spacing-50, 8px);
   flex-wrap: wrap;
 }
 
@@ -418,7 +444,8 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header__action {
   display: inline-flex;
   align-items: center;
-  padding: var(--spacing-50, 8px) var(--spacing-12, 1px);
+  gap: var(--spacing-25, 4px);
+  padding: 2px;
   margin: 0;
   color: var(--color-progressive);
   text-decoration: none;
@@ -428,13 +455,18 @@ function onLanguagePick(row: ArticleLanguageLink) {
 
 .article-header__tab:hover,
 .article-header__action:hover {
-  text-decoration: underline;
+  text-decoration: none;
+}
+
+/* Codex icons default to --color-base; match the surrounding link colour. */
+.article-header__action .cdx-icon {
+  color: var(--color-progressive);
 }
 
 .article-header__tab--active,
 .article-header__action--active {
   color: var(--color-base);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-normal);
   border-bottom-color: var(--color-base);
   text-decoration: none;
 }
@@ -545,6 +577,6 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header[data-skin='mobile'] .article-header__tab--active {
   color: var(--color-subtle);
   border-bottom-color: var(--color-subtle);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-normal);
 }
 </style>
