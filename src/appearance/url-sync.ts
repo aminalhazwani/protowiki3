@@ -12,9 +12,11 @@ import {
 } from './url-query'
 import {
   isConfigAppPlatform,
+  isConfigUser,
   isConfigWebSkin,
   type ConfigAppPlatform,
   type ConfigTheme,
+  type ConfigUser,
   type ConfigWebSkin,
 } from '@/config'
 import { applyThemePreference, applyWebSkinPreference } from '@/theme'
@@ -25,6 +27,9 @@ export type UrlThemeParam = 'light' | 'dark' | 'auto'
 
 /** Valid `?skin=` query values — same vocabulary as **Web skin** settings. */
 export type UrlSkinParam = ConfigWebSkin
+
+/** Valid `?user=` query values — **Mock user** presets, plus spelled-out aliases. */
+export type UrlUserParam = ConfigUser | keyof typeof URL_USER_ALIASES
 
 let syncingFromUrl = false
 
@@ -178,6 +183,54 @@ function syncAppOsOnRoute(to: RouteLocationNormalized): void {
   }
 }
 
+// --- Mock user (`?user=`) — optional param, same rules as skin ---------------
+//
+// The canonical values are the **Mock user** preset ids (`logged-out`, `new`,
+// `experienced`, `real`). The aliases spell out what the preset means so a
+// shared link reads clearly — `?user=new-editor` is the same as `?user=new`.
+// Aliases are accepted on read only; writes always use the canonical id.
+
+const URL_USER_ALIASES = {
+  anon: 'logged-out',
+  'new-editor': 'new',
+  'experienced-editor': 'experienced',
+} as const satisfies Record<string, ConfigUser>
+
+export function isUrlUserParam(value: unknown): value is UrlUserParam {
+  return isConfigUser(value) || (typeof value === 'string' && value in URL_USER_ALIASES)
+}
+
+function urlParamToConfigUser(param: UrlUserParam): ConfigUser {
+  if (isConfigUser(param)) return param
+  return URL_USER_ALIASES[param]
+}
+
+function setUserFromUrlParam(urlUser: UrlUserParam): void {
+  const preference = urlParamToConfigUser(urlUser)
+  if (syncingFromUrl || protowikiConfig.value.user === preference) return
+
+  withSyncFromUrl(() => {
+    protowikiConfig.value = { ...protowikiConfig.value, user: preference }
+  })
+}
+
+export function onUserSettingChanged(preference: ConfigUser): void {
+  if (syncingFromUrl) return
+
+  if (!queryParamIsPresent('user')) return
+
+  syncUrlQueryParam('user', preference)
+}
+
+function syncUserFromUrlOnRoute(to: RouteLocationNormalized): void {
+  const urlUser = typeof to.query.user === 'string' ? to.query.user : null
+  if (!isUrlUserParam(urlUser)) return
+
+  if (protowikiConfig.value.user !== urlParamToConfigUser(urlUser)) {
+    setUserFromUrlParam(urlUser)
+  }
+}
+
 // --- UI language (`?uselang=`) — MediaWiki's name for the interface language -
 //
 // Deliberately not `?lang=`: prototypes already use that for the *content* wiki
@@ -254,6 +307,10 @@ export function syncAppearanceFromBootUrl(): void {
     setAppPlatformFromUrl(value as ConfigAppPlatform)
   })
 
+  syncOptionalParamFromBoot('user', isUrlUserParam, (value) => {
+    setUserFromUrlParam(value as UrlUserParam)
+  })
+
   syncOptionalParamFromBoot('uselang', isKnownUiLanguage, (value) => {
     setUiLanguageFromUrlParam(value)
   })
@@ -267,6 +324,7 @@ export function setupAppearanceUrlSync(instance: Router): void {
     syncThemeFromUrlOnRoute(to)
     syncWebSkinFromUrlOnRoute(to)
     syncAppOsOnRoute(to)
+    syncUserFromUrlOnRoute(to)
     syncUiLanguageFromUrlOnRoute(to)
   })
 }
