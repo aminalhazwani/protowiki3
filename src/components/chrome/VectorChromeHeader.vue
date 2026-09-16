@@ -38,7 +38,13 @@ import { useScrolledPast } from '@/composables/useScrolledPast'
 import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { stickyHeaderSentinel } from './stickyHeaderSubject'
 import VectorStickyHeader from './VectorStickyHeader.vue'
-import { HOME_ACTIONS, HOME_WEIGHTS, useHomeButtonPlayground } from './homeButtonPlayground'
+import {
+  HOME_ACTIONS,
+  HOME_BUTTON_COUNT,
+  HOME_WEIGHTS,
+  homeButtonAriaLabel,
+  useHomeButtonPlayground,
+} from './homeButtonPlayground'
 import { HELP_BUTTON_LABEL, helpButtonVisible } from './helpButton'
 import {
   USERNAME_PLACEMENT_LABELS,
@@ -184,13 +190,20 @@ const {
   action: homeAction,
   weight: homeWeight,
   iconOnly: homeIconOnly,
+  count: homeCount,
 } = useHomeButtonPlayground({
   action: 'progressive',
   weight: 'quiet',
   size: 'medium',
   iconOnly: false,
   round: false,
+  count: false,
 })
+
+/** The badge is `aria-hidden`, so the count rides in the accessible name. */
+const homeAriaLabel = computed(() =>
+  homeButtonAriaLabel(homeButtonLabel.value, homeIconOnly.value, homeCount.value),
+)
 
 /**
  * Sticky header trigger. An article registers its heading as the sentinel, so
@@ -327,9 +340,15 @@ watch(userMenuSelection, (value) => {
             :class="{ 'vector-chrome-header__home--icon-only': homeIconOnly }"
             :weight="homeWeight"
             :action="homeAction"
-            :aria-label="homeIconOnly ? homeButtonLabel : undefined"
+            :aria-label="homeAriaLabel"
           >
-            <CdxIcon :icon="cdxIconHome" />
+            <!-- Echo's counter, pinned to the icon — see `chrome-count-badge.css`. -->
+            <span class="chrome-count-badge" :class="{ 'chrome-count-badge--counted': homeCount }">
+              <CdxIcon :icon="cdxIconHome" />
+              <span v-if="homeCount" class="chrome-count-badge__count" aria-hidden="true">
+                {{ HOME_BUTTON_COUNT }}
+              </span>
+            </span>
             <!-- `mobile-frontend-home-button`, in whichever language the
                  interlanguage menu last selected. `dir="auto"` keeps RTL
                  translations (fa, he) from mirroring the whole button. -->
@@ -455,6 +474,8 @@ watch(userMenuSelection, (value) => {
           </CdxField>
 
           <CdxToggleSwitch v-model="homeIconOnly">Icon only</CdxToggleSwitch>
+          <!-- Echo's badge on Home, in the bar and in the sticky header both. -->
+          <CdxToggleSwitch v-model="homeCount">Show count</CdxToggleSwitch>
         </section>
 
         <!--
@@ -507,6 +528,7 @@ watch(userMenuSelection, (value) => {
       :home-action="homeAction"
       :home-weight="homeWeight"
       :home-icon-only="homeIconOnly"
+      :home-count="homeCount"
       :languages-count-only="stickyLanguagesCountOnly"
     />
   </header>

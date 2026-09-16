@@ -152,7 +152,7 @@ round-tripping through the URL like the rest
 
 | Toggle | Param | Effect |
 | --- | --- | --- |
-| **Home button** | `?stickyHome=1` | Home at the head of the tool cluster, just before talk. Follows the playground's own `action` / `weight` / **Icon only** settings, so both Home buttons stay in step. Site navigation, so it doesn't wait on a registered subject — but like the site header's cluster it stays out of logged-out chrome. |
+| **Home button** | `?stickyHome=1` | Home at the head of the tool cluster, just before talk. Follows the playground's own `action` / `weight` / **Icon only** / **Show count** settings, so both Home buttons stay in step. Site navigation, so it doesn't wait on a registered subject — but like the site header's cluster it stays out of logged-out chrome. |
 | **Languages count only** | `?stickyLangCountOnly=1` | Shortens the interlanguage label to the bare count — **“445”**, not **“445 languages”**. The full phrase stays on as the button's `aria-label`, since a lone number tells a screen reader nothing. |
 
 Registering a different subject is a two-call contract, keyed by a per-instance
@@ -257,6 +257,14 @@ pair: **Action** (`?homeAction=`), **Weight** (`?homeWeight=`), **Size**
 (`?homeRound=`) — pill when labelled, circle when icon-only. Every knob
 round-trips through the URL and writes its param only when it differs from the
 skin's own starting point, so links stay clean.
+
+**Show count on Home** (`?homeCount=`) is the one knob that isn't shared: it
+pins Echo's counter — the badge production puts on the alerts bell — to the Home
+icon, and help has nothing to count. The number is a mock
+(`HOME_BUTTON_COUNT`), the badge is `aria-hidden`, and the button carries the
+count in its `aria-label` instead, since a bare number tells a screen reader
+nothing. Its box lives in `src/styles/chrome-count-badge.css`, shared with the
+desktop chrome, and is drawn from tokens so it inverts in dark mode.
 
 When help shows is not a prop: `src/components/chrome/helpButton.ts` reads the
 page subject `ArticleHeader` already registers (see

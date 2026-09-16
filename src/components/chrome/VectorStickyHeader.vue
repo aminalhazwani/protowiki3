@@ -28,7 +28,12 @@ import {
   useArticleLanguageMenu,
 } from '@/components/article/shared/articleLanguageMenu'
 import { useConfig } from '@/composables/useConfig'
-import type { HomeAction, HomeWeight } from './homeButtonPlayground'
+import {
+  HOME_BUTTON_COUNT,
+  homeButtonAriaLabel,
+  type HomeAction,
+  type HomeWeight,
+} from './homeButtonPlayground'
 import { stickyHeaderLanguagesCount, stickyHeaderTitle } from './stickyHeaderSubject'
 import type { Theme } from '@/theme'
 import { homeButtonLabel, uiLanguageTag } from '@/uiLanguage'
@@ -46,6 +51,8 @@ interface Props {
   homeAction?: HomeAction
   homeWeight?: HomeWeight
   homeIconOnly?: boolean
+  /** Echo's count badge on Home, so both Home buttons stay in step. */
+  homeCount?: boolean
   /** Playground knob: shorten the interlanguage label to the bare count. */
   languagesCountOnly?: boolean
 }
@@ -57,8 +64,14 @@ const props = withDefaults(defineProps<Props>(), {
   homeAction: 'progressive',
   homeWeight: 'quiet',
   homeIconOnly: false,
+  homeCount: false,
   languagesCountOnly: false,
 })
+
+/** The badge is `aria-hidden`, so the count rides in the accessible name. */
+const homeAriaLabel = computed(() =>
+  homeButtonAriaLabel(homeButtonLabel.value, props.homeIconOnly, props.homeCount),
+)
 
 const isLoggedOut = computed(() => user.value === 'logged-out')
 
@@ -146,9 +159,18 @@ watch(userMenuSelection, (value) => {
         class="vector-sticky-header__home"
         :weight="props.homeWeight"
         :action="props.homeAction"
-        :aria-label="props.homeIconOnly ? homeButtonLabel : undefined"
+        :aria-label="homeAriaLabel"
       >
-        <CdxIcon :icon="cdxIconHome" />
+        <!-- Echo's counter, pinned to the icon — see `chrome-count-badge.css`. -->
+        <span
+          class="chrome-count-badge"
+          :class="{ 'chrome-count-badge--counted': props.homeCount }"
+        >
+          <CdxIcon :icon="cdxIconHome" />
+          <span v-if="props.homeCount" class="chrome-count-badge__count" aria-hidden="true">
+            {{ HOME_BUTTON_COUNT }}
+          </span>
+        </span>
         <span v-if="!props.homeIconOnly" :lang="uiLanguageTag" dir="auto">
           {{ homeButtonLabel }}
         </span>

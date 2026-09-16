@@ -31,8 +31,10 @@ import type { HeaderItem } from '@/components/header/headerItems'
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import {
   HOME_ACTIONS,
+  HOME_BUTTON_COUNT,
   HOME_SIZES,
   HOME_WEIGHTS,
+  homeButtonAriaLabel,
   useHomeButtonPlayground,
 } from './homeButtonPlayground'
 import { HELP_BUTTON_LABEL, helpButtonVisible } from './helpButton'
@@ -217,13 +219,20 @@ const {
   size: homeSize,
   iconOnly: homeIconOnly,
   round: homeRound,
+  count: homeCount,
 } = useHomeButtonPlayground({
   action: 'default',
   weight: 'normal',
   size: 'large',
   iconOnly: true,
   round: false,
+  count: false,
 })
+
+/** The count belongs to Home alone — help has nothing to count. */
+const homeAriaLabel = computed(() =>
+  homeButtonAriaLabel(homeButtonLabel.value, homeIconOnly.value, homeCount.value),
+)
 
 /** The control reads as “show the label”; the shared state stores its inverse. */
 const homeShowLabel = computed({
@@ -410,9 +419,15 @@ const homeShowLabel = computed({
         :action="homeAction"
         :weight="homeWeight"
         :size="homeSize"
-        :aria-label="homeIconOnly ? homeButtonLabel : undefined"
+        :aria-label="homeAriaLabel"
       >
-        <CdxIcon :icon="cdxIconHome" />
+        <!-- Echo's counter, pinned to the icon — see `chrome-count-badge.css`. -->
+        <span class="chrome-count-badge" :class="{ 'chrome-count-badge--counted': homeCount }">
+          <CdxIcon :icon="cdxIconHome" />
+          <span v-if="homeCount" class="chrome-count-badge__count" aria-hidden="true">
+            {{ HOME_BUTTON_COUNT }}
+          </span>
+        </span>
         <!-- `mobile-frontend-home-button`, in whichever language the
              interlanguage menu last selected. `dir="auto"` keeps RTL
              translations (fa, he) from mirroring the whole button. -->
@@ -500,6 +515,8 @@ const homeShowLabel = computed({
 
           <CdxToggleSwitch v-model="homeShowLabel">Show label</CdxToggleSwitch>
           <CdxToggleSwitch v-model="homeRound">Fully round</CdxToggleSwitch>
+          <!-- Home only: a count on help would have nothing behind it. -->
+          <CdxToggleSwitch v-model="homeCount">Show count on Home</CdxToggleSwitch>
         </section>
       </div>
     </CdxPopover>
