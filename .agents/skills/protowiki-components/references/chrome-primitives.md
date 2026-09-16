@@ -196,7 +196,7 @@ import type { MinervaHeaderItem } from '@/components/chrome/MinervaChromeHeader.
 | --- | --- |
 | `left` | menu button |
 | `middle` | Wikipedia wordmark (`RouterLink` + `<img>`) when **`middle`** omitted |
-| `right` | search, notifications, then the built-in user avatar + [user menu](#minerva-user-menu) |
+| `right` | [search](#minerva-search), notifications, then the built-in user avatar + [user menu](#minerva-user-menu) |
 
 Adjacent icon buttons/links in **`left`** and **`right`** have **no gap** between them (flush groups).
 
@@ -218,6 +218,15 @@ because **`CdxMenu`**'s root element never picks up the scope attribute.
 
 Passing your own **`right`** replaces the whole cluster — avatar and menu
 included — so a custom end cluster owns its own affordances.
+
+<h3 id="minerva-search">Minerva search</h3>
+
+Leave **`right`** alone and the bar's search icon opens
+**[`MobileSearchOverlay`](search.md#mobile-full-screen-search)** — the whole
+screen becomes a search bar plus title suggestions, the way Minerva does it.
+Where a picked result lands is the page's call, via the registered
+**`articleOpener`**; passing your own **`right`** replaces the icon along with
+the rest of the cluster.
 
 ## ChromeFooter
 

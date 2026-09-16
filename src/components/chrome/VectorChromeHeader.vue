@@ -244,10 +244,17 @@ watch(userMenuSelection, (value) => {
         <div class="vector-chrome-header__search">
           <Search />
         </div>
+        <!--
+          Vector's search button submits the search form, so this one does too:
+          `form` reaches the form CdxTypeaheadSearch renders under that id, from
+          outside it. What submitting *does* is Search's own business — open the
+          best match in place, or leave for `Special:Search` when the page has
+          no way to show an article.
+        -->
         <CdxButton
           class="vector-chrome-header__search-submit"
-          tag="a"
-          href="https://en.wikipedia.org/wiki/Special:Search"
+          type="submit"
+          form="protowiki-search"
         >
           Search
         </CdxButton>
@@ -378,9 +385,9 @@ watch(userMenuSelection, (value) => {
       placement="bottom-start"
       render-in-place
     >
-      <div class="vector-chrome-header__menu-panel">
-        <section class="vector-chrome-header__menu-section">
-          <h2 class="vector-chrome-header__menu-section-title">Home button</h2>
+      <div class="vector-chrome-header__menu-panel chrome-playground-panel">
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Home button</h2>
 
           <CdxField :is-fieldset="true">
             <template #label>Action</template>
@@ -417,8 +424,8 @@ watch(userMenuSelection, (value) => {
           One name, one place: radios rather than a switch per position, so the
           panel can't offer a state the toolbar has no way to render.
         -->
-        <section class="vector-chrome-header__menu-section">
-          <h2 class="vector-chrome-header__menu-section-title">Username</h2>
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Username</h2>
 
           <CdxField :is-fieldset="true">
             <template #label>Placement</template>
@@ -434,15 +441,15 @@ watch(userMenuSelection, (value) => {
           </CdxField>
         </section>
 
-        <section class="vector-chrome-header__menu-section">
-          <h2 class="vector-chrome-header__menu-section-title">Alerts and notices</h2>
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Alerts and notices</h2>
 
           <!-- Which icon survives is in the section title: the alerts bell. -->
           <CdxToggleSwitch v-model="mergeNotices">Merge into one button</CdxToggleSwitch>
         </section>
 
-        <section class="vector-chrome-header__menu-section">
-          <h2 class="vector-chrome-header__menu-section-title">Sticky header</h2>
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Sticky header</h2>
 
           <CdxToggleSwitch v-model="stickyShowHome">Home button</CdxToggleSwitch>
           <CdxToggleSwitch v-model="stickyLanguagesCountOnly">Languages count only</CdxToggleSwitch>
@@ -513,52 +520,10 @@ watch(userMenuSelection, (value) => {
   padding-inline-start: var(--spacing-25, 4px);
 }
 
+/* Sections, titles and Codex overrides come from `chrome-playground-panel`,
+   shared with the Minerva panel; the width is this panel's own. */
 .vector-chrome-header__menu-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-150, 24px);
   min-width: 18rem;
-}
-
-/* Grouped by what each knob changes in the bar: Home, the username, the two
-   inboxes, then the bar that replaces all of them once the page scrolls. */
-.vector-chrome-header__menu-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-100, 16px);
-}
-
-/* A rule between sections instead of yet more vertical space. */
-.vector-chrome-header__menu-section + .vector-chrome-header__menu-section {
-  border-top: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
-  padding-top: var(--spacing-150, 24px);
-}
-
-.vector-chrome-header__menu-section-title {
-  margin: 0;
-  border: 0;
-  padding: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-medium, 1rem);
-  font-weight: var(--font-weight-bold, 700);
-  line-height: var(--line-height-small, 1.375);
-  color: var(--color-base, #202122);
-}
-
-/* Fields are spaced by the section's flex gap, not Codex's own margin. */
-.vector-chrome-header__menu-panel :deep(.cdx-field) {
-  margin: 0;
-}
-
-/*
- * CdxToggleSwitch anchors its invisible <input> — the actual control — to the
- * component's right edge. A stretched column (flex's default `align-items:
- * stretch`) therefore drags the input away from the visible switch, leaving
- * only the label clickable. Shrink-wrap it so the two stay aligned.
- */
-.vector-chrome-header__menu-panel :deep(.cdx-toggle-switch) {
-  align-self: flex-start;
 }
 
 .vector-chrome-header :slotted(.chrome-header__menu-btn) {

@@ -27,6 +27,7 @@ import {
 import { useConfig } from '@/composables/useConfig'
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
 import type { HeaderItem } from '@/components/header/headerItems'
+import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import {
   HOME_ACTIONS,
   HOME_SIZES,
@@ -43,12 +44,6 @@ const WIKIPEDIA_WORDMARK_EN =
   'https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-wordmark-en-25.svg'
 
 const MAX_FLANK_ITEMS = 4
-
-/** The avatar that opens the user menu is built in — see `useDefaultRight`. */
-const DEFAULT_RIGHT: HeaderItem[] = [
-  { type: 'button', icon: 'search', label: 'Search' },
-  { type: 'button', icon: 'bell-outline', label: 'Notifications' },
-]
 
 interface Props {
   theme?: Theme
@@ -75,6 +70,26 @@ const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
 const wordmarkResolved = computed(
   () => props.mobileWordmarkSrc ?? props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN,
 )
+
+/**
+ * Full-screen search, the way Minerva does it — the icon swaps the whole screen
+ * for a search bar and title suggestions rather than opening a dropdown. Where a
+ * picked result lands is the page's call: the overlay routes it through the
+ * registered `articleOpener`, so a prototype that can render an arbitrary
+ * article keeps the reader inside ProtoWiki. Prototypes wanting a different
+ * search entirely pass `right` with a search button of their own, which leaves
+ * this built-in one out of the bar.
+ */
+const searchOpen = ref(false)
+
+/**
+ * The search button and the avatar that opens the user menu are both built in —
+ * see `useDefaultRight`.
+ */
+const defaultRight = computed((): HeaderItem[] => [
+  { type: 'button', icon: 'search', label: 'Search', onClick: () => (searchOpen.value = true) },
+  { type: 'button', icon: 'bell-outline', label: 'Notifications' },
+])
 
 /**
  * User menu. The real Minerva avatar opens a whole page; on a prototype phone
@@ -145,7 +160,7 @@ function clampFlank(items: HeaderItem[], side: 'left' | 'right'): HeaderItem[] {
 }
 
 const effectiveLeft = computed(() => clampFlank(props.left ?? [], 'left'))
-const effectiveRight = computed(() => clampFlank(props.right ?? DEFAULT_RIGHT, 'right'))
+const effectiveRight = computed(() => clampFlank(props.right ?? defaultRight.value, 'right'))
 const effectiveMiddle = computed(() => props.middle ?? [])
 
 const useDefaultWordmark = computed(() => props.middle === undefined)
@@ -406,53 +421,72 @@ const homeShowLabel = computed({
       placement="bottom-start"
       render-in-place
     >
-      <div class="minerva-chrome-header__menu-panel">
-        <CdxField :is-fieldset="true">
-          <template #label>action</template>
-          <CdxRadio
-            v-for="value in HOME_ACTIONS"
-            :key="value"
-            v-model="homeAction"
-            :input-value="value"
-            name="minerva-home-action"
-            inline
-          >
-            {{ value }}
-          </CdxRadio>
-        </CdxField>
+      <!--
+        Same sectioned frame as the Vector panel — titled group, fields above
+        the switches — so the two playgrounds read alike. Minerva has no sticky
+        bar and no username affordance in the chrome, so Home is the only group
+        here; the section keeps its heading anyway, ready for a second one.
+      -->
+      <div class="minerva-chrome-header__menu-panel chrome-playground-panel">
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Home button</h2>
 
-        <CdxField :is-fieldset="true">
-          <template #label>weight</template>
-          <CdxRadio
-            v-for="value in HOME_WEIGHTS"
-            :key="value"
-            v-model="homeWeight"
-            :input-value="value"
-            name="minerva-home-weight"
-            inline
-          >
-            {{ value }}
-          </CdxRadio>
-        </CdxField>
+          <CdxField :is-fieldset="true">
+            <template #label>Action</template>
+            <CdxRadio
+              v-for="value in HOME_ACTIONS"
+              :key="value"
+              v-model="homeAction"
+              :input-value="value"
+              name="minerva-home-action"
+              inline
+            >
+              {{ value }}
+            </CdxRadio>
+          </CdxField>
 
-        <CdxField :is-fieldset="true">
-          <template #label>size</template>
-          <CdxRadio
-            v-for="value in HOME_SIZES"
-            :key="value"
-            v-model="homeSize"
-            :input-value="value"
-            name="minerva-home-size"
-            inline
-          >
-            {{ value }}
-          </CdxRadio>
-        </CdxField>
+          <CdxField :is-fieldset="true">
+            <template #label>Weight</template>
+            <CdxRadio
+              v-for="value in HOME_WEIGHTS"
+              :key="value"
+              v-model="homeWeight"
+              :input-value="value"
+              name="minerva-home-weight"
+              inline
+            >
+              {{ value }}
+            </CdxRadio>
+          </CdxField>
 
-        <CdxToggleSwitch v-model="homeShowLabel">Show label</CdxToggleSwitch>
-        <CdxToggleSwitch v-model="homeRound">Fully round</CdxToggleSwitch>
+          <CdxField :is-fieldset="true">
+            <template #label>Size</template>
+            <CdxRadio
+              v-for="value in HOME_SIZES"
+              :key="value"
+              v-model="homeSize"
+              :input-value="value"
+              name="minerva-home-size"
+              inline
+            >
+              {{ value }}
+            </CdxRadio>
+          </CdxField>
+
+          <CdxToggleSwitch v-model="homeShowLabel">Show label</CdxToggleSwitch>
+          <CdxToggleSwitch v-model="homeRound">Fully round</CdxToggleSwitch>
+        </section>
       </div>
     </CdxPopover>
+
+    <!--
+      Teleported to the body so the fixed overlay escapes the header's stacking
+      context — otherwise a prototype that transforms or clips its chrome would
+      confine the "full screen" search to the bar.
+    -->
+    <Teleport to="body">
+      <MobileSearchOverlay v-if="searchOpen" :theme="effectiveTheme" @close="searchOpen = false" />
+    </Teleport>
   </header>
 </template>
 
@@ -594,23 +628,12 @@ const homeShowLabel = computed({
   border-radius: var(--border-radius-circle, 50%);
 }
 
-/* Narrower than the Vector panel — it has to fit a 320px phone. */
+/* Sections, titles and Codex overrides come from `chrome-playground-panel`,
+   shared with the Vector panel. The widths are this panel's own: narrower than
+   Vector's, and clamped, because it has to fit a 320px phone. */
 .minerva-chrome-header__menu-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-100, 16px);
   min-width: 13rem;
   max-width: calc(100vw - var(--spacing-100, 16px) * 2);
-}
-
-/*
- * CdxToggleSwitch anchors its invisible <input> — the actual control — to the
- * component's right edge. A stretched column (flex's default `align-items:
- * stretch`) therefore drags the input away from the visible switch, leaving
- * only the label clickable. Shrink-wrap it so the two stay aligned.
- */
-.minerva-chrome-header__menu-panel :deep(.cdx-toggle-switch) {
-  align-self: flex-start;
 }
 </style>
 
