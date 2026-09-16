@@ -14,7 +14,7 @@
 .chrome-playground-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-150, 24px);
+  gap: var(--spacing-100, 16px);
 }
 
 /* Knobs grouped by what they change in the chrome: tighter spacing inside a
@@ -23,13 +23,13 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--spacing-100, 16px);
+  gap: var(--spacing-50, 8px);
 }
 
 /* A rule between sections instead of yet more vertical space. */
 .chrome-playground-panel__section + .chrome-playground-panel__section {
   border-top: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
-  padding-top: var(--spacing-150, 24px);
+  padding-top: var(--spacing-100, 16px);
 }
 
 .chrome-playground-panel__section-title {
