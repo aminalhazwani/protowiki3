@@ -11,7 +11,12 @@
  * recognised too.
  */
 
-/** Namespaces that exist on the wiki but have no readable article to render here. */
+/**
+ * Namespaces that exist on the wiki but have no readable article to render here.
+ * A prototype can take some of them back with **`readableNamespaces`** — a
+ * `Wikipedia:` or `Help:` page renders through `ArticleLive` like any other
+ * page, it just isn't an article (see `./wikiNamespace`).
+ */
 const NON_ARTICLE_NAMESPACES = [
   'media',
   'special',
@@ -44,10 +49,22 @@ export type WikiLinkClick =
   /** Not a wiki link: external link, in-page fragment, or no anchor at all. */
   | null
 
-function isArticleTitle(title: string): boolean {
+export interface WikiLinkClickOptions {
+  /**
+   * Namespaces to treat as readable alongside mainspace, lowercased and
+   * spaced — `PROJECT_NAMESPACES` from `./wikiNamespace` is the set the chrome's
+   * help affordance is about. Only the namespace itself: its talk pages are a
+   * discussion surface, not a page to read, so `User talk:` stays out even
+   * when `user` is in.
+   */
+  readableNamespaces?: readonly string[]
+}
+
+function isArticleTitle(title: string, readableNamespaces: readonly string[]): boolean {
   const colon = title.indexOf(':')
   if (colon <= 0) return true
   const prefix = title.slice(0, colon).trim().toLowerCase().replace(/_/g, ' ')
+  if (readableNamespaces.includes(prefix)) return true
   // Talk namespaces are `<namespace> talk:`, so match the trailing word too.
   const base = prefix.replace(/ talk$/, '')
   return !NON_ARTICLE_NAMESPACES.includes(base)
@@ -103,7 +120,10 @@ function wikiPathFromHref(raw: string): string | null {
  * **`preventDefault()`** on both wiki cases — the relative Parsoid hrefs mean
  * every on-wiki link is broken navigation inside a prototype.
  */
-export function wikiLinkClick(event: MouseEvent): WikiLinkClick {
+export function wikiLinkClick(
+  event: MouseEvent,
+  options: WikiLinkClickOptions = {},
+): WikiLinkClick {
   const target = event.target
   if (!(target instanceof Element)) return null
 
@@ -134,7 +154,7 @@ export function wikiLinkClick(event: MouseEvent): WikiLinkClick {
   const { path, fragment } = splitFragment(wikiPath)
   const title = decodeTitle(path)
   if (!title) return null
-  if (!isArticleTitle(title)) return { kind: 'wiki-other' }
+  if (!isArticleTitle(title, options.readableNamespaces ?? [])) return { kind: 'wiki-other' }
 
   return { kind: 'article', title, fragment }
 }

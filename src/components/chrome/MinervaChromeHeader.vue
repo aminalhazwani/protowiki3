@@ -13,6 +13,7 @@ import {
 import type { MenuItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconBookmarkList,
+  cdxIconHelp,
   cdxIconHome,
   cdxIconLogOut,
   cdxIconMenu,
@@ -34,6 +35,7 @@ import {
   HOME_WEIGHTS,
   useHomeButtonPlayground,
 } from './homeButtonPlayground'
+import { HELP_BUTTON_LABEL, helpButtonVisible } from './helpButton'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
 import { homeButtonLabel, uiLanguageTag } from '@/uiLanguage'
@@ -204,6 +206,10 @@ const mainMenuAnchor = ref<HTMLElement | null>(null)
  * Minerva floats Home over the article instead of seating it in a bar, so it
  * starts framed (`normal`), thumb-sized (`large`), icon-only and square-ish — a
  * labelled pill would cover more of the text it sits on.
+ *
+ * The floating help button sits in the same corner cluster and follows the same
+ * knobs: two buttons side by side only read as a pair if they share a
+ * treatment, so the playground styles the cluster rather than one button.
  */
 const {
   action: homeAction,
@@ -392,23 +398,41 @@ const homeShowLabel = computed({
     </nav>
 
     <!--
-      Floating Home affordance. Outside `__nav` because it isn't part of the
-      bar's layout: it's pinned to the viewport, not to the header.
+      Floating affordances. Outside `__nav` because they aren't part of the
+      bar's layout: the cluster is pinned to the viewport, not to the header.
+      Home leads and help closes it, so help is the one nearest the corner —
+      the thumb's shortest reach, and it's the button that comes and goes.
     -->
-    <CdxButton
-      class="minerva-chrome-header__home-fab"
-      :class="{ 'minerva-chrome-header__home-fab--round': homeRound }"
-      :action="homeAction"
-      :weight="homeWeight"
-      :size="homeSize"
-      :aria-label="homeIconOnly ? homeButtonLabel : undefined"
-    >
-      <CdxIcon :icon="cdxIconHome" />
-      <!-- `mobile-frontend-home-button`, in whichever language the
-           interlanguage menu last selected. `dir="auto"` keeps RTL
-           translations (fa, he) from mirroring the whole button. -->
-      <span v-if="!homeIconOnly" :lang="uiLanguageTag" dir="auto">{{ homeButtonLabel }}</span>
-    </CdxButton>
+    <div class="minerva-chrome-header__fabs">
+      <CdxButton
+        class="minerva-chrome-header__fab"
+        :class="{ 'minerva-chrome-header__fab--round': homeRound }"
+        :action="homeAction"
+        :weight="homeWeight"
+        :size="homeSize"
+        :aria-label="homeIconOnly ? homeButtonLabel : undefined"
+      >
+        <CdxIcon :icon="cdxIconHome" />
+        <!-- `mobile-frontend-home-button`, in whichever language the
+             interlanguage menu last selected. `dir="auto"` keeps RTL
+             translations (fa, he) from mirroring the whole button. -->
+        <span v-if="!homeIconOnly" :lang="uiLanguageTag" dir="auto">{{ homeButtonLabel }}</span>
+      </CdxButton>
+
+      <!-- Project, user and help pages only — see `./helpButton`. -->
+      <CdxButton
+        v-if="helpButtonVisible"
+        class="minerva-chrome-header__fab"
+        :class="{ 'minerva-chrome-header__fab--round': homeRound }"
+        :action="homeAction"
+        :weight="homeWeight"
+        :size="homeSize"
+        :aria-label="homeIconOnly ? HELP_BUTTON_LABEL : undefined"
+      >
+        <CdxIcon :icon="cdxIconHelp" />
+        <span v-if="!homeIconOnly">{{ HELP_BUTTON_LABEL }}</span>
+      </CdxButton>
+    </div>
 
     <!--
       Anchored to the hamburger but outside `__nav`: with `render-in-place` the
@@ -424,12 +448,13 @@ const homeShowLabel = computed({
       <!--
         Same sectioned frame as the Vector panel — titled group, fields above
         the switches — so the two playgrounds read alike. Minerva has no sticky
-        bar and no username affordance in the chrome, so Home is the only group
-        here; the section keeps its heading anyway, ready for a second one.
+        bar and no username affordance in the chrome, so the floating cluster is
+        the only group here; the section keeps its heading anyway, ready for a
+        second one.
       -->
       <div class="minerva-chrome-header__menu-panel chrome-playground-panel">
         <section class="chrome-playground-panel__section">
-          <h2 class="chrome-playground-panel__section-title">Home button</h2>
+          <h2 class="chrome-playground-panel__section-title">Floating buttons</h2>
 
           <CdxField :is-fieldset="true">
             <template #label>Action</template>
@@ -603,15 +628,19 @@ const homeShowLabel = computed({
 }
 
 /*
- * Pinned to the viewport rather than the header, so it stays in the corner
- * while the article scrolls. `inset-inline-end` keeps it on the trailing edge,
- * which mirrors to the left in RTL chrome.
+ * Pinned to the viewport rather than the header, so the cluster stays in the
+ * corner while the article scrolls. `inset-inline-end` keeps it on the trailing
+ * edge, which mirrors to the left in RTL chrome — and with it the order of the
+ * row, so help stays the button nearest the corner either way.
  */
-.minerva-chrome-header__home-fab.cdx-button {
+.minerva-chrome-header__fabs {
   position: fixed;
   bottom: var(--spacing-75, 12px);
   inset-inline-end: var(--spacing-75, 12px);
   z-index: var(--z-index-fixed, 200);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-50, 8px);
 }
 
 /*
@@ -620,11 +649,11 @@ const homeShowLabel = computed({
  * sides into an ellipse. Codex sets `cdx-button--icon-only` itself from the
  * slot contents, so the shape follows the label without a second flag.
  */
-.minerva-chrome-header__home-fab--round.cdx-button {
+.minerva-chrome-header__fab--round.cdx-button {
   border-radius: var(--border-radius-pill, 9999px);
 }
 
-.minerva-chrome-header__home-fab--round.cdx-button.cdx-button--icon-only {
+.minerva-chrome-header__fab--round.cdx-button.cdx-button--icon-only {
   border-radius: var(--border-radius-circle, 50%);
 }
 

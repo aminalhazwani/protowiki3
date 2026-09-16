@@ -105,6 +105,30 @@ The name itself comes from the **`username`** prop, or the mock user's display
 name when that prop is empty — so the toolbar link and the button label always
 read the same.
 
+<h3 id="desktop-floating-help-button">Floating help button</h3>
+
+Desktop seats Home in the end cluster, so the only thing floating over a page is
+help — a round icon button in the trailing bottom corner, on the same project,
+user and help pages as [Minerva's](#minerva-floating-buttons) and from the same
+`src/components/chrome/helpButton.ts`. It's fixed rather than playground-styled:
+a `quiet` button floating over article text would have no background of its own.
+
+Reaching those pages by clicking is the prototype's call. Article HTML links to
+them constantly (maintenance templates, policy links, `Help:IPA`), and
+**`wikiLinkClick`** classifies them as `wiki-other` — nothing to render — unless
+the page opts in:
+
+```ts
+import { wikiLinkClick } from '@/components/article/shared/wikiLinkClick'
+import { PROJECT_NAMESPACES } from '@/components/article/shared/wikiNamespace'
+
+const link = wikiLinkClick(event, { readableNamespaces: PROJECT_NAMESPACES })
+```
+
+`ArticleLive` renders a `Wikipedia:` or `Help:` page like any other, so the
+opt-in is all it takes. Talk pages stay out: `User talk:` is a discussion
+surface, not a page to read.
+
 ### Sticky header
 
 Every desktop chrome page gets Vector 2022's condensed sticky bar — no prop, no
@@ -218,6 +242,29 @@ because **`CdxMenu`**'s root element never picks up the scope attribute.
 
 Passing your own **`right`** replaces the whole cluster — avatar and menu
 included — so a custom end cluster owns its own affordances.
+
+<h3 id="minerva-floating-buttons">Floating buttons</h3>
+
+Minerva floats **Home** in the bar's trailing bottom corner rather than seating
+it in the bar — and on the pages that are *about* the project, a **help** button
+joins it, nearest the corner. Both are inert affordances, like the rest of the
+chrome.
+
+The main-menu playground's **Floating buttons** section styles the pair as one
+(`src/components/chrome/homeButtonPlayground.ts`), so they always read as a
+pair: **Action** (`?homeAction=`), **Weight** (`?homeWeight=`), **Size**
+(`?homeSize=`), **Show label** (`?homeIconOnly=`) and **Fully round**
+(`?homeRound=`) — pill when labelled, circle when icon-only. Every knob
+round-trips through the URL and writes its param only when it differs from the
+skin's own starting point, so links stay clean.
+
+When help shows is not a prop: `src/components/chrome/helpButton.ts` reads the
+page subject `ArticleHeader` already registers (see
+[Sticky header](#sticky-header)) and answers the namespace of its title —
+`Wikipedia:` (or `Project:`), `User:` and `Help:` pages get the button, an
+article or an unregistered page doesn't. A prototype gets it with no wiring; the
+one thing it may need is to let those links be followed in the first place,
+which is [`wikiLinkClick`'s **`readableNamespaces`**](#desktop-floating-help-button).
 
 <h3 id="minerva-search">Minerva search</h3>
 

@@ -15,6 +15,7 @@ import ArticleLive from '@/components/article/ArticleLive.vue'
 import ArticleSnapshot from '@/components/article/ArticleSnapshot.vue'
 import { registerArticleOpener } from '@/components/article/shared/articleOpener'
 import { sameWikiTitle, wikiLinkClick } from '@/components/article/shared/wikiLinkClick'
+import { PROJECT_NAMESPACES } from '@/components/article/shared/wikiNamespace'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import type { ChromeNavTool } from '@/components/chrome/headerNavTools'
 
@@ -81,11 +82,16 @@ registerArticleOpener({
  * is broken navigation inside a prototype — both wiki cases stop here, and only
  * a readable article moves the prototype. External links (references, sister
  * sites) keep their default behaviour and leave.
+ *
+ * `Wikipedia:`, `User:` and `Help:` pages count as readable here: they're where
+ * a reader following a maintenance template or a policy link ends up, which is
+ * exactly the trail the Home affordances are meant to short-circuit — and the
+ * chrome answers those pages with a help button beside Home.
  */
 function onArticleClick(event: MouseEvent): void {
   if (event.defaultPrevented || event.button !== 0) return
 
-  const link = wikiLinkClick(event)
+  const link = wikiLinkClick(event, { readableNamespaces: PROJECT_NAMESPACES })
   if (!link) return
 
   event.preventDefault()

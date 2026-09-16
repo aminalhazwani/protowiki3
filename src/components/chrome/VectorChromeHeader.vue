@@ -16,6 +16,7 @@ import {
   cdxIconBell,
   cdxIconBookmarkList,
   cdxIconExpand,
+  cdxIconHelp,
   cdxIconHome,
   cdxIconImageGallery,
   cdxIconLabFlask,
@@ -38,6 +39,7 @@ import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { stickyHeaderSentinel } from './stickyHeaderSubject'
 import VectorStickyHeader from './VectorStickyHeader.vue'
 import { HOME_ACTIONS, HOME_WEIGHTS, useHomeButtonPlayground } from './homeButtonPlayground'
+import { HELP_BUTTON_LABEL, helpButtonVisible } from './helpButton'
 import {
   USERNAME_PLACEMENT_LABELS,
   USERNAME_PLACEMENTS,
@@ -375,6 +377,26 @@ watch(userMenuSelection, (value) => {
     </nav>
 
     <!--
+      Floating help affordance, on project, user and help pages only — see
+      `./helpButton`. Outside `__nav` because it's pinned to the viewport
+      rather than laid out in the bar, and `inset-inline-end` keeps it on the
+      trailing edge so it mirrors in RTL chrome.
+
+      Desktop has no floating Home to pair with — Home is seated in the end
+      cluster — so this one is a fixed round icon button rather than something
+      the Home playground styles: a `quiet` FAB would float with no background
+      of its own over the article text beneath it.
+    -->
+    <CdxButton
+      v-if="helpButtonVisible"
+      class="vector-chrome-header__help-fab"
+      size="large"
+      :aria-label="HELP_BUTTON_LABEL"
+    >
+      <CdxIcon :icon="cdxIconHelp" />
+    </CdxButton>
+
+    <!--
       Anchored to the hamburger but deliberately outside `__nav` / `__start`:
       with `render-in-place` the popover's backdrop is a static-flow element, so
       inside either flex row it becomes a flex item and shifts the wordmark.
@@ -518,6 +540,20 @@ watch(userMenuSelection, (value) => {
   flex-shrink: 0;
   align-items: center;
   padding-inline-start: var(--spacing-25, 4px);
+}
+
+/*
+ * Pinned to the viewport rather than the header, so it stays in the corner
+ * while the page scrolls — and above the sticky bar (`--z-index-sticky`, 100),
+ * which slides in over the same content. Round, like Minerva's floating pair:
+ * a lone button in a corner reads as a control rather than as chrome.
+ */
+.vector-chrome-header__help-fab.cdx-button {
+  position: fixed;
+  bottom: var(--spacing-100, 16px);
+  inset-inline-end: var(--spacing-100, 16px);
+  z-index: var(--z-index-fixed, 200);
+  border-radius: var(--border-radius-circle, 50%);
 }
 
 /* Sections, titles and Codex overrides come from `chrome-playground-panel`,
