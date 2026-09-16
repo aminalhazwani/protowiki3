@@ -12,7 +12,7 @@ import {
 } from '@wikimedia/codex'
 import type { MenuItemData, MenuItemValue } from '@wikimedia/codex'
 import {
-  cdxIconBookmark,
+  cdxIconBookmarkList,
   cdxIconHome,
   cdxIconLogOut,
   cdxIconMenu,
@@ -93,7 +93,7 @@ const userMenuItems = computed((): MenuItemData[] => [
   { value: 'user-page', label: displayName.value, icon: cdxIconUserAvatar },
   { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
   { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
-  { value: 'saved', label: 'Saved', icon: cdxIconBookmark },
+  { value: 'saved', label: 'Saved', icon: cdxIconBookmarkList },
   { value: 'watchlist', label: 'Watchlist', icon: cdxIconWatchlist },
   { value: 'contributions', label: 'Contributions', icon: cdxIconUserContributions },
   { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
