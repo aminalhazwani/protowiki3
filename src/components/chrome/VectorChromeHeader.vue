@@ -38,6 +38,11 @@ import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { stickyHeaderSentinel } from './stickyHeaderSubject'
 import VectorStickyHeader from './VectorStickyHeader.vue'
 import { HOME_ACTIONS, HOME_WEIGHTS, useHomeButtonPlayground } from './homeButtonPlayground'
+import {
+  USERNAME_PLACEMENT_LABELS,
+  USERNAME_PLACEMENTS,
+  useDesktopNavPlayground,
+} from './desktopNavPlayground'
 import { useStickyHeaderPlayground } from './stickyHeaderPlayground'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
@@ -56,7 +61,12 @@ interface Props {
   /** Local theme override. Sets `data-theme` on the root. */
   theme?: Theme
   /**
-   * Meta link mock before tool icons; trim; empty hides unless **`#username`** overrides.
+   * Name behind the username affordances; trimmed, and the mock user's display
+   * name stands in when empty. *Where* it shows — meta link before the tool
+   * icons, label on the closing user button, or user menu only — is the
+   * playground's **Username** setting, which starts from this prop: a name here
+   * means the meta link, **`''`** means the user menu only. **`#username`**
+   * replaces the meta-link slot regardless.
    */
   username?: string
   /** Stacked wordmark image URL (`#logo` replaces both lines). */
@@ -80,8 +90,28 @@ const props = withDefaults(defineProps<Props>(), {
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
 const trimmedUsername = computed(() => (props.username ?? '').trim())
-const showChromeUsernameLink = computed(() => trimmedUsername.value.length > 0)
 const isLoggedOut = computed(() => user.value === 'logged-out')
+
+/**
+ * Where the username surfaces, and whether the two Echo inboxes share a
+ * button. The starting placement follows the `username` prop: a surface that
+ * passes a name wants Vector's own meta link, one that passes `''` — Home
+ * leads the cluster in its place — starts with the name in the user menu only.
+ * Either way the playground can move it, and the param is written only when it
+ * differs from that starting point.
+ */
+const { usernamePlacement, mergeNotices } = useDesktopNavPlayground({
+  placement: trimmedUsername.value.length > 0 ? 'toolbar' : 'menu',
+  mergeNotices: false,
+})
+
+/** The prop names the account; the mock user's display name stands in when it doesn't. */
+const usernameText = computed(() => trimmedUsername.value || displayName.value)
+const showToolbarUsername = computed(
+  () => !isLoggedOut.value && usernamePlacement.value === 'toolbar',
+)
+/** Username as the label of the cluster's closing user button. */
+const showUsernameOnButton = computed(() => usernamePlacement.value === 'button')
 
 const desktopWordmarkSrc = computed(() => props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN)
 const desktopTaglineSrc = computed(() => props.taglineSrc ?? WIKIPEDIA_TAGLINE_EN)
@@ -93,6 +123,19 @@ const effectiveNavTools = computed(() =>
 function navHas(tool: ChromeNavTool): boolean {
   return effectiveNavTools.value.includes(tool)
 }
+
+/**
+ * Echo ships two inboxes — alerts (bell) and notices (tray). Merged, the bell
+ * stands in for both: notices drops out of the cluster and the bell's label
+ * names the pair, so nothing is silently lost to a screen reader.
+ */
+const showAlerts = computed(
+  () => navHas('notifications') || (mergeNotices.value && navHas('notices')),
+)
+const showNotices = computed(() => navHas('notices') && !mergeNotices.value)
+const alertsLabel = computed(() =>
+  mergeNotices.value && navHas('notices') ? 'Alerts and notices' : 'Notifications',
+)
 
 /**
  * Mocked Vector user menu. Items are inert affordances like the rest of the
@@ -245,12 +288,12 @@ watch(userMenuSelection, (value) => {
             </a>
           </div>
           <a
-            v-else-if="showChromeUsernameLink"
+            v-else-if="showToolbarUsername"
             class="vector-chrome-header__text-link vector-chrome-header__username-display"
             href="#"
             @click.prevent
           >
-            {{ trimmedUsername }}
+            {{ usernameText }}
           </a>
         </slot>
         <slot v-if="!isLoggedOut" name="nav">
@@ -271,10 +314,11 @@ watch(userMenuSelection, (value) => {
           <CdxButton v-if="navHas('appearance')" weight="quiet" aria-label="Appearance">
             <CdxIcon :icon="cdxIconAppearance" />
           </CdxButton>
-          <CdxButton v-if="navHas('notifications')" weight="quiet" aria-label="Notifications">
+          <!-- Merged, the bell speaks for both inboxes and the tray drops out. -->
+          <CdxButton v-if="showAlerts" weight="quiet" :aria-label="alertsLabel">
             <CdxIcon :icon="cdxIconBell" />
           </CdxButton>
-          <CdxButton v-if="navHas('notices')" weight="quiet" aria-label="Notices">
+          <CdxButton v-if="showNotices" weight="quiet" aria-label="Notices">
             <CdxIcon :icon="cdxIconTray" />
           </CdxButton>
           <CdxButton v-if="navHas('bookmarks')" weight="quiet" aria-label="Reading lists">
@@ -288,18 +332,31 @@ watch(userMenuSelection, (value) => {
           >
             <CdxIcon :icon="cdxIconWatchlist" />
           </CdxButton>
-          <CdxButton v-if="navHas('user')" weight="quiet" aria-label="User menu">
+          <!--
+            With the name on the button the visible label *is* the accessible
+            name, so the `aria-label` steps aside rather than talking over it.
+          -->
+          <CdxButton
+            v-if="navHas('user')"
+            class="vector-chrome-header__labelled-user"
+            :class="{ 'vector-chrome-header__labelled-user--on': showUsernameOnButton }"
+            weight="quiet"
+            :aria-label="showUsernameOnButton ? undefined : 'User menu'"
+          >
             <CdxIcon :icon="cdxIconUserAvatar" />
+            <span v-if="showUsernameOnButton">{{ usernameText }}</span>
           </CdxButton>
           <CdxMenuButton
             v-if="navHas('user-menu')"
             v-model:selected="userMenuSelection"
-            class="vector-chrome-header__user-menu"
+            class="vector-chrome-header__user-menu vector-chrome-header__labelled-user menu-content-width"
+            :class="{ 'vector-chrome-header__labelled-user--on': showUsernameOnButton }"
             weight="quiet"
-            aria-label="User menu"
+            :aria-label="showUsernameOnButton ? undefined : 'User menu'"
             :menu-items="userMenuItems"
           >
             <CdxIcon :icon="cdxIconUserAvatar" />
+            <span v-if="showUsernameOnButton">{{ usernameText }}</span>
             <CdxIcon
               class="vector-chrome-header__user-menu-chevron"
               :icon="cdxIconExpand"
@@ -322,41 +379,74 @@ watch(userMenuSelection, (value) => {
       render-in-place
     >
       <div class="vector-chrome-header__menu-panel">
-        <CdxField :is-fieldset="true">
-          <template #label>action</template>
-          <CdxRadio
-            v-for="value in HOME_ACTIONS"
-            :key="value"
-            v-model="homeAction"
-            :input-value="value"
-            name="home-action"
-            inline
-          >
-            {{ value }}
-          </CdxRadio>
-        </CdxField>
+        <section class="vector-chrome-header__menu-section">
+          <h2 class="vector-chrome-header__menu-section-title">Home button</h2>
 
-        <CdxField :is-fieldset="true">
-          <template #label>weight</template>
-          <CdxRadio
-            v-for="value in HOME_WEIGHTS"
-            :key="value"
-            v-model="homeWeight"
-            :input-value="value"
-            name="home-weight"
-            inline
-          >
-            {{ value }}
-          </CdxRadio>
-        </CdxField>
+          <CdxField :is-fieldset="true">
+            <template #label>Action</template>
+            <CdxRadio
+              v-for="value in HOME_ACTIONS"
+              :key="value"
+              v-model="homeAction"
+              :input-value="value"
+              name="home-action"
+              inline
+            >
+              {{ value }}
+            </CdxRadio>
+          </CdxField>
 
-        <CdxToggleSwitch v-model="homeIconOnly">Icon only</CdxToggleSwitch>
+          <CdxField :is-fieldset="true">
+            <template #label>Weight</template>
+            <CdxRadio
+              v-for="value in HOME_WEIGHTS"
+              :key="value"
+              v-model="homeWeight"
+              :input-value="value"
+              name="home-weight"
+              inline
+            >
+              {{ value }}
+            </CdxRadio>
+          </CdxField>
 
-        <CdxField class="vector-chrome-header__sticky-field" :is-fieldset="true">
-          <template #label>sticky header</template>
+          <CdxToggleSwitch v-model="homeIconOnly">Icon only</CdxToggleSwitch>
+        </section>
+
+        <!--
+          One name, one place: radios rather than a switch per position, so the
+          panel can't offer a state the toolbar has no way to render.
+        -->
+        <section class="vector-chrome-header__menu-section">
+          <h2 class="vector-chrome-header__menu-section-title">Username</h2>
+
+          <CdxField :is-fieldset="true">
+            <template #label>Placement</template>
+            <CdxRadio
+              v-for="value in USERNAME_PLACEMENTS"
+              :key="value"
+              v-model="usernamePlacement"
+              :input-value="value"
+              name="username-placement"
+            >
+              {{ USERNAME_PLACEMENT_LABELS[value] }}
+            </CdxRadio>
+          </CdxField>
+        </section>
+
+        <section class="vector-chrome-header__menu-section">
+          <h2 class="vector-chrome-header__menu-section-title">Alerts and notices</h2>
+
+          <!-- Which icon survives is in the section title: the alerts bell. -->
+          <CdxToggleSwitch v-model="mergeNotices">Merge into one button</CdxToggleSwitch>
+        </section>
+
+        <section class="vector-chrome-header__menu-section">
+          <h2 class="vector-chrome-header__menu-section-title">Sticky header</h2>
+
           <CdxToggleSwitch v-model="stickyShowHome">Home button</CdxToggleSwitch>
           <CdxToggleSwitch v-model="stickyLanguagesCountOnly">Languages count only</CdxToggleSwitch>
-        </CdxField>
+        </section>
       </div>
     </CdxPopover>
 
@@ -426,8 +516,39 @@ watch(userMenuSelection, (value) => {
 .vector-chrome-header__menu-panel {
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-150, 24px);
+  min-width: 18rem;
+}
+
+/* Grouped by what each knob changes in the bar: Home, the username, the two
+   inboxes, then the bar that replaces all of them once the page scrolls. */
+.vector-chrome-header__menu-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--spacing-100, 16px);
-  min-width: 17rem;
+}
+
+/* A rule between sections instead of yet more vertical space. */
+.vector-chrome-header__menu-section + .vector-chrome-header__menu-section {
+  border-top: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
+  padding-top: var(--spacing-150, 24px);
+}
+
+.vector-chrome-header__menu-section-title {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-medium, 1rem);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-base, #202122);
+}
+
+/* Fields are spaced by the section's flex gap, not Codex's own margin. */
+.vector-chrome-header__menu-panel :deep(.cdx-field) {
+  margin: 0;
 }
 
 /*
@@ -438,18 +559,6 @@ watch(userMenuSelection, (value) => {
  */
 .vector-chrome-header__menu-panel :deep(.cdx-toggle-switch) {
   align-self: flex-start;
-}
-
-/*
- * The radio fieldsets above want their inline rows, but two switches side by
- * side read as one control with a stray label — stack these instead. Scoped to
- * this fieldset so `action` / `weight` keep their rows.
- */
-.vector-chrome-header__sticky-field :deep(.cdx-field__control) {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-50, 8px);
 }
 
 .vector-chrome-header :slotted(.chrome-header__menu-btn) {
@@ -558,6 +667,20 @@ a.vector-chrome-header__text-link:hover {
  * which would clip the label. Three classes outrank it.
  */
 .vector-chrome-header__end .vector-chrome-header__home.cdx-button {
+  width: auto;
+  flex-shrink: 0;
+  gap: var(--spacing-25, 4px);
+  padding-inline: var(--spacing-50, 8px);
+  white-space: nowrap;
+}
+
+/*
+ * Carrying the username as a label, the user button sizes to its text and never
+ * squares off — the same exemption Home needs from the narrow-viewport rule
+ * below, and three classes outrank it.
+ */
+.vector-chrome-header__end .vector-chrome-header__labelled-user--on.cdx-button,
+.vector-chrome-header__end .vector-chrome-header__labelled-user--on :deep(.cdx-button) {
   width: auto;
   flex-shrink: 0;
   gap: var(--spacing-25, 4px);

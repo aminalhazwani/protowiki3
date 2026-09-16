@@ -1,16 +1,30 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
   CdxButton,
   CdxField,
   CdxIcon,
+  CdxMenu,
   CdxPopover,
   CdxRadio,
   CdxToggleSwitch,
 } from '@wikimedia/codex'
-import { cdxIconHome, cdxIconMenu } from '@wikimedia/codex-icons'
+import type { MenuItemData, MenuItemValue } from '@wikimedia/codex'
+import {
+  cdxIconBookmark,
+  cdxIconHome,
+  cdxIconLogOut,
+  cdxIconMenu,
+  cdxIconSandbox,
+  cdxIconUserAvatar,
+  cdxIconUserAvatarOutline,
+  cdxIconUserContributions,
+  cdxIconUserTalk,
+  cdxIconWatchlist,
+} from '@wikimedia/codex-icons'
 
+import { useConfig } from '@/composables/useConfig'
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
 import type { HeaderItem } from '@/components/header/headerItems'
 import {
@@ -30,10 +44,10 @@ const WIKIPEDIA_WORDMARK_EN =
 
 const MAX_FLANK_ITEMS = 4
 
+/** The avatar that opens the user menu is built in — see `useDefaultRight`. */
 const DEFAULT_RIGHT: HeaderItem[] = [
   { type: 'button', icon: 'search', label: 'Search' },
   { type: 'button', icon: 'bell-outline', label: 'Notifications' },
-  { type: 'button', icon: 'user-avatar-outline', label: 'User menu' },
 ]
 
 interface Props {
@@ -62,6 +76,66 @@ const wordmarkResolved = computed(
   () => props.mobileWordmarkSrc ?? props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN,
 )
 
+/**
+ * User menu. The real Minerva avatar opens a whole page; on a prototype phone
+ * screen the rows read better hanging off the bar, so the built-in avatar
+ * button (rendered whenever `right` is left to its default, the same way the
+ * hamburger is) toggles a Codex menu instead.
+ */
+const userMenuOpen = ref(false)
+const userMenu = ref<InstanceType<typeof CdxMenu> | null>(null)
+const userMenuTrigger = ref<InstanceType<typeof CdxButton> | null>(null)
+const userMenuSelection = ref<MenuItemValue | null>(null)
+
+const { displayName } = useConfig()
+
+const userMenuItems = computed((): MenuItemData[] => [
+  { value: 'user-page', label: displayName.value, icon: cdxIconUserAvatar },
+  { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
+  { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
+  { value: 'saved', label: 'Saved', icon: cdxIconBookmark },
+  { value: 'watchlist', label: 'Watchlist', icon: cdxIconWatchlist },
+  { value: 'contributions', label: 'Contributions', icon: cdxIconUserContributions },
+  { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
+])
+
+/** Mock rows: clear the pick so no row keeps the selected (blue) treatment. */
+watch(userMenuSelection, (value) => {
+  if (value !== null) userMenuSelection.value = null
+})
+
+/** Menu rows are `<li>`s, so arrow/Enter/Escape only work if the focused
+    trigger hands its keystrokes to the menu — what CdxMenuButton does too. */
+function onUserMenuKeydown(event: KeyboardEvent) {
+  if (event.key === ' ') return
+  userMenu.value?.delegateKeyNavigation(event)
+}
+
+function onDocumentPointerDown(event: PointerEvent) {
+  const target = event.target as Node | null
+  if (!target) return
+  if (userMenu.value?.getRootElement()?.contains(target)) return
+  if (userMenuTrigger.value?.$el?.contains(target)) return
+  userMenuOpen.value = false
+}
+
+/*
+ * Codex menu items swallow `mousedown`, so a tap on a row never blurs the
+ * trigger — which is why closing on an outside tap needs its own listener
+ * rather than the trigger's `blur` (Safari doesn't focus buttons on click).
+ */
+watch(userMenuOpen, (open) => {
+  if (open) {
+    document.addEventListener('pointerdown', onDocumentPointerDown)
+  } else {
+    document.removeEventListener('pointerdown', onDocumentPointerDown)
+  }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown)
+})
+
 function clampFlank(items: HeaderItem[], side: 'left' | 'right'): HeaderItem[] {
   if (items.length <= MAX_FLANK_ITEMS) return items
   if (import.meta.env.DEV) {
@@ -77,9 +151,11 @@ const effectiveMiddle = computed(() => props.middle ?? [])
 const useDefaultWordmark = computed(() => props.middle === undefined)
 /** No `left` given: render the built-in main-menu disclosure button. */
 const useDefaultLeft = computed(() => props.left === undefined)
+/** No `right` given: render the built-in avatar button and its user menu. */
+const useDefaultRight = computed(() => props.right === undefined)
 
 const hasLeft = computed(() => useDefaultLeft.value || effectiveLeft.value.length > 0)
-const hasRight = computed(() => effectiveRight.value.length > 0)
+const hasRight = computed(() => useDefaultRight.value || effectiveRight.value.length > 0)
 
 const showMiddle = computed(() => {
   if (!hasLeft.value || !hasRight.value) return false
@@ -269,6 +345,34 @@ const homeShowLabel = computed({
             />
           </CdxButton>
         </template>
+        <CdxButton
+          v-if="useDefaultRight"
+          ref="userMenuTrigger"
+          weight="quiet"
+          size="large"
+          aria-label="User menu"
+          aria-haspopup="menu"
+          :aria-expanded="userMenuOpen"
+          @click="userMenuOpen = !userMenuOpen"
+          @keydown="onUserMenuKeydown"
+        >
+          <CdxIcon :icon="cdxIconUserAvatarOutline" size="medium" />
+        </CdxButton>
+        <!--
+          Inside the end cluster so the menu hangs 4px under the avatar rather
+          than under the whole bar. It's absolutely positioned, so it never
+          becomes a flex item in the row.
+        -->
+        <CdxMenu
+          v-if="useDefaultRight"
+          ref="userMenu"
+          v-model:selected="userMenuSelection"
+          v-model:expanded="userMenuOpen"
+          class="minerva-chrome-header__user-menu"
+          :menu-items="userMenuItems"
+          role="menu"
+          aria-label="User menu"
+        />
       </div>
     </nav>
 
@@ -411,6 +515,8 @@ const homeShowLabel = computed({
   display: flex;
   flex-shrink: 0;
   align-items: center;
+  /* Positioning context for the user menu, which hangs off the avatar. */
+  position: relative;
   margin-inline-start: auto;
 }
 
@@ -505,5 +611,52 @@ const homeShowLabel = computed({
  */
 .minerva-chrome-header__menu-panel :deep(.cdx-toggle-switch) {
   align-self: flex-start;
+}
+</style>
+
+<!--
+  CdxMenu's root element doesn't pick up the scope attribute, so these rules
+  can't live in the scoped block above. The class is component-specific, so the
+  reach is the same in practice.
+-->
+<style>
+/*
+ * 4px under the avatar's own bottom edge — `top: 100%` is the end cluster,
+ * whose height is the 40px button row. CdxMenu places itself at `left: 0` and
+ * the full width of that cluster, so both are replaced; `inset-inline-end`
+ * keeps it flush with the avatar and mirrors to the left in RTL chrome.
+ */
+.minerva-chrome-header__user-menu.cdx-menu {
+  top: 100%;
+  left: auto;
+  inset-inline-end: 0;
+  width: max-content;
+  min-width: 13rem;
+  max-width: calc(100vw - var(--spacing-100, 16px) * 2);
+  margin-top: var(--spacing-25, 4px);
+}
+
+/* Thumb-sized rows (44px), against Codex's denser 38px default. */
+.minerva-chrome-header__user-menu .cdx-menu-item {
+  padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
+}
+
+/*
+ * The mobile user menu is drawn in one subtle grey — the same `color-subtle`
+ * as the bar's icons — rather than Codex's `color-base` rows, and its labels
+ * carry the emphasis instead of the colour.
+ */
+.minerva-chrome-header__user-menu .cdx-menu-item--enabled,
+.minerva-chrome-header__user-menu .cdx-menu-item--enabled .cdx-menu-item__content {
+  color: var(--color-subtle, #54595d);
+}
+
+.minerva-chrome-header__user-menu .cdx-menu-item__icon.cdx-icon {
+  margin-inline-end: var(--spacing-75, 12px);
+  color: var(--color-subtle, #54595d);
+}
+
+.minerva-chrome-header__user-menu .cdx-menu-item__text__label {
+  font-weight: var(--font-weight-semi-bold, 600);
 }
 </style>

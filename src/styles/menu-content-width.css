@@ -1,0 +1,35 @@
+/*
+ * Menus that size to their widest row
+ * -----------------------------------
+ *
+ * Opt-in utility: add `menu-content-width` to a `CdxMenuButton` (or to the
+ * element wrapping a bare `CdxMenu`) and its menu sizes to its longest item
+ * instead of to the control that opens it.
+ *
+ * Why this needs `!important`: `CdxMenuButton` positions its menu with
+ * Floating UI's `size` middleware, which writes a pixel `width` **inline** on
+ * every reposition — the space available beside the trigger, which Codex then
+ * clamps to `8rem`–`16rem`. Nothing in a stylesheet outranks an inline style,
+ * so overriding the width is the one place in this repo where `!important`
+ * earns its keep.
+ *
+ * Safe at the right edge: Floating UI measures the rendered menu, so it sees
+ * the content width and flips a `bottom-start` menu to `bottom-end` when the
+ * wider box would overflow — a menu opened from the end of the toolbar grows
+ * leftwards instead of off-screen. Losing the inline width therefore costs
+ * nothing; the flip was already doing the real work.
+ */
+.menu-content-width .cdx-menu {
+  /* Runaway guard only — roomier than Codex's 16rem, so the longest row
+     normally wins outright and only pathological labels ever truncate. */
+  width: max-content !important;
+  max-width: 22rem;
+}
+
+/*
+ * A scrolling menu (Codex `visibleItemLimit`) would otherwise lay its
+ * scrollbar over the text that `max-content` sized the box around.
+ */
+.menu-content-width .cdx-menu__listbox {
+  scrollbar-gutter: stable;
+}

@@ -12,7 +12,7 @@ or **`MinervaChromeHeader`** (mobile skin) based on effective skin:
 
 | Skin | Component | Chrome feel | Notes |
 | --- | --- | --- | --- |
-| `desktop` | **`VectorChromeHeader`** | **Vector 2022–style** | Wordmark/tagline (**`wordmarkSrc`**, **`taglineSrc`**, **`#logo`**), **`Search`** + **Search** button, username link (**`username`** + **`#username`**), user-tool cluster (**`navTools`** vs **`#nav`**). Main-menu glyph is icon-only (mock). Global skin stays **desktop** until viewport **≤640px**; below **1120px** inline search collapses to a search icon; below **768px** watchlist hides. |
+| `desktop` | **`VectorChromeHeader`** | **Vector 2022–style** | Wordmark/tagline (**`wordmarkSrc`**, **`taglineSrc`**, **`#logo`**), **`Search`** + **Search** button, username affordances (**`username`** + **`#username`**, placed by the [playground](#desktop-nav-playground)), user-tool cluster (**`navTools`** vs **`#nav`**). Main-menu glyph is icon-only (mock). Global skin stays **desktop** until viewport **≤640px**; below **1120px** inline search collapses to a search icon; below **768px** watchlist hides. |
 | `mobile` | **`MinervaChromeHeader`** | **Minerva-style** | Grey elevated bar: menu · wordmark · search + notifications + user — prop-driven **`left`** / **`middle`** / **`right`** item arrays. **`navTools`** is ignored. |
 
 **`ChromeFooter`** matches the skin:
@@ -37,7 +37,7 @@ Public skin-aware delegator — import directly or use via **`ChromeWrapper`'s**
 | --- | --- | --- | --- |
 | `skin` | `'desktop' \| 'mobile'` | `undefined` | Local skin override; falls back to global `useSkin()` |
 | `theme` | `'light' \| 'dark'` | `undefined` | Local theme override; falls back to global `useTheme()` |
-| `username` | `string` | `'Username'` | **Desktop:** Meta link mock before tool icons; trimmed; **`''`** hides unless **`#username`** overrides |
+| `username` | `string` | mock user display name | **Desktop:** the name behind the username affordances; trimmed, display name substituted when empty. **`''`** starts it in the user menu only, a name starts it as the meta link — the [playground](#desktop-nav-playground) moves it either way. **`#username`** replaces the meta-link slot |
 | `wordmarkSrc` | `string` | EN CDN SVG | Desktop wordmark **`#logo`** (+ Minerva fallback when **`mobileWordmarkSrc`** omitted) |
 | `taglineSrc` | `string` | EN CDN SVG | Desktop tagline **`#logo`** stack |
 | `mobileWordmarkSrc` | `string` | **`wordmarkSrc`** then EN CDN | Minerva bar wordmark when **`middle`** is omitted |
@@ -60,7 +60,7 @@ Desktop **inline search** is always **`<Search />`** inside **`VectorChromeHeade
 | --- | --- | --- | --- |
 | `#menu` | both | menu button / icon | Replace main-menu control (**`ChromeWrapper`** forwards this) |
 | `#logo` | both | EN Wikipedia wordmark (+ tagline on desktop) | Replace wordmark / lockup |
-| `#username` | desktop | Anchor from **`username`** | Replace markup before tool icons |
+| `#username` | desktop | Anchor from **`username`** (when the playground places it in the toolbar) | Replace markup before tool icons |
 | `#nav` | desktop | Vector tool icons | Replace user-tool cluster (**`navTools`** ignored) |
 
 ### Example
@@ -87,6 +87,24 @@ Props: **`theme?`**, **`username?`**, **`wordmarkSrc?`**, **`taglineSrc?`**, **`
 
 Slots: **`#menu`**, **`#logo`**, **`#username`**, **`#nav`**
 
+### Desktop nav playground
+
+The main-menu popover groups its knobs by what each changes in the bar —
+**Home button**, **Username**, **Alerts and notices**, **Sticky header**. Like
+the Home controls, each round-trips through the URL, and writes its param only
+when it differs from the surface's own starting point, so links stay clean.
+
+`src/components/chrome/desktopNavPlayground.ts` owns the two cluster settings:
+
+| Control | Param | Effect |
+| --- | --- | --- |
+| **Username → Placement** | `?usernameIn=menu\|toolbar\|button` | Where the logged-in name shows: **Inside the user menu** (the menu's first row only), **In the toolbar** (Vector's meta link, before the tool icons), or **As the menu button label** (beside the avatar on the button that closes the cluster — which then drops its `aria-label`, so the visible name *is* the accessible name). One name, one place, so these are **radios**, not a switch per position. The starting value follows the **`username`** prop: a name → `toolbar`, **`''`** → `menu`. |
+| **Alerts and notices → Merge into one button** | `?mergeNotices=1` | Echo's two inboxes share the alerts bell: the notices tray drops out of the cluster and the bell's label becomes **“Alerts and notices”**, so nothing is lost to a screen reader. Needs **`notifications`** / **`notices`** in **`navTools`** to have anything to merge. |
+
+The name itself comes from the **`username`** prop, or the mock user's display
+name when that prop is empty — so the toolbar link and the button label always
+read the same.
+
 ### Sticky header
 
 Every desktop chrome page gets Vector 2022's condensed sticky bar — no prop, no
@@ -104,8 +122,8 @@ content and stays until the page is back near the top.
   the site nav becomes the trigger and the bar reduces to search plus the user
   menu. Page-scoped tools would have nothing to act on.
 
-Two knobs sit in the main-menu playground under **sticky header**, both
-round-tripping through the URL like the Home button controls
+Two knobs sit in the main-menu playground under **Sticky header**, both
+round-tripping through the URL like the rest
 (`src/components/chrome/stickyHeaderPlayground.ts`):
 
 | Toggle | Param | Effect |
@@ -136,6 +154,35 @@ UI language on pick. The trigger itself is
 `prefers-reduced-motion`, and the parked bar is `inert` so it never catches a
 Tab.
 
+### Menus that size to their content
+
+Codex positions a **`CdxMenuButton`**'s menu with Floating UI, which writes an
+inline pixel `width` — the space available beside the trigger, clamped to
+**`8rem`**–**`16rem`**. So an icon-only trigger gets a 16rem menu and a labelled
+one gets a menu as narrow as its label, either way sized by the *button* rather
+than by the rows inside it.
+
+`src/styles/menu-content-width.css` (loaded in `main.ts`) is the opt-in fix: add
+**`menu-content-width`** alongside the component's own class and the menu sizes
+to its widest row instead, capped at **`22rem`** as a runaway guard.
+
+```vue
+<CdxMenuButton class="my-header__user-menu menu-content-width" :menu-items="items">
+```
+
+It's `!important` on `width`, because nothing in a stylesheet outranks an inline
+style — the one place in this repo where that's the right tool. Nothing breaks at
+the right edge: Floating UI measures the *rendered* menu, so it sees the content
+width and flips a `bottom-start` menu to `bottom-end` when the wider box would
+overflow, which is what already kept the icon-only user menu on screen. The rule
+also reserves the scrollbar gutter, so a scrolling menu (Codex
+**`visibleItemLimit`**) doesn't lay its scrollbar over the text it just sized
+itself around.
+
+Already applied to the desktop user menu (**`VectorChromeHeader`**), both sticky
+bar menus (**`VectorStickyHeader`**), and the interlanguage menu on both skins
+(**`ArticleHeader`**).
+
 ## MinervaChromeHeader
 
 Force mobile Minerva bar regardless of global skin. Prop-driven **`left`** / **`middle`** / **`right`** item arrays — same shape as **`AppChromeHeader`**. No slots.
@@ -149,11 +196,28 @@ import type { MinervaHeaderItem } from '@/components/chrome/MinervaChromeHeader.
 | --- | --- |
 | `left` | menu button |
 | `middle` | Wikipedia wordmark (`RouterLink` + `<img>`) when **`middle`** omitted |
-| `right` | search, notifications, user avatar buttons |
+| `right` | search, notifications, then the built-in user avatar + [user menu](#minerva-user-menu) |
 
 Adjacent icon buttons/links in **`left`** and **`right`** have **no gap** between them (flush groups).
 
 Props: **`theme?`**, **`left?`**, **`middle?`**, **`right?`**, **`wordmarkSrc?`**, **`mobileWordmarkSrc?`**
+
+<h3 id="minerva-user-menu">Minerva user menu</h3>
+
+Leave **`right`** alone and the avatar at the end of the bar opens a **`CdxMenu`**
+hanging off the bar's trailing corner — user page (the name comes from the
+**`user`** config preset, so `NewEditor` by default), Talk, Sandbox, Saved,
+Watchlist, Contributions, Log out. Rows are mocks: picking one just closes the
+menu. It closes on an outside tap or **Escape**, and the focused avatar hands
+arrow/Enter keys to the menu.
+
+Local styles only reach for what Minerva does differently from a default Codex
+menu: 44px rows, **`color-subtle`** icons _and_ labels, and
+**`font-weight-semi-bold`** labels. They live in an **unscoped** `<style>` block
+because **`CdxMenu`**'s root element never picks up the scope attribute.
+
+Passing your own **`right`** replaces the whole cluster — avatar and menu
+included — so a custom end cluster owns its own affordances.
 
 ## ChromeFooter
 

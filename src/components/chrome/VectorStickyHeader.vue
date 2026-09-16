@@ -179,7 +179,7 @@ watch(userMenuSelection, (value) => {
       <CdxMenuButton
         v-if="hasSubject"
         v-model:selected="langSelection"
-        class="vector-sticky-header__languages"
+        class="vector-sticky-header__languages menu-content-width"
         weight="quiet"
         :aria-label="languagesLabel"
         :menu-items="languageMenuItems"
@@ -193,7 +193,7 @@ watch(userMenuSelection, (value) => {
       <CdxMenuButton
         v-if="!isLoggedOut"
         v-model:selected="userMenuSelection"
-        class="vector-sticky-header__user-menu"
+        class="vector-sticky-header__user-menu menu-content-width"
         weight="quiet"
         aria-label="User menu"
         :menu-items="userMenuItems"

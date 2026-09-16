@@ -114,7 +114,7 @@ onBeforeUnmount(() => clearStickyHeaderSubject(subjectToken))
       <div v-if="effectiveSkin === 'desktop'" class="article-header__lang-anchor">
         <CdxMenuButton
           v-model:selected="langSelection"
-          class="article-header__languages"
+          class="article-header__languages menu-content-width"
           weight="quiet"
           action="progressive"
           :menu-items="languageMenuItems"
@@ -188,7 +188,7 @@ onBeforeUnmount(() => clearStickyHeaderSubject(subjectToken))
     >
       <CdxMenuButton
         v-model:selected="langSelection"
-        class="article-header__languages article-header__lang-tool"
+        class="article-header__languages article-header__lang-tool menu-content-width"
         weight="quiet"
         :menu-items="languageMenuItems"
         :menu-config="{ visibleItemLimit: 8 }"
