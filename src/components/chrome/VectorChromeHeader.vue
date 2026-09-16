@@ -113,7 +113,15 @@ const showToolbarUsername = computed(
   () => !isLoggedOut.value && usernamePlacement.value === 'toolbar',
 )
 /** Username as the label of the cluster's closing user button. */
-const showUsernameOnButton = computed(() => usernamePlacement.value === 'button')
+const showUsernameOnButton = computed(
+  () => usernamePlacement.value === 'button' || usernamePlacement.value === 'button-bare',
+)
+/**
+ * The labelled button keeps its avatar by default; `button-bare` drops it, so
+ * the name and the disclosure chevron are all that's left. Codex sizes the
+ * button from its slot either way, and the label is still the accessible name.
+ */
+const showUserButtonAvatar = computed(() => usernamePlacement.value !== 'button-bare')
 
 const desktopWordmarkSrc = computed(() => props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN)
 const desktopTaglineSrc = computed(() => props.taglineSrc ?? WIKIPEDIA_TAGLINE_EN)
@@ -140,12 +148,19 @@ const alertsLabel = computed(() =>
 )
 
 /**
+ * Vector's menu opens on the name, the way the real one does — it *is* the link
+ * to the user page. With the name already on the button that opened the menu,
+ * the row would just repeat it, so it names the destination instead.
+ */
+const userPageLabel = computed(() => (showUsernameOnButton.value ? 'User page' : displayName.value))
+
+/**
  * Mocked Vector user menu. Items are inert affordances like the rest of the
  * chrome — selecting one closes the menu and clears the selection so no entry
  * renders a persistent checkmark.
  */
 const userMenuItems = computed((): MenuButtonItemData[] => [
-  { value: 'user-page', label: displayName.value, icon: cdxIconUserAvatar },
+  { value: 'user-page', label: userPageLabel.value, icon: cdxIconUserAvatar },
   { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
   { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
   { value: 'preferences', label: 'Preferences', icon: cdxIconSettings },
@@ -352,7 +367,7 @@ watch(userMenuSelection, (value) => {
             weight="quiet"
             :aria-label="showUsernameOnButton ? undefined : 'User menu'"
           >
-            <CdxIcon :icon="cdxIconUserAvatar" />
+            <CdxIcon v-if="showUserButtonAvatar" :icon="cdxIconUserAvatar" />
             <span v-if="showUsernameOnButton">{{ usernameText }}</span>
           </CdxButton>
           <CdxMenuButton
@@ -364,7 +379,7 @@ watch(userMenuSelection, (value) => {
             :aria-label="showUsernameOnButton ? undefined : 'User menu'"
             :menu-items="userMenuItems"
           >
-            <CdxIcon :icon="cdxIconUserAvatar" />
+            <CdxIcon v-if="showUserButtonAvatar" :icon="cdxIconUserAvatar" />
             <span v-if="showUsernameOnButton">{{ usernameText }}</span>
             <CdxIcon
               class="vector-chrome-header__user-menu-chevron"

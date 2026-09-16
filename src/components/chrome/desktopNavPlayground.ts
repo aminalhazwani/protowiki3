@@ -24,8 +24,11 @@ import {
  * - `menu` — nowhere in the bar; only as the first row of the user menu.
  * - `toolbar` — Vector's own meta link, just before the tool icons.
  * - `button` — the label of the user-menu button that closes the cluster.
+ * - `button-bare` — the same label, with the avatar icon dropped: the name and
+ *   the chevron alone. The name already says whose menu it is, so the avatar is
+ *   the one thing in the cluster that repeats itself.
  */
-export const USERNAME_PLACEMENTS = ['menu', 'toolbar', 'button'] as const
+export const USERNAME_PLACEMENTS = ['menu', 'toolbar', 'button', 'button-bare'] as const
 
 export type UsernamePlacement = (typeof USERNAME_PLACEMENTS)[number]
 
@@ -34,6 +37,7 @@ export const USERNAME_PLACEMENT_LABELS: Record<UsernamePlacement, string> = {
   menu: 'Inside the user menu',
   toolbar: 'In the toolbar',
   button: 'As the menu button label',
+  'button-bare': 'As the menu button label (w/o icon)',
 }
 
 /** Per-surface starting point — what the cluster looks like with a bare URL. */
