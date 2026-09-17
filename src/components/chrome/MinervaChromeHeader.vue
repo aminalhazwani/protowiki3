@@ -413,9 +413,19 @@ const homeShowLabel = computed({
       the thumb's shortest reach, and it's the button that comes and goes.
     -->
     <div class="minerva-chrome-header__fabs">
+      <!--
+        `cdx-button--icon-only` is set by hand because Codex reads its own off
+        the slot: one child, and that child an icon. The count badge wraps the
+        icon in a positioning layer, which the detection misses — and both the
+        square 44px FAB and the `--round` circle key off that class. The help
+        FAB below carries a bare icon, so Codex still sets it there.
+      -->
       <CdxButton
         class="minerva-chrome-header__fab"
-        :class="{ 'minerva-chrome-header__fab--round': homeRound }"
+        :class="{
+          'minerva-chrome-header__fab--round': homeRound,
+          'cdx-button--icon-only': homeIconOnly,
+        }"
         :action="homeAction"
         :weight="homeWeight"
         :size="homeSize"

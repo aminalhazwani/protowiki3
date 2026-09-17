@@ -334,10 +334,17 @@ watch(userMenuSelection, (value) => {
           </a>
         </slot>
         <slot v-if="!isLoggedOut" name="nav">
+          <!--
+            `cdx-button--icon-only` is set by hand because Codex reads its own
+            off the slot: one child, and that child an icon. The count badge
+            wraps the icon in a positioning layer, which the detection misses —
+            and without the modifier the button takes text padding instead of
+            squaring off. It's the class Codex would have set itself.
+          -->
           <CdxButton
             v-if="navHas('home')"
             class="vector-chrome-header__home"
-            :class="{ 'vector-chrome-header__home--icon-only': homeIconOnly }"
+            :class="{ 'cdx-button--icon-only': homeIconOnly }"
             :weight="homeWeight"
             :action="homeAction"
             :aria-label="homeAriaLabel"

@@ -157,6 +157,7 @@ watch(userMenuSelection, (value) => {
       <CdxButton
         v-if="props.showHome && !isLoggedOut"
         class="vector-sticky-header__home"
+        :class="{ 'cdx-button--icon-only': props.homeIconOnly }"
         :weight="props.homeWeight"
         :action="props.homeAction"
         :aria-label="homeAriaLabel"
