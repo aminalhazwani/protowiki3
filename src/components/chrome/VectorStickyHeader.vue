@@ -162,18 +162,26 @@ watch(userMenuSelection, (value) => {
         :action="props.homeAction"
         :aria-label="homeAriaLabel"
       >
-        <!-- Echo's counter, pinned to the icon — see `chrome-count-badge.css`. -->
-        <span
-          class="chrome-count-badge"
-          :class="{ 'chrome-count-badge--counted': props.homeCount }"
-        >
+        <!--
+          Echo's counter, hung off the bottom-trailing corner of whatever the
+          button shows — the icon while it's bare, the label once there is one.
+          See `chrome-count-badge.css`.
+        -->
+        <span class="chrome-count-badge">
           <CdxIcon :icon="cdxIconHome" />
-          <span v-if="props.homeCount" class="chrome-count-badge__count" aria-hidden="true">
+          <span
+            v-if="props.homeCount && props.homeIconOnly"
+            class="chrome-count-badge__count"
+            aria-hidden="true"
+          >
             {{ HOME_BUTTON_COUNT }}
           </span>
         </span>
-        <span v-if="!props.homeIconOnly" :lang="uiLanguageTag" dir="auto">
-          {{ homeButtonLabel }}
+        <span v-if="!props.homeIconOnly" class="chrome-count-badge">
+          <span :lang="uiLanguageTag" dir="auto">{{ homeButtonLabel }}</span>
+          <span v-if="props.homeCount" class="chrome-count-badge__count" aria-hidden="true">
+            {{ HOME_BUTTON_COUNT }}
+          </span>
         </span>
       </CdxButton>
 

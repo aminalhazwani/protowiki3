@@ -8,22 +8,34 @@
  * (`.mw-echo-notifications-badge`); here the number is a real element, so a
  * Vue-rendered count needs no data attribute — everything else is the same
  * box: 1px inverted border, `color-placeholder` fill, inverted bold text, and
- * the same `left: 55% / top: 43%` overlap of the icon it counts.
+ * the same overlap of the thing it counts.
  *
  * Global rather than scoped: three chrome surfaces render it (the Minerva
  * floating Home, Vector's end cluster, the desktop sticky bar), and a badge
  * fixed in one should not need re-fixing in the other two. Colours come from
  * tokens rather than production's hex values, so it inverts with dark mode.
  *
- * Wrap the icon and the count together:
+ * What it counts is whatever the wrapper holds — the icon on a bare button, the
+ * label on one that says something — and the badge hangs off that anchor's
+ * bottom-trailing corner either way, so the overlap looks the same in both:
  *
- *   <span class="chrome-count-badge" :class="{ 'chrome-count-badge--counted': count }">
+ *   <span class="chrome-count-badge">
  *     <CdxIcon :icon="cdxIconHome" />
- *     <span v-if="count" class="chrome-count-badge__count" aria-hidden="true">1</span>
+ *     <span class="chrome-count-badge__count" aria-hidden="true">1</span>
  *   </span>
  *
- * The count is `aria-hidden` because it reads as a bare number out of context;
- * the button carries it in its `aria-label` instead.
+ *   <span class="chrome-count-badge">
+ *     <span>Home</span>
+ *     <span class="chrome-count-badge__count" aria-hidden="true">1</span>
+ *   </span>
+ *
+ * Out of flow, so it never widens the button: an icon-only button stays square
+ * and a labelled one keeps the width it has without a count. It also stays
+ * inside the button, which `.cdx-button` needs — that sets `overflow: hidden`,
+ * so a badge hung off the button's own corner would be clipped.
+ *
+ * The count is `aria-hidden` either way, because it reads as a bare number out
+ * of context; the button carries it in its `aria-label` instead.
  */
 .chrome-count-badge {
   position: relative;
@@ -31,22 +43,18 @@
   align-items: center;
 }
 
-/*
- * The badge overhangs the icon's trailing edge, so a button that also shows a
- * label has to give that room back — otherwise the label starts underneath the
- * number. Icon-only buttons skip it: there the wrapper is the button's only
- * child, and a trailing margin would push the icon off centre.
- */
-.chrome-count-badge--counted:not(:only-child) {
-  margin-inline-end: var(--spacing-50, 8px);
-}
-
 .chrome-count-badge__count {
   position: absolute;
-  /* Production's own offsets: the badge hangs off the icon's lower-trailing
-     corner. `inset-inline-start` so it mirrors in RTL chrome. */
-  inset-inline-start: 55%;
-  top: 43%;
+  /*
+   * Production positions the badge inside the icon's box — `left: 55% / top:
+   * 43%` — which on a 20px icon leaves 5.84px of it past the trailing edge and
+   * 4.6px below. Anchoring to the corner instead of the box keeps exactly that
+   * overhang whatever the anchor's size, so the label wears the badge the way
+   * the icon does; `inset-inline-end` mirrors it in RTL chrome, and a
+   * two-digit count grows inwards rather than further out.
+   */
+  inset-inline-end: -5.84px;
+  bottom: -4.6px;
   box-sizing: border-box;
   border: var(--border-width-base, 1px) solid var(--border-color-inverted, #fff);
   border-radius: var(--border-radius-base, 2px);
