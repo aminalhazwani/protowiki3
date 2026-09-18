@@ -138,6 +138,11 @@ export function wikiBaseUrlFromLang(lang: string): string {
   return `https://${wikiHostFromLang(lang)}/`
 }
 
+/** Reader URL for a page title — `Wet Leg` → `https://en.wikipedia.org/wiki/Wet_Leg`. */
+export function wikiArticleUrl(lang: string, title: string): string {
+  return `${wikiBaseUrlFromLang(lang)}wiki/${encodeURIComponent(title.trim().replace(/ /g, '_'))}`
+}
+
 export function langForUser(
   user: ConfigUser,
   userPageLists: Record<ConfigUser, UserPageLists>,
@@ -225,7 +230,7 @@ export function isConfigWebSkin(value: unknown): value is ConfigWebSkin {
   return typeof value === 'string' && VALID_WEB_SKINS.includes(value as ConfigWebSkin)
 }
 
-function isConfigUser(value: unknown): value is ConfigUser {
+export function isConfigUser(value: unknown): value is ConfigUser {
   return typeof value === 'string' && VALID_USERS.includes(value as ConfigUser)
 }
 

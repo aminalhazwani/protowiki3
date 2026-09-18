@@ -16,7 +16,7 @@ interface Props {
   skin?: Skin
   /** Local theme override. Sets `data-theme` on the root. */
   theme?: Theme
-  /** Desktop chrome: Meta link mock before tool icons; trim; empty hides unless **`#username`** overrides. */
+  /** Desktop chrome: name behind the username affordances; trim; **`''`** starts it in the user menu only (playground moves it). */
   username?: string
   /** Desktop stacked wordmark image URL (`#logo` replaces both lines). */
   wordmarkSrc?: string

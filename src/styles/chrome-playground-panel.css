@@ -1,0 +1,61 @@
+/*
+ * Chrome playground panels
+ * ------------------------
+ *
+ * The knob panels behind the Vector and Minerva header playground buttons are
+ * the same object — a column of titled sections, fields above switches — so
+ * they share one stylesheet instead of a copy each: the two playgrounds have to
+ * read alike, and a rule fixed in one should not need re-fixing in the other.
+ *
+ * Global rather than scoped because the Codex overrides below would otherwise
+ * need `:deep()` in every component that opens such a panel. Each header still
+ * sets its own panel width, which is the one thing that differs.
+ */
+.chrome-playground-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-100, 16px);
+}
+
+/* Knobs grouped by what they change in the chrome: tighter spacing inside a
+   section than between two of them. */
+.chrome-playground-panel__section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-50, 8px);
+}
+
+/* A rule between sections instead of yet more vertical space. */
+.chrome-playground-panel__section + .chrome-playground-panel__section {
+  border-top: var(--border-width-base, 1px) solid var(--border-color-subtle, #c8ccd1);
+  padding-top: var(--spacing-100, 16px);
+}
+
+.chrome-playground-panel__section-title {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-medium, 1rem);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: var(--line-height-small, 1.375);
+  color: var(--color-base, #202122);
+}
+
+/* Fields are spaced by the section's flex gap, not Codex's own margin. */
+.chrome-playground-panel .cdx-field {
+  margin: 0;
+}
+
+/*
+ * CdxToggleSwitch anchors its invisible <input> — the actual control — to the
+ * component's right edge. A stretched column (flex's default `align-items:
+ * stretch`) therefore drags the input away from the visible switch, leaving
+ * only the label clickable. Shrink-wrap it so the two stay aligned, and drop
+ * Codex's own 6px so stacked switches sit on the section's gap like the fields.
+ */
+.chrome-playground-panel .cdx-toggle-switch {
+  align-self: flex-start;
+  margin: 0;
+}

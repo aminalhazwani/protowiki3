@@ -1,24 +1,63 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import {
+  CdxButton,
+  CdxField,
+  CdxIcon,
+  CdxMenuButton,
+  CdxPopover,
+  CdxRadio,
+  CdxToggleSwitch,
+} from '@wikimedia/codex'
+import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconAppearance,
   cdxIconBell,
+  cdxIconBookmarkList,
+  cdxIconExpand,
+  cdxIconHelp,
+  cdxIconHome,
+  cdxIconImageGallery,
+  cdxIconLabFlask,
+  cdxIconLanguage,
+  cdxIconLogOut,
   cdxIconMenu,
+  cdxIconSandbox,
   cdxIconSearch,
+  cdxIconSettings,
   cdxIconTray,
   cdxIconUserAvatar,
+  cdxIconUserContributions,
+  cdxIconUserTalk,
   cdxIconWatchlist,
 } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
+import { useScrolledPast } from '@/composables/useScrolledPast'
 import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
+import { stickyHeaderSentinel } from './stickyHeaderSubject'
+import VectorStickyHeader from './VectorStickyHeader.vue'
+import {
+  HOME_ACTIONS,
+  HOME_BUTTON_COUNT,
+  HOME_WEIGHTS,
+  homeButtonAriaLabel,
+  useHomeButtonPlayground,
+} from './homeButtonPlayground'
+import { HELP_BUTTON_LABEL, helpButtonVisible } from './helpButton'
+import {
+  USERNAME_PLACEMENT_LABELS,
+  USERNAME_PLACEMENTS,
+  useDesktopNavPlayground,
+} from './desktopNavPlayground'
+import { useStickyHeaderPlayground } from './stickyHeaderPlayground'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
+import { homeButtonLabel, uiLanguageTag } from '@/uiLanguage'
 import Search from '../Search.vue'
 
-const { user } = useConfig()
+const { user, displayName } = useConfig()
 
 /** Fallback EN CDN SVGs — override via **`wordmarkSrc`** / **`taglineSrc`**. */
 const WIKIPEDIA_WORDMARK_EN =
@@ -30,7 +69,12 @@ interface Props {
   /** Local theme override. Sets `data-theme` on the root. */
   theme?: Theme
   /**
-   * Meta link mock before tool icons; trim; empty hides unless **`#username`** overrides.
+   * Name behind the username affordances; trimmed, and the mock user's display
+   * name stands in when empty. *Where* it shows — meta link before the tool
+   * icons, label on the closing user button, or user menu only — is the
+   * playground's **Username** setting, which starts from this prop: a name here
+   * means the meta link, **`''`** means the user menu only. **`#username`**
+   * replaces the meta-link slot regardless.
    */
   username?: string
   /** Stacked wordmark image URL (`#logo` replaces both lines). */
@@ -54,8 +98,36 @@ const props = withDefaults(defineProps<Props>(), {
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
 const trimmedUsername = computed(() => (props.username ?? '').trim())
-const showChromeUsernameLink = computed(() => trimmedUsername.value.length > 0)
 const isLoggedOut = computed(() => user.value === 'logged-out')
+
+/**
+ * Where the username surfaces, and whether the two Echo inboxes share a
+ * button. The starting placement follows the `username` prop: a surface that
+ * passes a name wants Vector's own meta link, one that passes `''` — Home
+ * leads the cluster in its place — starts with the name in the user menu only.
+ * Either way the playground can move it, and the param is written only when it
+ * differs from that starting point.
+ */
+const { usernamePlacement, mergeNotices } = useDesktopNavPlayground({
+  placement: trimmedUsername.value.length > 0 ? 'toolbar' : 'menu',
+  mergeNotices: false,
+})
+
+/** The prop names the account; the mock user's display name stands in when it doesn't. */
+const usernameText = computed(() => trimmedUsername.value || displayName.value)
+const showToolbarUsername = computed(
+  () => !isLoggedOut.value && usernamePlacement.value === 'toolbar',
+)
+/** Username as the label of the cluster's closing user button. */
+const showUsernameOnButton = computed(
+  () => usernamePlacement.value === 'button' || usernamePlacement.value === 'button-bare',
+)
+/**
+ * The labelled button keeps its avatar by default; `button-bare` drops it, so
+ * the name and the disclosure chevron are all that's left. Codex sizes the
+ * button from its slot either way, and the label is still the accessible name.
+ */
+const showUserButtonAvatar = computed(() => usernamePlacement.value !== 'button-bare')
 
 const desktopWordmarkSrc = computed(() => props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN)
 const desktopTaglineSrc = computed(() => props.taglineSrc ?? WIKIPEDIA_TAGLINE_EN)
@@ -67,20 +139,116 @@ const effectiveNavTools = computed(() =>
 function navHas(tool: ChromeNavTool): boolean {
   return effectiveNavTools.value.includes(tool)
 }
+
+/**
+ * Echo ships two inboxes — alerts (bell) and notices (tray). Merged, the bell
+ * stands in for both: notices drops out of the cluster and the bell's label
+ * names the pair, so nothing is silently lost to a screen reader.
+ */
+const showAlerts = computed(
+  () => navHas('notifications') || (mergeNotices.value && navHas('notices')),
+)
+const showNotices = computed(() => navHas('notices') && !mergeNotices.value)
+const alertsLabel = computed(() =>
+  mergeNotices.value && navHas('notices') ? 'Alerts and notices' : 'Notifications',
+)
+
+/**
+ * Vector's menu opens on the name, the way the real one does — it *is* the link
+ * to the user page. With the name already on the button that opened the menu,
+ * the row would just repeat it, so it names the destination instead.
+ */
+const userPageLabel = computed(() => (showUsernameOnButton.value ? 'User page' : displayName.value))
+
+/**
+ * Mocked Vector user menu. Items are inert affordances like the rest of the
+ * chrome — selecting one closes the menu and clears the selection so no entry
+ * renders a persistent checkmark.
+ */
+const userMenuItems = computed((): MenuButtonItemData[] => [
+  { value: 'user-page', label: userPageLabel.value, icon: cdxIconUserAvatar },
+  { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
+  { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
+  { value: 'preferences', label: 'Preferences', icon: cdxIconSettings },
+  { value: 'beta', label: 'Beta', icon: cdxIconLabFlask },
+  { value: 'contributions', label: 'Contributions', icon: cdxIconUserContributions },
+  { value: 'translations', label: 'Translations', icon: cdxIconLanguage },
+  { value: 'uploaded-media', label: 'Uploaded media', icon: cdxIconImageGallery },
+  { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
+])
+
+/** Main-menu popover — Home button playground, anchored to the hamburger button. */
+const mainMenuOpen = ref(false)
+const mainMenuAnchor = ref<HTMLElement | null>(null)
+
+/**
+ * Vector renders Home inline in the end cluster, so it starts framed-free and
+ * labelled; `size` is fixed by the cluster's own 32px sizing and `round` only
+ * means something for Minerva's floating button, so neither gets a control.
+ */
+const {
+  action: homeAction,
+  weight: homeWeight,
+  iconOnly: homeIconOnly,
+  count: homeCount,
+} = useHomeButtonPlayground({
+  action: 'progressive',
+  weight: 'quiet',
+  size: 'medium',
+  iconOnly: false,
+  round: false,
+  count: false,
+})
+
+/** The badge is `aria-hidden`, so the count rides in the accessible name. */
+const homeAriaLabel = computed(() =>
+  homeButtonAriaLabel(homeButtonLabel.value, homeIconOnly.value, homeCount.value),
+)
+
+/**
+ * Sticky header trigger. An article registers its heading as the sentinel, so
+ * the bar slides in exactly when the title leaves — Vector's own behaviour. On
+ * a page with no article the site nav stands in, and the bar appears once the
+ * chrome itself has scrolled away.
+ */
+const { showHome: stickyShowHome, languagesCountOnly: stickyLanguagesCountOnly } =
+  useStickyHeaderPlayground()
+
+const navEl = ref<HTMLElement | null>(null)
+const stickyTrigger = computed(() => stickyHeaderSentinel.value ?? navEl.value)
+const stickyActive = useScrolledPast(stickyTrigger)
+
+const userMenuSelection = ref<MenuItemValue | null>(null)
+
+watch(userMenuSelection, (value) => {
+  if (value !== null) userMenuSelection.value = null
+})
 </script>
 
 <template>
   <header class="vector-chrome-header" data-skin="desktop" :data-theme="effectiveTheme">
-    <nav class="vector-chrome-header__nav" aria-label="Site">
+    <nav ref="navEl" class="vector-chrome-header__nav" aria-label="Site">
       <div class="vector-chrome-header__start">
         <slot name="menu">
-          <!-- Mock only — not interactive (FakeMediaWiki uses bare chrome / icon affordances). -->
-          <span class="vector-chrome-header__menu-icon" aria-hidden="true">
-            <CdxIcon :icon="cdxIconMenu" />
+          <span ref="mainMenuAnchor" class="vector-chrome-header__menu-anchor">
+            <CdxButton
+              class="vector-chrome-header__menu-btn"
+              weight="quiet"
+              aria-label="Main menu"
+              :aria-expanded="mainMenuOpen"
+              aria-haspopup="dialog"
+              @click="mainMenuOpen = !mainMenuOpen"
+            >
+              <CdxIcon :icon="cdxIconMenu" />
+            </CdxButton>
           </span>
         </slot>
 
-        <RouterLink class="vector-chrome-header__brand-link" to="/" aria-label="Visit the main page">
+        <RouterLink
+          class="vector-chrome-header__brand-link"
+          to="/"
+          aria-label="Visit the main page"
+        >
           <slot name="logo">
             <span class="vector-chrome-header__wordmarks">
               <img
@@ -106,10 +274,17 @@ function navHas(tool: ChromeNavTool): boolean {
         <div class="vector-chrome-header__search">
           <Search />
         </div>
+        <!--
+          Vector's search button submits the search form, so this one does too:
+          `form` reaches the form CdxTypeaheadSearch renders under that id, from
+          outside it. What submitting *does* is Search's own business — open the
+          best match in place, or leave for `Special:Search` when the page has
+          no way to show an article.
+        -->
         <CdxButton
           class="vector-chrome-header__search-submit"
-          tag="a"
-          href="https://en.wikipedia.org/wiki/Special:Search"
+          type="submit"
+          form="protowiki-search"
         >
           Search
         </CdxButton>
@@ -150,27 +325,67 @@ function navHas(tool: ChromeNavTool): boolean {
             </a>
           </div>
           <a
-            v-else-if="showChromeUsernameLink"
+            v-else-if="showToolbarUsername"
             class="vector-chrome-header__text-link vector-chrome-header__username-display"
             href="#"
             @click.prevent
           >
-            {{ trimmedUsername }}
+            {{ usernameText }}
           </a>
         </slot>
         <slot v-if="!isLoggedOut" name="nav">
+          <!--
+            `cdx-button--icon-only` is set by hand because Codex reads its own
+            off the slot: one child, and that child an icon. The count badge
+            wraps the icon in a positioning layer, which the detection misses —
+            and without the modifier the button takes text padding instead of
+            squaring off. It's the class Codex would have set itself.
+          -->
+          <CdxButton
+            v-if="navHas('home')"
+            class="vector-chrome-header__home"
+            :class="{ 'cdx-button--icon-only': homeIconOnly }"
+            :weight="homeWeight"
+            :action="homeAction"
+            :aria-label="homeAriaLabel"
+          >
+            <!--
+              Echo's counter, hung off the bottom-trailing corner of whatever
+              the button shows — the icon while it's bare, the label once there
+              is one. See `chrome-count-badge.css`.
+            -->
+            <span class="chrome-count-badge">
+              <CdxIcon :icon="cdxIconHome" />
+              <span
+                v-if="homeCount && homeIconOnly"
+                class="chrome-count-badge__count"
+                aria-hidden="true"
+              >
+                {{ HOME_BUTTON_COUNT }}
+              </span>
+            </span>
+            <!-- `mobile-frontend-home-button`, in whichever language the
+                 interlanguage menu last selected. `dir="auto"` keeps RTL
+                 translations (fa, he) from mirroring the whole button. -->
+            <span v-if="!homeIconOnly" class="chrome-count-badge">
+              <span :lang="uiLanguageTag" dir="auto">{{ homeButtonLabel }}</span>
+              <span v-if="homeCount" class="chrome-count-badge__count" aria-hidden="true">
+                {{ HOME_BUTTON_COUNT }}
+              </span>
+            </span>
+          </CdxButton>
           <CdxButton v-if="navHas('appearance')" weight="quiet" aria-label="Appearance">
             <CdxIcon :icon="cdxIconAppearance" />
           </CdxButton>
-          <CdxButton
-            v-if="navHas('notifications')"
-            weight="quiet"
-            aria-label="Notifications"
-          >
+          <!-- Merged, the bell speaks for both inboxes and the tray drops out. -->
+          <CdxButton v-if="showAlerts" weight="quiet" :aria-label="alertsLabel">
             <CdxIcon :icon="cdxIconBell" />
           </CdxButton>
-          <CdxButton v-if="navHas('notices')" weight="quiet" aria-label="Notices">
+          <CdxButton v-if="showNotices" weight="quiet" aria-label="Notices">
             <CdxIcon :icon="cdxIconTray" />
+          </CdxButton>
+          <CdxButton v-if="navHas('bookmarks')" weight="quiet" aria-label="Reading lists">
+            <CdxIcon :icon="cdxIconBookmarkList" />
           </CdxButton>
           <CdxButton
             v-if="navHas('watchlist')"
@@ -180,12 +395,162 @@ function navHas(tool: ChromeNavTool): boolean {
           >
             <CdxIcon :icon="cdxIconWatchlist" />
           </CdxButton>
-          <CdxButton v-if="navHas('user')" weight="quiet" aria-label="User menu">
-            <CdxIcon :icon="cdxIconUserAvatar" />
+          <!--
+            With the name on the button the visible label *is* the accessible
+            name, so the `aria-label` steps aside rather than talking over it.
+          -->
+          <CdxButton
+            v-if="navHas('user')"
+            class="vector-chrome-header__labelled-user"
+            :class="{ 'vector-chrome-header__labelled-user--on': showUsernameOnButton }"
+            weight="quiet"
+            :aria-label="showUsernameOnButton ? undefined : 'User menu'"
+          >
+            <CdxIcon v-if="showUserButtonAvatar" :icon="cdxIconUserAvatar" />
+            <span v-if="showUsernameOnButton">{{ usernameText }}</span>
           </CdxButton>
+          <CdxMenuButton
+            v-if="navHas('user-menu')"
+            v-model:selected="userMenuSelection"
+            class="vector-chrome-header__user-menu vector-chrome-header__labelled-user menu-content-width"
+            :class="{ 'vector-chrome-header__labelled-user--on': showUsernameOnButton }"
+            weight="quiet"
+            :aria-label="showUsernameOnButton ? undefined : 'User menu'"
+            :menu-items="userMenuItems"
+          >
+            <CdxIcon v-if="showUserButtonAvatar" :icon="cdxIconUserAvatar" />
+            <span v-if="showUsernameOnButton">{{ usernameText }}</span>
+            <CdxIcon
+              class="vector-chrome-header__user-menu-chevron"
+              :icon="cdxIconExpand"
+              size="small"
+            />
+          </CdxMenuButton>
         </slot>
       </div>
     </nav>
+
+    <!--
+      Floating help affordance, on project, user and help pages only — see
+      `./helpButton`. Outside `__nav` because it's pinned to the viewport
+      rather than laid out in the bar, and `inset-inline-end` keeps it on the
+      trailing edge so it mirrors in RTL chrome.
+
+      Desktop has no floating Home to pair with — Home is seated in the end
+      cluster — so this one is a fixed round icon button rather than something
+      the Home playground styles: a `quiet` FAB would float with no background
+      of its own over the article text beneath it.
+    -->
+    <CdxButton
+      v-if="helpButtonVisible"
+      class="vector-chrome-header__help-fab"
+      size="large"
+      :aria-label="HELP_BUTTON_LABEL"
+    >
+      <CdxIcon :icon="cdxIconHelp" />
+    </CdxButton>
+
+    <!--
+      Anchored to the hamburger but deliberately outside `__nav` / `__start`:
+      with `render-in-place` the popover's backdrop is a static-flow element, so
+      inside either flex row it becomes a flex item and shifts the wordmark.
+    -->
+    <CdxPopover
+      v-model:open="mainMenuOpen"
+      :anchor="mainMenuAnchor"
+      placement="bottom-start"
+      render-in-place
+    >
+      <div class="vector-chrome-header__menu-panel chrome-playground-panel">
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Home button</h2>
+
+          <CdxField :is-fieldset="true">
+            <template #label>Action</template>
+            <CdxRadio
+              v-for="value in HOME_ACTIONS"
+              :key="value"
+              v-model="homeAction"
+              :input-value="value"
+              name="home-action"
+              inline
+            >
+              {{ value }}
+            </CdxRadio>
+          </CdxField>
+
+          <CdxField :is-fieldset="true">
+            <template #label>Weight</template>
+            <CdxRadio
+              v-for="value in HOME_WEIGHTS"
+              :key="value"
+              v-model="homeWeight"
+              :input-value="value"
+              name="home-weight"
+              inline
+            >
+              {{ value }}
+            </CdxRadio>
+          </CdxField>
+
+          <CdxToggleSwitch v-model="homeIconOnly">Icon only</CdxToggleSwitch>
+          <!-- Echo's badge on Home, in the bar and in the sticky header both. -->
+          <CdxToggleSwitch v-model="homeCount">Show count</CdxToggleSwitch>
+        </section>
+
+        <!--
+          One name, one place: radios rather than a switch per position, so the
+          panel can't offer a state the toolbar has no way to render.
+        -->
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Username</h2>
+
+          <CdxField :is-fieldset="true">
+            <template #label>Placement</template>
+            <CdxRadio
+              v-for="value in USERNAME_PLACEMENTS"
+              :key="value"
+              v-model="usernamePlacement"
+              :input-value="value"
+              name="username-placement"
+            >
+              {{ USERNAME_PLACEMENT_LABELS[value] }}
+            </CdxRadio>
+          </CdxField>
+        </section>
+
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Alerts and notices</h2>
+
+          <!-- Which icon survives is in the section title: the alerts bell. -->
+          <CdxToggleSwitch v-model="mergeNotices">Merge into one button</CdxToggleSwitch>
+        </section>
+
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Sticky header</h2>
+
+          <CdxToggleSwitch v-model="stickyShowHome">Home button</CdxToggleSwitch>
+          <CdxToggleSwitch v-model="stickyLanguagesCountOnly">Languages count only</CdxToggleSwitch>
+        </section>
+      </div>
+    </CdxPopover>
+
+    <!--
+      Condensed bar that overlays the article once the page has scrolled. Last
+      in the header so it stacks over the nav without needing a higher
+      `z-index`, and outside `__nav` because it's pinned to the viewport rather
+      than laid out in the bar.
+    -->
+    <VectorStickyHeader
+      :active="stickyActive"
+      :theme="effectiveTheme"
+      :show-home="stickyShowHome"
+      :home-action="homeAction"
+      :home-weight="homeWeight"
+      :home-icon-only="homeIconOnly"
+      :home-count="homeCount"
+      :languages-count-only="stickyLanguagesCountOnly"
+    />
   </header>
 </template>
 
@@ -227,22 +592,31 @@ function navHas(tool: ChromeNavTool): boolean {
   gap: var(--spacing-50, 8px);
 }
 
-.vector-chrome-header__menu-icon {
+.vector-chrome-header__menu-anchor {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
-  justify-content: center;
-  min-width: var(--size-icon-medium, 32px);
-  min-height: var(--size-icon-medium, 32px);
-  margin: 0;
-  padding: var(--spacing-25, 4px);
-  padding-inline-start: var(--spacing-50, 8px);
-  border: none;
-  background: transparent;
-  color: var(--color-base, #202122);
-  line-height: 0;
-  cursor: default;
-  pointer-events: none;
+  padding-inline-start: var(--spacing-25, 4px);
+}
+
+/*
+ * Pinned to the viewport rather than the header, so it stays in the corner
+ * while the page scrolls — and above the sticky bar (`--z-index-sticky`, 100),
+ * which slides in over the same content. Round, like Minerva's floating pair:
+ * a lone button in a corner reads as a control rather than as chrome.
+ */
+.vector-chrome-header__help-fab.cdx-button {
+  position: fixed;
+  bottom: var(--spacing-100, 16px);
+  inset-inline-end: var(--spacing-100, 16px);
+  z-index: var(--z-index-fixed, 200);
+  border-radius: var(--border-radius-circle, 50%);
+}
+
+/* Sections, titles and Codex overrides come from `chrome-playground-panel`,
+   shared with the Minerva panel; the width is this panel's own. */
+.vector-chrome-header__menu-panel {
+  min-width: 18rem;
 }
 
 .vector-chrome-header :slotted(.chrome-header__menu-btn) {
@@ -254,7 +628,7 @@ function navHas(tool: ChromeNavTool): boolean {
   padding-inline-start: var(--spacing-50, 8px);
 }
 
-.vector-chrome-header__menu-icon :deep(svg) {
+.vector-chrome-header__menu-btn :deep(svg) {
   display: block;
 }
 
@@ -311,7 +685,7 @@ function navHas(tool: ChromeNavTool): boolean {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.2rem;
+  gap: 4px;
   margin-inline-start: auto;
 }
 
@@ -343,6 +717,54 @@ a.vector-chrome-header__text-link:hover {
   min-width: var(--size-icon-medium, 32px);
   height: var(--size-icon-medium, 32px);
   padding: 0.5rem 0.4rem;
+}
+
+/*
+ * Home carries a visible label, so it sizes to its content and never shrinks —
+ * the narrow-viewport rule below squares every end-cluster button off at 40px,
+ * which would clip the label. Three classes outrank it.
+ */
+.vector-chrome-header__end .vector-chrome-header__home.cdx-button {
+  width: auto;
+  flex-shrink: 0;
+  gap: var(--spacing-25, 4px);
+  padding-inline: var(--spacing-50, 8px);
+  white-space: nowrap;
+}
+
+/*
+ * Carrying the username as a label, the user button sizes to its text and never
+ * squares off — the same exemption Home needs from the narrow-viewport rule
+ * below, and three classes outrank it.
+ */
+.vector-chrome-header__end .vector-chrome-header__labelled-user--on.cdx-button,
+.vector-chrome-header__end .vector-chrome-header__labelled-user--on :deep(.cdx-button) {
+  width: auto;
+  flex-shrink: 0;
+  gap: var(--spacing-25, 4px);
+  padding-inline: var(--spacing-50, 8px);
+  white-space: nowrap;
+}
+
+/*
+ * User menu trigger carries two icons (avatar + chevron), so it opts out of the
+ * square icon-only sizing above and sizes to its content instead.
+ */
+.vector-chrome-header__user-menu :deep(.cdx-button) {
+  display: inline-flex;
+  gap: var(--spacing-25, 4px);
+  align-items: center;
+  width: auto;
+  padding-inline: var(--spacing-25, 4px);
+}
+
+/* Menu items read as links: base-coloured icon, progressive label. */
+.vector-chrome-header__user-menu :deep(.cdx-menu-item .cdx-menu-item__icon) {
+  color: var(--color-base, #202122);
+}
+
+.vector-chrome-header__user-menu :deep(.cdx-menu-item .cdx-menu-item__text__label) {
+  color: var(--color-progressive, #36c);
 }
 
 .vector-chrome-header[data-theme='dark'] .vector-chrome-header__wordmark-img,

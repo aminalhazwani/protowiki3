@@ -34,7 +34,7 @@ interface Props {
   lastEditedNotice?: boolean
   /** When **`false`**, omit the default **`ChromeFooter`** (header-only chrome). */
   showFooter?: boolean
-  /** Forwarded to **`ChromeHeader`** / **`ChromeFooter`** (Meta label; mobile footer line). */
+  /** Forwarded to **`ChromeHeader`** / **`ChromeFooter`** (desktop username affordances; mobile footer line). */
   username?: string
   /** Forwarded to **`ChromeHeader`**. */
   wordmarkSrc?: string

@@ -1,7 +1,7 @@
 import type { LocationQuery, RouteLocationNormalized, Router } from 'vue-router'
 
 /** Appearance query params carried across navigations when already present. */
-export const PRESERVED_URL_QUERY_PARAMS = ['theme', 'skin', 'os'] as const
+export const PRESERVED_URL_QUERY_PARAMS = ['theme', 'skin', 'os', 'uselang', 'user'] as const
 
 export type PreservedUrlQueryParam = (typeof PRESERVED_URL_QUERY_PARAMS)[number]
 
@@ -159,9 +159,14 @@ export function replaceRouteQueryUpdates(
   return replaceRouteQuery(to, mergedLocationQuery(to.query, updates))
 }
 
-/** Keep `?theme=`, `?skin=`, and `?os=` when navigating between routes. */
+/** Keep `?theme=`, `?skin=`, `?os=`, `?uselang=`, and `?user=` when navigating between routes. */
 export function preserveAppearanceQueryOnNavigation(instance: Router): void {
   instance.beforeEach((to, from) => {
+    // A deliberate sync-to-URL already carries the whole query, so carrying
+    // params over from `from` would undo a removal it just made — e.g. clearing
+    // `?uselang=` on a return to the default language, or `?os=` on auto.
+    if (syncingToUrl) return true
+
     const missing = preservedQueryMissingFromRoute(to, from)
     if (Object.keys(missing).length === 0) return true
     return {

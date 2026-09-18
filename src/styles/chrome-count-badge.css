@@ -1,0 +1,76 @@
+/*
+ * Count badge on a chrome icon
+ * ----------------------------
+ *
+ * The small counter Echo pins to Vector's alerts bell and notices tray, reused
+ * by the Home button playground's **Show count** knob. Production draws it with
+ * `::after` and `content: attr(data-counter-text)` on the badge anchor
+ * (`.mw-echo-notifications-badge`); here the number is a real element, so a
+ * Vue-rendered count needs no data attribute — everything else is the same
+ * box: 1px inverted border, `color-placeholder` fill, inverted bold text, and
+ * the same overlap of the thing it counts.
+ *
+ * Global rather than scoped: three chrome surfaces render it (the Minerva
+ * floating Home, Vector's end cluster, the desktop sticky bar), and a badge
+ * fixed in one should not need re-fixing in the other two. Colours come from
+ * tokens rather than production's hex values, so it inverts with dark mode.
+ *
+ * What it counts is whatever the wrapper holds — the icon on a bare button, the
+ * label on one that says something — and the badge hangs off that anchor's
+ * bottom-trailing corner either way, so the overlap looks the same in both:
+ *
+ *   <span class="chrome-count-badge">
+ *     <CdxIcon :icon="cdxIconHome" />
+ *     <span class="chrome-count-badge__count" aria-hidden="true">1</span>
+ *   </span>
+ *
+ *   <span class="chrome-count-badge">
+ *     <span>Home</span>
+ *     <span class="chrome-count-badge__count" aria-hidden="true">1</span>
+ *   </span>
+ *
+ * Out of flow, so it never widens the button: an icon-only button stays square
+ * and a labelled one keeps the width it has without a count. It also stays
+ * inside the button, which `.cdx-button` needs — that sets `overflow: hidden`,
+ * so a badge hung off the button's own corner would be clipped.
+ *
+ * The count is `aria-hidden` either way, because it reads as a bare number out
+ * of context; the button carries it in its `aria-label` instead.
+ */
+.chrome-count-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.chrome-count-badge__count {
+  position: absolute;
+  /*
+   * Production positions the badge inside the icon's box — `left: 55% / top:
+   * 43%` — which on a 20px icon leaves 5.84px of it past the trailing edge and
+   * 4.6px below. Anchoring to the corner instead of the box keeps exactly that
+   * overhang whatever the anchor's size, so the label wears the badge the way
+   * the icon does; `inset-inline-end` mirrors it in RTL chrome, and a
+   * two-digit count grows inwards rather than further out.
+   */
+  inset-inline-end: -5.84px;
+  bottom: -4.6px;
+  box-sizing: border-box;
+  border: var(--border-width-base, 1px) solid var(--border-color-inverted, #fff);
+  border-radius: var(--border-radius-base, 2px);
+  padding: 0 calc((4 / 16) * var(--font-size-small, 0.875rem));
+  background-color: var(--color-placeholder, #72777d);
+  color: var(--color-inverted, #fff);
+  font-size: calc((12 / 16) * var(--font-size-small, 0.875rem));
+  font-weight: var(--font-weight-bold, 700);
+  /*
+   * No line-height token is tight enough for a 10.5px badge — the smallest is
+   * 1.43rem, half again as tall as the box production draws. The small font
+   * size doubles as the line box, which lands the badge at the 14px + border
+   * it has in the real chrome.
+   */
+  line-height: var(--font-size-small, 0.875rem);
+  /* Inside a button whose label may be centred or indented, the number isn't. */
+  text-align: center;
+  text-indent: 0;
+}
