@@ -250,15 +250,18 @@ it in the bar — and on the pages that are *about* the project, a **help** butt
 joins it, nearest the corner. Both are inert affordances, like the rest of the
 chrome.
 
-The main-menu playground's **Floating buttons** section styles the pair as one
+The main-menu playground's **Floating buttons** section shapes the pair as one
 (`src/components/chrome/homeButtonPlayground.ts`), so they always read as a
 pair: **Action** (`?homeAction=`), **Weight** (`?homeWeight=`), **Size**
-(`?homeSize=`), **Show label** (`?homeIconOnly=`) and **Fully round**
-(`?homeRound=`) — pill when labelled, circle when icon-only. Every knob
-round-trips through the URL and writes its param only when it differs from the
-skin's own starting point, so links stay clean.
+(`?homeSize=`) and **Fully round** (`?homeRound=`) — pill when labelled, circle
+when icon-only. Every knob round-trips through the URL and writes its param
+only when it differs from the skin's own starting point, so links stay clean.
 
-**Show count on Home** (`?homeCount=`) is the one knob that isn't shared: it
+What each button *says* is its own. **Show label** (`?homeIconOnly=`) labels
+Home alone; help stays icon-only, because Home is the destination under test
+and a second word beside it would read as its equal.
+
+**Show count on Home** (`?homeCount=`) is Home's alone for the same reason: it
 pins Echo's counter — the badge production puts on the alerts bell — to the Home
 icon, and help has nothing to count. The number is a mock
 (`HOME_BUTTON_COUNT`), the badge is `aria-hidden`, and the button carries the

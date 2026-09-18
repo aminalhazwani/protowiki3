@@ -209,9 +209,11 @@ const mainMenuAnchor = ref<HTMLElement | null>(null)
  * starts framed (`normal`), thumb-sized (`large`), icon-only and square-ish — a
  * labelled pill would cover more of the text it sits on.
  *
- * The floating help button sits in the same corner cluster and follows the same
- * knobs: two buttons side by side only read as a pair if they share a
- * treatment, so the playground styles the cluster rather than one button.
+ * The floating help button sits in the same corner cluster and follows the
+ * shape and colour knobs: two buttons side by side only read as a pair if they
+ * share a treatment, so those style the cluster rather than one button. What
+ * each button *says* is its own — help stays icon-only whatever **Show label**
+ * does, and the count is Home's too.
  */
 const {
   action: homeAction,
@@ -457,7 +459,11 @@ const homeShowLabel = computed({
         </span>
       </CdxButton>
 
-      <!-- Project, user and help pages only — see `./helpButton`. -->
+      <!--
+        Project, user and help pages only — see `./helpButton`. It takes the
+        pair's shape and colour but never a label: Home is the destination
+        under test, and a second word beside it would read as its equal.
+      -->
       <CdxButton
         v-if="helpButtonVisible"
         class="minerva-chrome-header__fab"
@@ -465,10 +471,9 @@ const homeShowLabel = computed({
         :action="homeAction"
         :weight="homeWeight"
         :size="homeSize"
-        :aria-label="homeIconOnly ? HELP_BUTTON_LABEL : undefined"
+        :aria-label="HELP_BUTTON_LABEL"
       >
         <CdxIcon :icon="cdxIconHelp" />
-        <span v-if="!homeIconOnly">{{ HELP_BUTTON_LABEL }}</span>
       </CdxButton>
     </div>
 
