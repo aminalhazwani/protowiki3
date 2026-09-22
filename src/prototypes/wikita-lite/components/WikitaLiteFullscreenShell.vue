@@ -19,7 +19,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   lang: undefined,
   dir: undefined,
-  skin: 'mobile',
+  skin: undefined,
   theme: undefined,
 })
 
@@ -33,7 +33,7 @@ provide('CdxTeleportMenus', true)
 </script>
 
 <template>
-  <MobileWrapper>
+  <MobileWrapper fluid>
     <div
       class="wikita-lite-fullscreen-shell"
       :data-skin="effectiveSkin"

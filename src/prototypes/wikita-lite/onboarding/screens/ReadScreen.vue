@@ -6,6 +6,7 @@ import ArticleHeader from '@/components/article/ArticleHeader.vue'
 import ArticleRenderer from '@/components/article/ArticleRenderer.vue'
 import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
+import { globalSkin } from '@/theme'
 
 import WikitaLitePrototypeMenuPopover from '../../components/WikitaLitePrototypeMenuPopover.vue'
 import { useWikitaLiteChromeHeaderRight } from '../../composables/useWikitaLiteChromeHeaderRight'
@@ -78,9 +79,9 @@ function onArticleLinkClick(event: MouseEvent): void {
 
 <template>
   <div class="read-screen">
-    <ChromeWrapper skin="mobile" :last-edited-notice="false">
+    <ChromeWrapper :last-edited-notice="false">
       <template #header>
-        <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false">
+        <ChromeHeader :right="headerRight" :brand-link="false">
           <template #menu>
             <WikitaLitePrototypeMenuPopover />
           </template>
@@ -88,12 +89,11 @@ function onArticleLinkClick(event: MouseEvent): void {
       </template>
 
       <ReturnHomeBanner :flow="props.flow" />
-      <article class="article nd-article" data-skin="mobile">
+      <article class="article nd-article" :data-skin="globalSkin">
         <ArticleHeader
           v-if="!isMainPage"
           ref="articleHeaderRef"
           :title="displayTitle"
-          skin="mobile"
           bookmark-affordance="bookmark"
           @bookmark-click="onBookmark"
         />
@@ -104,7 +104,7 @@ function onArticleLinkClick(event: MouseEvent): void {
           Couldn't load this article: {{ error }}
         </CdxMessage>
 
-        <ArticleRenderer v-if="html !== null" skin="mobile" @click="onArticleLinkClick">
+        <ArticleRenderer v-if="html !== null" @click="onArticleLinkClick">
           <!-- eslint-disable-next-line vue/no-v-html -->
           <div v-html="html" />
         </ArticleRenderer>

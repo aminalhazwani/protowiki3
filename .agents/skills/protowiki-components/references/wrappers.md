@@ -188,20 +188,28 @@ for `category`, `order`, `hidden`, `spotlight`, and the human-written copy rule.
 
 Phone-frame preview shell — **not** Wikipedia chrome. Below **480px** viewport
 width the default slot is full width with no side gutters. At **480px** and up,
-the slot is centred in a **`max-width: 360px`** column; **`--background-color-neutral`**
+the slot is centred in a **`max-width: 412px`** column; **`--background-color-neutral`**
 fills the side gutters; the column uses **`--background-color-base`** and a
 **`--border-color-muted`** side borders only (Codex light / dark).
+
+Pass **`fluid`** for a **responsive** prototype instead of a phone preview: the
+column fills the viewport at every width and the frame disappears, but the
+overlay target and its containment CSS stay, so teleported sheets and dialogs
+keep working. `fluid` sets `--mobile-wrapper-max-width: 100%`, which unclamps
+every consumer of that variable in one go. See `src/prototypes/wikita-lite/`.
 
 Does **not** set `data-skin` / `data-theme` — pass those on content inside the slot
 (usually **`ChromeWrapper skin="mobile"`**). **`Dashboard`** keys its mobile/desktop slots off ancestor **`data-skin`**, so pass **`skin="mobile"`** when previewing a phone layout inside this frame.
 
 ### Props
 
-| Prop       | Type             | Default   | Notes                                      |
-| ---------- | ---------------- | --------- | ------------------------------------------ |
-| `maxWidth` | `string`         | `'360px'` | Centred column width when clamped (wide)   |
-| `lang`     | `string`         | `undefined` | Sets `lang` on the inner column          |
-| `dir`      | `'ltr' \| 'rtl'` | `undefined` | Sets `dir` on the inner column           |
+| Prop              | Type             | Default     | Notes                                                       |
+| ----------------- | ---------------- | ----------- | ----------------------------------------------------------- |
+| `maxWidth`        | `string`         | `'412px'`   | Centred column width when clamped (wide)                    |
+| `showFrameBorder` | `boolean`        | `true`      | Side borders on the centred column above 480px              |
+| `fluid`           | `boolean`        | `false`     | Fill the viewport instead of clamping; ignores `maxWidth`    |
+| `lang`            | `string`         | `undefined` | Sets `lang` on the inner column                             |
+| `dir`             | `'ltr' \| 'rtl'` | `undefined` | Sets `dir` on the inner column                              |
 
 ### Slots
 

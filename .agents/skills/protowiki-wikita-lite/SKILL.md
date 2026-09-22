@@ -35,6 +35,15 @@ fetching, bookmarks, and feed logic with `musical-group` via
 Subpages use `WikitaLiteShell` + `MobileSubpageHeader` + a module with
 `standalone`. Configure flows use `WikitaLiteFullscreenShell` (no chrome).
 
+## Skin and width
+
+Nothing here pins the mobile skin any more. Every shell wraps content in
+`MobileWrapper fluid` — viewport width, no phone frame — and the chrome inherits
+the **global** skin, so `/wikita-lite` is Minerva below 640px and Vector at or
+above it (`?skin=mobile` / `?skin=desktop` still pin it). The layout itself is
+still phone-first: the desktop breakpoints are the work in progress, not a
+finished design.
+
 | `src/prototypes/wikita-lite/WikitaLiteOnboarding.vue` | First-run flow orchestrator |
 | `src/prototypes/wikita-lite/onboarding/` | Onboarding screens, shell, data (ported from protowiki3 `no-distractions`) |
 

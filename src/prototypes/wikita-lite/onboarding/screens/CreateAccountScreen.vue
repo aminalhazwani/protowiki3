@@ -40,13 +40,12 @@ async function onSubmit({ username, email }: { username: string; email: string }
 
 <template>
   <ChromeWrapper
-    skin="mobile"
     :last-edited-notice="false"
     :show-footer="false"
     :brand-link="false"
   >
     <template #header>
-      <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false">
+      <ChromeHeader :right="headerRight" :brand-link="false">
         <template #menu>
           <WikitaLitePrototypeMenuPopover />
         </template>

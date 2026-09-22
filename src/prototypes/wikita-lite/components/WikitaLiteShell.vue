@@ -50,17 +50,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <MobileWrapper>
+  <MobileWrapper fluid>
     <div class="wikita-lite-shell-root" @click.capture="onLeaveCapture">
       <ChromeWrapper
-        skin="mobile"
         :last-edited-notice="false"
         :show-header="!isSubpage"
         :show-footer="!isSubpage"
         :brand-link="false"
       >
         <template v-if="!isSubpage" #header>
-          <ChromeHeader skin="mobile" :right="headerRight" :brand-link="false">
+          <ChromeHeader :right="headerRight" :brand-link="false">
             <template #menu>
               <WikitaLitePrototypeMenuPopover />
             </template>

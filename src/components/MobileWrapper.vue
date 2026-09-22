@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provide, ref } from 'vue'
+import { computed, provide, ref } from 'vue'
 
 import '@/styles/mobile-wrapper-overlays.css'
 
@@ -12,6 +12,10 @@ import '@/styles/mobile-wrapper-overlays.css'
  *
  * Provides `#mobile-wrapper-overlay` as Codex's teleport target so popovers,
  * bottom sheets, and dialogs stay inside the phone column on wide viewports.
+ *
+ * Pass **`fluid`** for a responsive prototype: the column fills the viewport at
+ * every width and the frame disappears, but the overlay target and its
+ * containment styles stay, so teleported sheets and dialogs keep working.
  */
 interface Props {
   /** BCP-47 language tag on the inner column (optional). */
@@ -22,6 +26,8 @@ interface Props {
   maxWidth?: string
   /** Side borders on the centred column when previewing above 480px. */
   showFrameBorder?: boolean
+  /** Fill the viewport instead of clamping to a phone column. Ignores `maxWidth`. */
+  fluid?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -29,7 +35,15 @@ const props = withDefaults(defineProps<Props>(), {
   dir: undefined,
   maxWidth: '412px',
   showFrameBorder: true,
+  fluid: false,
 })
+
+/*
+ * Everything that clamps to the phone column — this component, the overlay CSS,
+ * and the wikita-lite fullscreen panels — reads `--mobile-wrapper-max-width`.
+ * Setting it to 100% in fluid mode unclamps all of them from one place.
+ */
+const columnMaxWidth = computed(() => (props.fluid ? '100%' : props.maxWidth))
 
 /** Element ref (not a selector) so Teleport resolves the target before slot children mount. */
 const overlayEl = ref<HTMLElement | null>(null)
@@ -40,7 +54,8 @@ provide('CdxTeleportTarget', overlayEl)
 <template>
   <div
     class="mobile-wrapper"
-    :style="{ '--mobile-wrapper-max-width': props.maxWidth }"
+    :class="{ 'mobile-wrapper--fluid': props.fluid }"
+    :style="{ '--mobile-wrapper-max-width': columnMaxWidth }"
   >
     <div
       id="mobile-wrapper-overlay"
@@ -50,7 +65,7 @@ provide('CdxTeleportTarget', overlayEl)
     />
     <div
       class="mobile-wrapper__column"
-      :class="{ 'mobile-wrapper__column--frameless': !props.showFrameBorder }"
+      :class="{ 'mobile-wrapper__column--frameless': !props.showFrameBorder || props.fluid }"
       :lang="props.lang"
       :dir="props.dir"
     >
@@ -78,6 +93,10 @@ provide('CdxTeleportTarget', overlayEl)
   .mobile-wrapper {
     min-height: 100vh;
     background-color: var(--background-color-neutral);
+  }
+
+  .mobile-wrapper--fluid {
+    background-color: transparent;
   }
 
   .mobile-wrapper__column {

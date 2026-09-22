@@ -30,7 +30,7 @@ function closePersonalization(): void {
 </script>
 
 <template>
-  <MobileWrapper max-width="412px" :show-frame-border="false">
+  <MobileWrapper fluid>
     <WikitaLiteFullscreenDialogShell
       title="Personalization"
       subtitle="Choose which activity shapes the recommendations on your Home."

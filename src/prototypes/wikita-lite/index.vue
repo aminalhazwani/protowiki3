@@ -40,7 +40,7 @@ const pageTitle = computed(() => {
 </script>
 
 <template>
-  <MobileWrapper v-if="showOnboarding" max-width="412px" :show-frame-border="false">
+  <MobileWrapper v-if="showOnboarding" fluid>
     <div class="wikita-lite-index" @click.capture="onLeaveCapture">
       <WikitaLiteOnboarding v-if="!showSplash" />
       <WikitaLitePrototypeSplash v-if="showSplash" />
