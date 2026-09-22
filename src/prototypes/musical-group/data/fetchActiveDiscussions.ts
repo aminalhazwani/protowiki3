@@ -3,7 +3,7 @@ import { wikimediaApiFetchHeaders } from '@/config'
 import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
 import { fetchWikimedia } from '@/lib/fetchWikimedia'
 
-import { utcDayKey } from './cacheKeys'
+import { isCacheBypassed, utcDayKey } from './cacheKeys'
 import { enwikiArticleUrl, normalizeEnwikiTitle, wikiActionUrl } from './enwikiTitle'
 import { getCachedActiveDiscussions, setCachedActiveDiscussions } from './homeTabCache'
 import type { HomeActiveDiscussion } from './types'
@@ -56,13 +56,11 @@ function formatRelativeTime(isoTimestamp: string): string {
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
   if (minutes < 1) return 'just now'
-  if (minutes < 60) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`
-  if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`
-  if (days === 1) return '1 day ago'
-  if (days < 30) return `${days} days ago`
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days < 30) return `${days}d ago`
   const months = Math.floor(days / 30)
-  if (months === 1) return '1 month ago'
-  return `${months} months ago`
+  return `${months}mo ago`
 }
 
 function stripHtml(html: string): string {
@@ -108,6 +106,11 @@ function mapThreadToDiscussion(
   }
 }
 
+interface NoticeboardResult {
+  discussions: HomeActiveDiscussion[]
+  error: Error | null
+}
+
 async function fetchNoticeboardDiscussions(
   noticeboardPage: string,
   signal?: AbortSignal,
@@ -136,6 +139,29 @@ async function fetchNoticeboardDiscussions(
   return items
     .map((item) => mapThreadToDiscussion(item, noticeboardPage))
     .filter((item): item is HomeActiveDiscussion => item !== null)
+}
+
+/**
+ * One unreachable noticeboard must not empty the whole section, so each page
+ * resolves independently and its failure is reported alongside its results.
+ * Aborts still propagate — they mean the caller no longer wants any of this.
+ */
+async function fetchNoticeboardResult(
+  noticeboardPage: string,
+  signal?: AbortSignal,
+): Promise<NoticeboardResult> {
+  try {
+    return { discussions: await fetchNoticeboardDiscussions(noticeboardPage, signal), error: null }
+  } catch (err) {
+    if ((err as Error)?.name === 'AbortError') throw err
+    return {
+      discussions: [],
+      error:
+        err instanceof Error
+          ? err
+          : new Error(`Could not load discussions from ${noticeboardPage}`),
+    }
+  }
 }
 
 export function clearActiveDiscussionsSessionCache(): void {
@@ -172,18 +198,24 @@ export async function fetchActiveDiscussions(
     return stored.slice(0, limit)
   }
 
-  if (sessionCached && sessionCached.day === dayKey && sessionCached.value.length) {
+  if (!isCacheBypassed() && sessionCached?.day === dayKey && sessionCached.value.length) {
     return sessionCached.value.slice(0, limit)
   }
 
-  const batches = await mapWithConcurrency(
+  const results = await mapWithConcurrency(
     [...ENWIKI_ACTIVE_DISCUSSION_PAGES],
     FETCH_CONCURRENCY,
-    (page) => fetchNoticeboardDiscussions(page, signal),
+    (page) => fetchNoticeboardResult(page, signal),
     signal,
   )
 
-  const merged = mergeActiveDiscussions(batches)
+  // Only a total outage is an error; a partial one just yields a shorter list.
+  const firstError = results.find((result) => result.error)?.error
+  if (firstError && results.every((result) => result.error)) {
+    throw firstError
+  }
+
+  const merged = mergeActiveDiscussions(results.map((result) => result.discussions))
 
   sessionCached = { day: dayKey, value: merged }
   if (merged.length) {

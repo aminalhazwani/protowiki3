@@ -94,17 +94,13 @@ function formatSavedLabel(savedAt: number | undefined): string {
   if (diffMs < 60_000) return 'Saved just now'
 
   const minutes = Math.floor(diffMs / 60_000)
-  if (minutes < 60) {
-    return minutes === 1 ? 'Saved 1 min ago' : `Saved ${minutes} mins ago`
-  }
+  if (minutes < 60) return `Saved ${minutes}m ago`
 
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return hours === 1 ? 'Saved 1 hour ago' : `Saved ${hours} hours ago`
-  }
+  if (hours < 24) return `Saved ${hours}h ago`
 
   const days = Math.floor(hours / 24)
-  return days === 1 ? 'Saved 1 day ago' : `Saved ${days} days ago`
+  return `Saved ${days}d ago`
 }
 
 const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () => props.standalone })

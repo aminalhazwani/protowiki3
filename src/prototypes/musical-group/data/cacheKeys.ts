@@ -50,6 +50,15 @@ export function savedPagesListKey(items: HomeSavedItem[]): string {
     .join(',')
 }
 
+/**
+ * `?nocache=1` forces a refetch, for when a cached day's content has gone
+ * stale. Reads only — writes still land so the refetched day gets cached.
+ */
+export function isCacheBypassed(): boolean {
+  if (typeof window === 'undefined') return false
+  return new URLSearchParams(window.location.search).get('nocache') === '1'
+}
+
 /** UTC calendar day for daily feeds, e.g. `20260701`. */
 export function utcDayKey(date = new Date()): string {
   const yyyy = String(date.getUTCFullYear())

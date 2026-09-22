@@ -13,6 +13,12 @@ interface TitleSearchOptions {
   clientTag?: string
 }
 
+/** REST thumbnails are protocol-relative today, but may arrive absolute. */
+function normalizeThumbnailUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined
+  return url.startsWith('//') ? `https:${url}` : url
+}
+
 export async function fetchTitleSearchResults(
   query: string,
   options: TitleSearchOptions = {},
@@ -43,6 +49,6 @@ export async function fetchTitleSearchResults(
   return (data.pages ?? []).map((page) => ({
     title: page.title,
     description: page.description ?? '',
-    thumbnailSrc: page.thumbnail?.url ? `https:${page.thumbnail.url}` : undefined,
+    thumbnailSrc: normalizeThumbnailUrl(page.thumbnail?.url),
   }))
 }

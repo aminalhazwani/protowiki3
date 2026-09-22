@@ -9,7 +9,7 @@ import type {
   HomeTranslationSuggestion,
   HomeTrending,
 } from './types'
-import { utcDayKey } from './cacheKeys'
+import { isCacheBypassed, utcDayKey } from './cacheKeys'
 import { readVersionedStore, setVersionedEntry, writeVersionedStore } from './wikitaCache'
 
 const STORAGE_KEY = 'musical-group-home-cache'
@@ -166,8 +166,17 @@ function writeEntries(entries: Record<string, HomeCacheEntry>): void {
   writeVersionedStore(STORAGE_KEY, CACHE_VERSION, entries)
 }
 
+/**
+ * Cache lookups only. Honours `?nocache=1`, which the read-modify-write paths
+ * must not do — an empty read there would write the whole store away.
+ */
+function readEntriesForLookup(): Record<string, HomeCacheEntry> {
+  if (isCacheBypassed()) return {}
+  return readEntries()
+}
+
 function getEntry<T extends HomeCacheEntry>(key: string, dependencyKey: string): T | null {
-  const entry = readEntries()[key]
+  const entry = readEntriesForLookup()[key]
   if (!entry || entry.dependencyKey !== dependencyKey) return null
   return entry as T
 }
@@ -192,7 +201,7 @@ export function clearCachedFeaturedTab(dependencyKey: string): void {
 }
 
 export function getCachedTrendingFeed(_dependencyKey?: string): HomeTrending[] | null {
-  const entry = readEntries().trending as CachedTrendingEntry | undefined
+  const entry = readEntriesForLookup().trending as CachedTrendingEntry | undefined
   if (!entry?.data?.length) return null
   if (Date.now() - entry.fetchedAt > HOME_TAB_FEED_CACHE_TTL_MS) return null
   return entry.data
@@ -210,7 +219,7 @@ export function clearCachedTrendingFeed(_dependencyKey?: string): void {
 }
 
 export function getCachedActiveDiscussions(dependencyKey: string): HomeActiveDiscussion[] | null {
-  const entry = readEntries().activeDiscussions as CachedActiveDiscussionsEntry | undefined
+  const entry = readEntriesForLookup().activeDiscussions as CachedActiveDiscussionsEntry | undefined
   if (!entry?.data?.length || entry.dependencyKey !== dependencyKey) return null
   if (Date.now() - entry.fetchedAt > HOME_TAB_FEED_CACHE_TTL_MS) return null
   return entry.data
@@ -233,7 +242,7 @@ export function clearCachedActiveDiscussions(_dependencyKey?: string): void {
 export function getCachedTranslationSuggestions(
   dependencyKey: string,
 ): HomeTranslationSuggestion[] | null {
-  const entry = readEntries().translationSuggestions as
+  const entry = readEntriesForLookup().translationSuggestions as
     | CachedTranslationSuggestionsEntry
     | undefined
   if (!entry?.data?.length || entry.dependencyKey !== dependencyKey) return null

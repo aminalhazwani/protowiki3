@@ -19,28 +19,37 @@ const root = ref<HTMLElement | null>(null)
 
 let abortController: AbortController | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let lastRequestedTerm = ''
 
 async function fetchSuggestions(term: string): Promise<void> {
   abortController?.abort()
   const trimmed = term.trim()
   if (!trimmed.length) {
+    lastRequestedTerm = ''
     results.value = []
     loading.value = false
     return
   }
 
   abortController = new AbortController()
+  const { signal } = abortController
+  lastRequestedTerm = trimmed
   loading.value = true
 
+  // A superseded request must not touch shared state: its results are stale and
+  // clearing `loading` would hide the spinner while the newer one is in flight.
+  const isCurrent = (): boolean => !signal.aborted && lastRequestedTerm === trimmed
+
   try {
-    results.value = await fetchTitleSearchResults(trimmed, {
-      signal: abortController.signal,
+    const found = await fetchTitleSearchResults(trimmed, {
+      signal,
       clientTag: 'wikita-lite-onboarding-search',
     })
+    if (isCurrent()) results.value = found
   } catch (error) {
-    if ((error as Error).name !== 'AbortError') results.value = []
+    if ((error as Error).name !== 'AbortError' && isCurrent()) results.value = []
   } finally {
-    loading.value = false
+    if (isCurrent()) loading.value = false
   }
 }
 
