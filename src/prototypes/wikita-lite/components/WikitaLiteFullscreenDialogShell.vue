@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CdxButton, CdxDialog, type PrimaryModalAction } from '@wikimedia/codex'
+
+import { globalSkin } from '@/theme'
 
 interface Props {
   title: string
@@ -18,6 +20,13 @@ withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{ close: []; primary: [] }>()
+
+/*
+ * Phone: a full-height takeover. Desktop: an ordinary centred modal sized to its
+ * content. Keyed on the global skin rather than a media query so it flips at the
+ * same 640px threshold as the chrome, and follows `?skin=` when that pins it.
+ */
+const isDesktop = computed(() => globalSkin.value === 'desktop')
 
 const shellEl = ref<HTMLElement | null>(null)
 const bodyScrolls = ref(false)
@@ -57,11 +66,14 @@ function onDialogClose(open: boolean): void {
   <div
     ref="shellEl"
     class="wikita-lite-fullscreen-dialog-shell"
-    :class="{ 'wikita-lite-fullscreen-dialog-shell--scrolls': bodyScrolls }"
+    :class="{
+      'wikita-lite-fullscreen-dialog-shell--scrolls': bodyScrolls,
+      'wikita-lite-fullscreen-dialog-shell--centred': isDesktop,
+    }"
   >
     <CdxDialog
       :open="true"
-      :fixed-height="true"
+      :fixed-height="!isDesktop"
       render-in-place
       :title="title"
       :subtitle="subtitle"
@@ -162,6 +174,12 @@ function onDialogClose(open: boolean): void {
 
 .wikita-lite-fullscreen-dialog-shell :deep(.cdx-dialog--fixed-height) {
   height: calc(100% - 2rem);
+}
+
+/* Desktop: hand height back to the content and restore Codex's own width clamp,
+   so the backdrop's flex centring places a normal modal on the page. */
+.wikita-lite-fullscreen-dialog-shell--centred :deep(.cdx-dialog) {
+  max-width: 32rem;
 }
 
 .wikita-lite-fullscreen-dialog-shell :deep(.cdx-dialog__body) {
