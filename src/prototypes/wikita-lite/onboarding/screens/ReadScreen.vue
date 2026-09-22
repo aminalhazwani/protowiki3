@@ -22,6 +22,11 @@ const MAIN_PAGE_TITLE = 'Main Page'
 const effectiveTitle = computed(() => props.flow.title.value.trim() || MAIN_PAGE_TITLE)
 const displayTitle = computed(() => effectiveTitle.value.replace(/_/g, ' ').trim())
 const isMainPage = computed(() => effectiveTitle.value === MAIN_PAGE_TITLE)
+/*
+ * Minerva gives the Main Page no title block; Vector does (title, languages,
+ * tabs, tagline), so the header comes back on desktop.
+ */
+const showArticleHeader = computed(() => !isMainPage.value || globalSkin.value === 'desktop')
 const saveSheetOpen = ref(false)
 const saveSheetVisible = ref(false)
 const articleHeaderRef = ref<InstanceType<typeof ArticleHeader> | null>(null)
@@ -91,7 +96,7 @@ function onArticleLinkClick(event: MouseEvent): void {
       <ReturnHomeBanner :flow="props.flow" />
       <article class="article nd-article" :data-skin="globalSkin">
         <ArticleHeader
-          v-if="!isMainPage"
+          v-if="showArticleHeader"
           ref="articleHeaderRef"
           :title="displayTitle"
           bookmark-affordance="bookmark"

@@ -183,17 +183,23 @@
   }
 }
 
+/*
+ * Re-apply the two-column layout. These repeat the `:has(#mp-upper)` qualifier
+ * from the resets above: `:has()` takes the specificity of its argument, so the
+ * reset scores an id more than a plain `.article .mw-parser-output #mp-upper`
+ * would, and a lower-specificity rule here would lose no matter the order.
+ */
 @container wikipedia-main-page (min-width: 875px) {
-  .article .mw-parser-output #mp-upper {
+  .article .mw-parser-output:has(#mp-upper) #mp-upper {
     display: flex;
   }
 
-  .article .mw-parser-output #mp-left {
+  .article .mw-parser-output:has(#mp-upper) #mp-left {
     flex: 1 1 55%;
     margin-right: 2px;
   }
 
-  .article .mw-parser-output #mp-right {
+  .article .mw-parser-output:has(#mp-upper) #mp-right {
     flex: 1 1 45%;
     margin-left: 2px;
   }
