@@ -741,9 +741,14 @@ export async function fetchRecentChanges(
   const cached = getCachedRecentChangesPreview(dependencyKey)
   if (cached) return cached.slice(0, limit)
 
-  const result = (await fetchLatestRecentChanges(items, signal)).changes.slice(0, limit)
-  if (result.length) {
-    setCachedRecentChangesPreview(dependencyKey, result)
+  /*
+   * Cache everything the fetch found and cap on the way out, not on the way in.
+   * Storing the capped list meant a caller that later asked for more changes
+   * kept being served the smaller cached one for the rest of the TTL.
+   */
+  const all = (await fetchLatestRecentChanges(items, signal)).changes
+  if (all.length) {
+    setCachedRecentChangesPreview(dependencyKey, all)
   }
-  return result
+  return all.slice(0, limit)
 }

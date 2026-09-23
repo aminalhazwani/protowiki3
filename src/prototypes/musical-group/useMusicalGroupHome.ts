@@ -108,6 +108,7 @@ const CONTRIBUTE_FALLBACK_RECENT_CHANGES_LIMIT = 1
 
 export function useMusicalGroupHome(options: {
   helpWantedLimit?: number
+  recentChangesLimit?: number
   translationCountPerLanguage?: number
   translationLanguages?: () => string[]
   getBookmarkChangeSkipFeeds?: () => PersonalizedFeedId[]
@@ -116,6 +117,7 @@ export function useMusicalGroupHome(options: {
   listInterests?: () => string[]
 } = {}) {
   const helpWantedLimit = options.helpWantedLimit ?? 2
+  const recentChangesLimit = options.recentChangesLimit
   const translationCountPerLanguage = options.translationCountPerLanguage ?? 2
   const savedPagesSource = options.savedPagesSource ?? 'bookmarks'
   const listInterests = options.listInterests ?? listStoredInterests
@@ -369,7 +371,10 @@ export function useMusicalGroupHome(options: {
       (async () => {
         if (!needsRecentFetch) return
         try {
-          recentChanges.value = await fetchRecentChanges(seedItems, signal, { dependencyKey })
+          recentChanges.value = await fetchRecentChanges(seedItems, signal, {
+            dependencyKey,
+            limit: recentChangesLimit,
+          })
         } catch (err) {
           if (isAbort(err)) return
         } finally {

@@ -13,7 +13,8 @@ import { isCacheBypassed, utcDayKey } from './cacheKeys'
 import { readVersionedStore, setVersionedEntry, writeVersionedStore } from './wikitaCache'
 
 const STORAGE_KEY = 'musical-group-home-cache'
-const CACHE_VERSION = 1
+/* 2: recent-changes entries now hold the full fetch rather than a capped preview. */
+const CACHE_VERSION = 2
 
 /** Daily home feeds (trending, etc.) stay valid for ~24h from fetch time. */
 export const HOME_TAB_FEED_CACHE_TTL_MS = 24 * 60 * 60 * 1000

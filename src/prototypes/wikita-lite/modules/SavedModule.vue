@@ -27,6 +27,12 @@ interface Props {
   items?: HomeSavedItem[]
   loading?: boolean
   previewLimit?: number
+  /**
+   * How many saved pages exist in total. `items` is only ever the newest few,
+   * so the overflow link needs the real count to know whether "more" exists.
+   * Defaults to `items.length` for callers that pass the whole list.
+   */
+  totalCount?: number
   moreTo?: RouteLocationRaw
 }
 
@@ -34,7 +40,8 @@ const props = withDefaults(defineProps<Props>(), {
   standalone: false,
   items: () => [],
   loading: false,
-  previewLimit: 5,
+  previewLimit: 4,
+  totalCount: undefined,
   moreTo: undefined,
 })
 
@@ -105,10 +112,15 @@ function formatSavedLabel(savedAt: number | undefined): string {
 
 const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () => props.standalone })
 
+/* Nothing to go to until there is a saved page the preview didn't fit. */
+const hasOverflow = computed(
+  () => (props.totalCount ?? props.items.length) > props.previewLimit,
+)
+
 const showMoreLink = useWikitaLiteOverflowShowMore({
   standalone: () => props.standalone,
   moreTo: () => props.moreTo,
-  hasItems: () => displayItems.value.length > 0,
+  hasItems: () => hasOverflow.value,
 })
 </script>
 

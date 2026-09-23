@@ -8,12 +8,15 @@ import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSugg
 
 /** Home preview only needs a few cards. */
 export const WIKITA_LITE_HELP_WANTED_HOME_LIMIT = 4
+/** Review changes previews a 2x2 grid, so the fetch has to reach four. */
+export const WIKITA_LITE_RECENT_CHANGES_HOME_LIMIT = 4
 export const WIKITA_LITE_TRANSLATION_HOME_COUNT = 2
 
 export type { PersonalizedFeedId }
 
 export function useWikitaLiteHome(options?: {
   helpWantedLimit?: number
+  recentChangesLimit?: number
   translationCountPerLanguage?: number
   translationLanguages?: () => string[]
   getBookmarkChangeSkipFeeds?: () => PersonalizedFeedId[]
@@ -23,6 +26,7 @@ export function useWikitaLiteHome(options?: {
 
   return useMusicalGroupHome({
     helpWantedLimit: options?.helpWantedLimit ?? WIKITA_LITE_HELP_WANTED_HOME_LIMIT,
+    recentChangesLimit: options?.recentChangesLimit ?? WIKITA_LITE_RECENT_CHANGES_HOME_LIMIT,
     translationCountPerLanguage:
       options?.translationCountPerLanguage ?? WIKITA_LITE_TRANSLATION_HOME_COUNT,
     translationLanguages:

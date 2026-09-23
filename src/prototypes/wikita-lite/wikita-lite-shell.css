@@ -79,7 +79,9 @@
     .related-module__cards,
     .did-you-know-module__cards,
     .trending-module__cards,
-    .active-discussions-module__cards
+    .active-discussions-module__cards,
+    .saved-module__cards,
+    .recent-activity-module__cards
   ) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -94,7 +96,9 @@
     .related-module__cards,
     .did-you-know-module__cards,
     .trending-module__cards,
-    .active-discussions-module__cards
+    .active-discussions-module__cards,
+    .saved-module__cards,
+    .recent-activity-module__cards
   )
   > * {
   min-height: 0;
@@ -122,23 +126,12 @@
   flex: 1 1 auto;
 }
 
-/* A feed short enough to return one card shouldn't sit in half a row. */
-.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
-  :is(
-    .help-wanted-module__cards,
-    .related-module__cards,
-    .did-you-know-module__cards,
-    .trending-module__cards,
-    .active-discussions-module__cards
-  )
-  > :only-child {
-  grid-column: 1 / -1;
-}
-
 /*
  * Featured is always exactly one card — the article of the day — so there is
  * no grid to build. It still sits on the matrix: one column wide, which also
  * stops its full-bleed hero image from running the height of the viewport.
+ * A module that happens to hold a single card (one saved page, say) reads the
+ * same way: the grid leaves it in column one rather than stretching it.
  */
 .special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
   .featured-module
@@ -157,7 +150,9 @@
     .related-module,
     .did-you-know-module,
     .trending-module,
-    .active-discussions-module
+    .active-discussions-module,
+    .saved-module,
+    .recent-activity-module
   )
   > .wikita-lite-button-link {
   display: inline-flex;

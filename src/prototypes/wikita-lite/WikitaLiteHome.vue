@@ -55,11 +55,11 @@ import {
 const HOME_FEATURED_PREVIEW_LIMIT = 3
 const HOME_DYK_PREVIEW_LIMIT = 4
 const HOME_TRENDING_PREVIEW_LIMIT = 4
-const HOME_SAVED_PREVIEW_LIMIT = 5
+const HOME_SAVED_PREVIEW_LIMIT = 4
 const HOME_MENTIONS_PREVIEW_LIMIT = 3
 const HOME_FURTHER_READING_PREVIEW_LIMIT = 4
 const HOME_HELP_WANTED_PREVIEW_LIMIT = 4
-const HOME_RECENT_ACTIVITY_PREVIEW_LIMIT = 3
+const HOME_RECENT_ACTIVITY_PREVIEW_LIMIT = 4
 const UNSAVED_HELP_WANTED_PREVIEW_LIMIT = 1
 const UNSAVED_RECENT_ACTIVITY_PREVIEW_LIMIT = 1
 const HOME_ACTIVE_DISCUSSIONS_PREVIEW_LIMIT = 4
@@ -96,7 +96,7 @@ const {
   hasSavedPages,
   suggestionSeedsAvailable,
   showSavedBasedMentions,
-  recentlySaved,
+  savedSorted,
   savedItemsLoading,
   ensureReadingListSummaries,
   homeRelatedItems,
@@ -128,6 +128,13 @@ const homeRelatedPreviewCount = computed(() => homeRelatedItems.value.length)
 const homeMentionsPreview = computed(() =>
   homeMentions.value.slice(0, HOME_MENTIONS_PREVIEW_LIMIT),
 )
+
+/*
+ * The Saved preview is the newest four. `savedSorted` is the whole list, so its
+ * length is also what tells the module whether a "Show more saved" exists.
+ */
+const savedPreview = computed(() => savedSorted.value.slice(0, HOME_SAVED_PREVIEW_LIMIT))
+const savedTotalCount = computed(() => savedSorted.value.length)
 
 const helpWantedPreviewLimit = computed(() =>
   suggestionSeedsAvailable.value || hasSavedPages.value
@@ -304,7 +311,7 @@ const editTab = useWikitaLiteTabLoading([
   {
     id: 'saved',
     loading: savedItemsLoading,
-    previewCount: computed(() => recentlySaved.value.length),
+    previewCount: computed(() => savedPreview.value.length),
     enabled: computed(() => isLayoutModuleEnabled('saved')),
   },
   {
@@ -324,7 +331,7 @@ const readExploreTab = useWikitaLiteTabLoading([
   {
     id: 'saved',
     loading: savedItemsLoading,
-    previewCount: computed(() => recentlySaved.value.length),
+    previewCount: computed(() => savedPreview.value.length),
     enabled: hasSavedPages,
   },
   {
@@ -676,14 +683,15 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           :to="wikitaLiteRoute(SAVED_PAGE)"
         >
           <div
-            v-if="editTab.showLoadingBar('saved') && hasSavedPages && !recentlySaved.length"
+            v-if="editTab.showLoadingBar('saved') && hasSavedPages && !savedPreview.length"
             class="wikita-lite-home__loading"
           >
             <CdxProgressBar inline aria-label="Loading saved pages" />
           </div>
           <SavedModule
-            :items="hasSavedPages ? recentlySaved : []"
+            :items="hasSavedPages ? savedPreview : []"
             :preview-limit="HOME_SAVED_PREVIEW_LIMIT"
+            :total-count="hasSavedPages ? savedTotalCount : 0"
             :more-to="wikitaLiteRoute(SAVED_PAGE)"
           />
         </WikitaLiteModule>
@@ -738,18 +746,19 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           :to="wikitaLiteRoute(SAVED_PAGE)"
         >
           <div
-            v-if="hasSavedPages && readExploreTab.showLoadingBar('saved') && !recentlySaved.length"
+            v-if="hasSavedPages && readExploreTab.showLoadingBar('saved') && !savedPreview.length"
             class="wikita-lite-home__loading"
           >
             <CdxProgressBar inline aria-label="Loading saved pages" />
           </div>
           <SavedModule
-            :items="hasSavedPages ? recentlySaved : []"
+            :items="hasSavedPages ? savedPreview : []"
             :preview-limit="HOME_SAVED_PREVIEW_LIMIT"
+            :total-count="hasSavedPages ? savedTotalCount : 0"
             :more-to="wikitaLiteRoute(SAVED_PAGE)"
           >
             <template
-              v-if="hasSavedPages && readExploreTab.showLoadingBar('saved') && recentlySaved.length"
+              v-if="hasSavedPages && readExploreTab.showLoadingBar('saved') && savedPreview.length"
               #after-cards
             >
               <div class="wikita-lite-home__loading">
