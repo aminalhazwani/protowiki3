@@ -1,5 +1,23 @@
 <template>
-  <Teleport :to="overlayTarget!" :disabled="teleportDisabled">
+  <!--
+    Vector: a Codex popover anchored to whichever affordance opened it, the way
+    a help affordance behaves on a desktop page.
+  -->
+  <CdxPopover
+    v-if="isDesktop"
+    class="policy-popover"
+    :open="visible"
+    :anchor="anchor"
+    title="Username policy"
+    use-close-button
+    render-in-place
+    @update:open="onPopoverOpenUpdate"
+  >
+    <UsernamePolicyBody />
+  </CdxPopover>
+
+  <!-- Minerva: bottom sheet, inside the phone column. -->
+  <Teleport v-else :to="overlayTarget!" :disabled="teleportDisabled">
     <Transition name="slide-up">
       <div
         v-show="visible"
@@ -14,17 +32,7 @@
               <CdxIcon :icon="cdxIconClose" />
             </CdxButton>
           </div>
-          <ul class="policy-list">
-            <li>Consider <b>privacy risks</b> before using your real name.</li>
-            <li>Don't use offensive, misleading, or promotional names.</li>
-            <li>Your username must represent you as an individual, not an organization.</li>
-          </ul>
-          <a
-            href="https://en.wikipedia.org/wiki/Wikipedia:Username_policy"
-            target="_blank"
-            rel="noopener"
-            class="policy-full-link"
-          >Read the full username policy</a>
+          <UsernamePolicyBody />
         </div>
       </div>
     </Transition>
@@ -34,14 +42,31 @@
 <script setup lang="ts">
 import { computed, inject, type Ref } from 'vue'
 
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxPopover } from '@wikimedia/codex'
 import { cdxIconClose } from '@wikimedia/codex-icons'
+
+import { globalSkin } from '@/theme'
+
+import UsernamePolicyBody from './UsernamePolicyBody.vue'
 
 defineProps({
   visible: { type: Boolean, default: false },
+  /**
+   * The element the popover hangs off on desktop — a template ref to whichever
+   * affordance opens it (the help button, or the inline link in the copy
+   * variants that use one). Unused by the mobile bottom sheet.
+   */
+  anchor: { type: Object, default: null },
 })
 
-defineEmits(['close'])
+const emit = defineEmits(['close'])
+
+const isDesktop = computed(() => globalSkin.value === 'desktop')
+
+/** `CdxPopover` reports its own dismissals (close button, outside click, Esc). */
+function onPopoverOpenUpdate(open: boolean): void {
+  if (!open) emit('close')
+}
 
 const overlayTarget = inject<Ref<HTMLElement | null>>('CdxTeleportTarget', null)
 const teleportDisabled = computed(() => !overlayTarget?.value)
@@ -96,27 +121,6 @@ const teleportDisabled = computed(() => !overlayTarget?.value)
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-medium);
   color: var(--color-base);
-}
-
-.policy-list {
-  margin: 0;
-  padding-left: var(--spacing-200);
-  line-height: var(--line-height-medium);
-  color: var(--color-base);
-}
-
-.policy-list li {
-  margin-bottom: var(--spacing-25);
-}
-
-.policy-list li:last-child {
-  margin-bottom: 0;
-}
-
-.policy-full-link {
-  display: block;
-  margin-top: var(--spacing-100);
-  color: var(--color-progressive);
 }
 
 .slide-up-enter-active {

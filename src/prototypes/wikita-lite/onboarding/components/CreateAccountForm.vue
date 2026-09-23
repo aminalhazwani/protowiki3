@@ -19,6 +19,7 @@
                 <span class="username-description-row">
                   Avoid using your real name.
                   <CdxButton
+                    ref="policyTriggerRef"
                     weight="quiet"
                     size="small"
                     type="button"
@@ -30,12 +31,23 @@
               </template>
               <template v-else-if="settings.fields.username.behaviors.thingsToKnowCopy">
                 There are some
-                <a href="#" class="public-link" @click.prevent="showPolicy = true">things to know</a
+                <a
+                  ref="policyTriggerRef"
+                  href="#"
+                  class="public-link"
+                  @click.prevent="showPolicy = true"
+                  >things to know</a
                 >.
               </template>
               <template v-else>
                 Your username is
-                <a href="#" class="public-link" @click.prevent="showPolicy = true">public</a>.
+                <a
+                  ref="policyTriggerRef"
+                  href="#"
+                  class="public-link"
+                  @click.prevent="showPolicy = true"
+                  >public</a
+                >.
               </template>
             </template>
             <div @click="onUsernameEndIconClick" @keydown="onUsernameEndIconKeydown">
@@ -368,7 +380,11 @@
     />
   </form>
 
-  <UsernamePolicy :visible="showPolicy" @close="showPolicy = false" />
+  <UsernamePolicy
+    :visible="showPolicy"
+    :anchor="policyTriggerRef"
+    @close="showPolicy = false"
+  />
 </template>
 
 <script setup>
@@ -401,6 +417,12 @@ const noInputAssistanceAttrs = {
 }
 
 const showPolicy = ref(false)
+/*
+ * The affordance the policy popover hangs off on desktop. Each copy variant
+ * renders its own trigger (help button, or an inline link), but only one of
+ * them at a time — so they can share the ref.
+ */
+const policyTriggerRef = ref(null)
 const { settings } = useFormSettings()
 
 const isTakenOnceMode = computed(() =>

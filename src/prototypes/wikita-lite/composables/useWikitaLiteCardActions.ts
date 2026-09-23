@@ -4,7 +4,6 @@ import { useConfig } from '@/composables/useConfig'
 
 import { useWikitaSaveFeedback } from '../../musical-group/composables/useWikitaSaveFeedback'
 import {
-  EN_WIKI_HOST,
   enwikiArticleUrl,
   normalizeEnwikiTitle,
   resolveExternalUrl,
@@ -35,7 +34,13 @@ export function helpWantedHref(item: { enwikiTitle?: string; title: string }): s
   return savedItemHref(item)
 }
 
-/** True when the href navigates to production English Wikipedia (leaves the prototype). */
+/**
+ * True when the href navigates off this prototype's own origin — production
+ * English Wikipedia, but also donate/commons/wikidata/meta, other language
+ * wikis, and any other external site. In-prototype links (fragments, relative
+ * and root-relative paths) stay false, as do non-navigational schemes such as
+ * `mailto:` and `tel:`.
+ */
 export function isLeavePrototypeHref(href: string): boolean {
   const trimmed = href.trim()
   if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('./')) return false
@@ -44,11 +49,12 @@ export function isLeavePrototypeHref(href: string): boolean {
     return false
   }
 
+  const base = typeof window !== 'undefined' ? window.location.href : 'https://example.com'
+
   try {
-    const resolved = resolveExternalUrl(trimmed)
-    const url = new URL(resolved, typeof window !== 'undefined' ? window.location.href : 'https://example.com')
-    const host = url.hostname.toLowerCase()
-    return host === EN_WIKI_HOST || host === `www.${EN_WIKI_HOST}`
+    const url = new URL(resolveExternalUrl(trimmed), base)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false
+    return url.origin !== new URL(base).origin
   } catch {
     return false
   }

@@ -24,10 +24,10 @@ const effectiveTitle = computed(() => props.flow.title.value.trim() || MAIN_PAGE
 const displayTitle = computed(() => effectiveTitle.value.replace(/_/g, ' ').trim())
 const isMainPage = computed(() => effectiveTitle.value === MAIN_PAGE_TITLE)
 /*
- * Minerva gives the Main Page no title block; Vector does (title, languages,
- * tabs, tagline), so the header comes back on desktop.
+ * The Main Page is a landing page rather than an article: no title, languages
+ * control, tabs or tagline on either skin — the portal boxes are the page.
  */
-const showArticleHeader = computed(() => !isMainPage.value || globalSkin.value === 'desktop')
+const showArticleHeader = computed(() => !isMainPage.value)
 const saveSheetOpen = ref(false)
 const saveSheetVisible = ref(false)
 const articleHeaderRef = ref<InstanceType<typeof ArticleHeader> | null>(null)
@@ -98,7 +98,11 @@ function onArticleLinkClick(event: MouseEvent): void {
       </template>
 
       <ReturnHomeBanner :flow="props.flow" />
-      <article class="article nd-article" :data-skin="globalSkin">
+      <article
+        class="article nd-article"
+        :class="{ 'nd-article--main-page': isMainPage }"
+        :data-skin="globalSkin"
+      >
         <ArticleHeader
           v-if="showArticleHeader"
           ref="articleHeaderRef"
@@ -157,5 +161,13 @@ function onArticleLinkClick(event: MouseEvent): void {
 .nd-article[data-skin='desktop'] {
   max-width: calc(984px + 2 * var(--spacing-100, 16px));
   margin-inline: auto;
+}
+
+/*
+ * The Main Page is laid out in columns rather than read as prose, so it gets
+ * the wide container `SpecialPageWrapper` uses instead of the 984px measure.
+ */
+.nd-article--main-page[data-skin='desktop'] {
+  max-width: 99.75rem;
 }
 </style>

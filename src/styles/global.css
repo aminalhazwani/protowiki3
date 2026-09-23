@@ -25,6 +25,17 @@
   box-sizing: border-box;
 }
 
+/*
+ * Exception to the reset above. Codex sizes the popover's pointer as a 1rem
+ * content box plus a 1px border (18px in all), rotates it 45°, and clips it to
+ * a triangle. Forcing border-box shrinks it to 16px, which lifts its flat base
+ * 1px — just enough to leave the popover's own top border drawn across the
+ * pointer instead of notched out by it.
+ */
+.cdx-popover__arrow {
+  box-sizing: content-box;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
