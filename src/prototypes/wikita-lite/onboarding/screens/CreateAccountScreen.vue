@@ -60,7 +60,7 @@ async function onSubmit({ username, email }: { username: string; email: string }
         </template>
       </ChromeHeader>
     </template>
-    <SpecialPageWrapper v-if="isDesktop" title="Create account">
+    <SpecialPageWrapper v-if="isDesktop" class="account__page" title="Create account">
       <div class="account__column">
         <CreateAccountForm @submit="onSubmit" />
       </div>
@@ -89,7 +89,18 @@ async function onSubmit({ username, email }: { username: string; email: string }
   color: var(--color-base);
 }
 
-/* Form column — a form field is unreadable at special-page width. */
+/*
+ * `SpecialPageWrapper` clamps at ~1596px (FakeMediaWiki's `SpecialView`), which
+ * leaves the title rule running the full width of a wide window with a narrow
+ * form under it. Sit in the same 984px content column `ArticleWrapper` uses —
+ * the wrapper's padding is `spacing-150` and its box is border-box, so the
+ * padding goes inside the clamp.
+ */
+.account__page {
+  max-width: calc(984px + 2 * var(--spacing-150, 24px));
+}
+
+/* Form column — a form field is unreadable at content-column width. */
 .account__column {
   max-width: 448px;
   padding-top: var(--spacing-150, 24px);
