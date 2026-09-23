@@ -94,14 +94,29 @@ const greeting = computed(() => {
   color: var(--color-base);
 }
 
+/* Matches `.ob-title` on the desktop card — see onboarding-layout.css. */
+[data-skin='desktop'] .welcome__title {
+  padding-top: var(--spacing-100, 16px);
+}
+
 .welcome__illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
 }
 
+/*
+ * The mascot is a 480px square, which on the desktop modal filled the card.
+ * Cap it and let the flex parent centre what's left; the source is square, so
+ * capping the width alone keeps it in proportion.
+ */
 .welcome__hero {
   display: block;
   width: 100%;
-  height: 100%;
+  max-width: 256px;
+  height: auto;
+  max-height: 256px;
   border: none;
   object-fit: contain;
 }

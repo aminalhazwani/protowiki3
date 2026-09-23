@@ -21,6 +21,15 @@
   color: var(--color-base);
 }
 
+/*
+ * Vector runs the steps as a centred modal rather than a full-height takeover,
+ * so the generous phone lead-in leaves the title stranded — pull it up to the
+ * card's own rhythm.
+ */
+[data-skin='desktop'] .ob-title {
+  padding-top: var(--spacing-100, 16px);
+}
+
 .ob-body {
   display: flex;
   flex-direction: column;

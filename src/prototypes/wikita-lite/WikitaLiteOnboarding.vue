@@ -189,5 +189,8 @@ onBeforeUnmount(() => {
 
 .ob-footer-cta {
   width: 100%;
+  /* Codex caps buttons at 448px for readable labels; this one is the step's
+     whole footer, so let it take the width the dialog gives it. */
+  max-width: none;
 }
 </style>
