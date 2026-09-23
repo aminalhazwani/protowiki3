@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { nextTick } from 'vue'
+import { computed, nextTick } from 'vue'
 
 import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
+import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import { useKeyboardInset } from '@/composables/useKeyboardInset'
+import { globalSkin } from '@/theme'
 
 import WikitaLitePrototypeMenuPopover from '../../components/WikitaLitePrototypeMenuPopover.vue'
 import { useWikitaLiteChromeHeaderRight } from '../../composables/useWikitaLiteChromeHeaderRight'
@@ -21,6 +23,13 @@ const { state } = useWikitaLiteUrlState()
 
 useKeyboardInset()
 const { headerRight } = useWikitaLiteChromeHeaderRight({ hideUserMenu: true })
+
+/*
+ * Minerva renders the screen as its own page (own `h1`, full-bleed form);
+ * Vector renders it the way the real wiki renders `Special:CreateAccount` —
+ * a special page with a title rule, the form in a narrow column beneath it.
+ */
+const isDesktop = computed(() => globalSkin.value === 'desktop')
 
 async function onSubmit({ username, email }: { username: string; email: string }): Promise<void> {
   resetReturnHomeBanner()
@@ -51,7 +60,13 @@ async function onSubmit({ username, email }: { username: string; email: string }
         </template>
       </ChromeHeader>
     </template>
-    <div class="account">
+    <SpecialPageWrapper v-if="isDesktop" title="Create account">
+      <div class="account__column">
+        <CreateAccountForm @submit="onSubmit" />
+      </div>
+    </SpecialPageWrapper>
+
+    <div v-else class="account">
       <h1 class="account__title">Create account</h1>
       <CreateAccountForm @submit="onSubmit" />
     </div>
@@ -74,12 +89,33 @@ async function onSubmit({ username, email }: { username: string; email: string }
   color: var(--color-base);
 }
 
+/* Form column — a form field is unreadable at special-page width. */
+.account__column {
+  max-width: 448px;
+  padding-top: var(--spacing-150, 24px);
+  padding-bottom: var(--spacing-200, 32px);
+}
+
+/*
+ * The username suggestions scroll full-bleed on a phone (`100vw` + negative
+ * margin). Inside a 448px column that would spill across the page, so it
+ * scrolls within the column instead.
+ */
+.account__column :deep(.username-chips-container) {
+  width: 100%;
+  margin-left: 0;
+  padding-inline: 0;
+}
+
 .account :deep(.cdx-checkbox__icon::before),
-.account :deep(.cdx-radio__icon::before) {
+.account :deep(.cdx-radio__icon::before),
+.account__column :deep(.cdx-checkbox__icon::before),
+.account__column :deep(.cdx-radio__icon::before) {
   box-sizing: content-box;
 }
 
-.account :deep(.cdx-message__content) {
+.account :deep(.cdx-message__content),
+.account__column :deep(.cdx-message__content) {
   font-weight: var(--font-weight-normal);
 }
 </style>

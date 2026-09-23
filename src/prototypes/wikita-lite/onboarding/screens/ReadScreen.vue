@@ -13,6 +13,7 @@ import { useWikitaLiteChromeHeaderRight } from '../../composables/useWikitaLiteC
 import SavePagesSheet from '../components/SavePagesSheet.vue'
 import ReturnHomeBanner from '../components/ReturnHomeBanner.vue'
 import { resolveArticleLink } from '../data/articleLinks'
+import { useOnboardingArticleOpener } from '../data/useOnboardingArticleOpener'
 import { useArticleHtml } from '../data/useArticleHtml'
 import type { FlowState, OnboardingScreen } from '../data/useWikitaLiteOnboardingFlow'
 
@@ -33,6 +34,9 @@ const articleHeaderRef = ref<InstanceType<typeof ArticleHeader> | null>(null)
 const bookmarkAnchor = computed(() => articleHeaderRef.value?.bookmarkAnchor ?? null)
 
 const { html, loading, error } = useArticleHtml(effectiveTitle)
+
+// Search in the chrome above opens its results here rather than on the real wiki.
+useOnboardingArticleOpener(props.flow)
 
 function onBookmark(): void {
   saveSheetVisible.value = true
@@ -142,5 +146,16 @@ function onArticleLinkClick(event: MouseEvent): void {
   padding: var(--spacing-150, 24px) var(--spacing-100, 16px) var(--spacing-100, 16px);
   background-color: var(--background-color-base);
   text-align: start;
+}
+
+/*
+ * This screen composes its own `<article>` rather than using `ArticleWrapper`
+ * (it needs the bookmark click that wrapper swallows), so that component's
+ * scoped column rule never reaches here. Mirror it: 984px content column,
+ * padding-inline inside the max-width because the box is border-box.
+ */
+.nd-article[data-skin='desktop'] {
+  max-width: calc(984px + 2 * var(--spacing-100, 16px));
+  margin-inline: auto;
 }
 </style>

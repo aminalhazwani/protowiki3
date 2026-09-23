@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue'
-import { CdxButton, CdxIcon, CdxPopover, CdxTextInput } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
+import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconBookmarkOutline,
-  cdxIconDownTriangle,
   cdxIconDownload,
   cdxIconEdit,
   cdxIconEllipsis,
+  cdxIconExpand,
   cdxIconHistory,
   cdxIconLanguage,
-  cdxIconSearch,
-  cdxIconSettings,
   cdxIconStar,
   cdxIconUnStar,
 } from '@wikimedia/codex-icons'
@@ -23,7 +22,7 @@ import { useConfig } from '@/composables/useConfig'
 import { globalSkin, PROTOWIKI_CHROME_SKIN } from '@/theme'
 import type { Skin } from '@/theme'
 
-const LANG_SEARCH_PLACEHOLDER = 'Search languages'
+const LANGUAGES_LABEL = 'Languages'
 const DEFAULT_TAGLINE = 'From Wikipedia, the free encyclopedia'
 
 const internalLanguageLinks = DEFAULT_ARTICLE_LANGUAGE_LINKS
@@ -82,34 +81,46 @@ const emit = defineEmits<{
   downloadClick: []
   moreClick: []
   languageSelect: [link: ArticleLanguageLink]
-  languageSettingsClick: []
 }>()
 
-const langMenuOpen = ref(false)
-const langSearch = ref('')
-const langAnchor = ref<HTMLElement | null>(null)
 const bookmarkAnchor = ref<HTMLElement | null>(null)
 
 defineExpose({ bookmarkAnchor })
 
-const filteredLanguageLinks = computed(() => {
-  const q = langSearch.value.trim().toLowerCase()
-  if (!q) return internalLanguageLinks
-  return internalLanguageLinks.filter((row) => row.label.toLowerCase().includes(q))
-})
-
-watch(langMenuOpen, (open) => {
-  if (!open) langSearch.value = ''
-})
-
-function closeLangMenu() {
-  langMenuOpen.value = false
+/** `https://bg.wikipedia.org/wiki/` → `bg`; `simple` is a subdomain, not a tag. */
+function languageTag(href: string): string {
+  const subdomain = href.match(/^https?:\/\/([^.]+)\./)?.[1] ?? ''
+  return subdomain === 'simple' ? 'en' : subdomain
 }
 
-function onLanguagePick(row: ArticleLanguageLink) {
-  emit('languageSelect', row)
-  closeLangMenu()
-}
+/**
+ * One menu for both skins — desktop labels its button “N languages”, mobile
+ * reduces it to the language icon in the toolbar.
+ *
+ * `language` per row so each label shapes and picks fonts in its own language
+ * rather than the page's, which matters for the RTL and CJK rows.
+ *
+ * No `url` on purpose: a Codex item with one renders as an anchor and would
+ * navigate away to that wiki. The old popover called `@click.prevent` for the
+ * same reason — the row still reaches consumers through `languageSelect`.
+ */
+const languageMenuItems = computed((): MenuButtonItemData[] =>
+  internalLanguageLinks.map((row) => ({
+    value: row.href,
+    label: row.label,
+    language: { label: languageTag(row.href) },
+  })),
+)
+
+/** Bound with `v-model:selected`; self-clears so no row keeps a checkmark. */
+const langSelection = ref<MenuItemValue | null>(null)
+
+watch(langSelection, (value) => {
+  if (value === null) return
+  const row = internalLanguageLinks.find((link) => link.href === value)
+  if (row) emit('languageSelect', row)
+  langSelection.value = null
+})
 </script>
 
 <template>
@@ -119,19 +130,18 @@ function onLanguagePick(row: ArticleLanguageLink) {
         <slot name="title">{{ title }}</slot>
       </h1>
       <div v-if="effectiveSkin === 'desktop'" class="article-header__lang-anchor">
-        <button
-          ref="langAnchor"
-          type="button"
-          class="article-header__languages"
-          :aria-expanded="langMenuOpen"
-          aria-haspopup="dialog"
-          :aria-controls="langMenuOpen ? 'article-header-lang-menu' : undefined"
-          @click="langMenuOpen = !langMenuOpen"
+        <CdxMenuButton
+          v-model:selected="langSelection"
+          class="article-header__languages menu-content-width"
+          weight="quiet"
+          action="progressive"
+          :menu-items="languageMenuItems"
+          :menu-config="{ visibleItemLimit: 8 }"
         >
-          <CdxIcon class="article-header__lang-icon" :icon="cdxIconLanguage" size="small" />
-          <span>{{ languagesButtonLabel }}</span>
-          <CdxIcon class="article-header__caret" :icon="cdxIconDownTriangle" size="small" />
-        </button>
+          <CdxIcon :icon="cdxIconLanguage" />
+          {{ languagesButtonLabel }}
+          <CdxIcon class="article-header__caret" :icon="cdxIconExpand" size="small" />
+        </CdxMenuButton>
       </div>
     </div>
 
@@ -182,18 +192,16 @@ function onLanguagePick(row: ArticleLanguageLink) {
       :class="{ 'article-header__icon-toolbar--logged-out': isLoggedOut }"
       aria-label="Page actions"
     >
-      <button
-        ref="langAnchor"
-        type="button"
-        class="article-header__icon-tool"
-        :aria-expanded="langMenuOpen"
-        aria-haspopup="dialog"
-        :aria-controls="langMenuOpen ? 'article-header-lang-menu' : undefined"
-        aria-label="Languages"
-        @click="langMenuOpen = !langMenuOpen"
+      <CdxMenuButton
+        v-model:selected="langSelection"
+        class="article-header__languages article-header__lang-tool menu-content-width"
+        weight="quiet"
+        :menu-items="languageMenuItems"
+        :menu-config="{ visibleItemLimit: 8 }"
+        :aria-label="LANGUAGES_LABEL"
       >
         <CdxIcon :icon="cdxIconLanguage" />
-      </button>
+      </CdxMenuButton>
       <div v-if="isLoggedOut" class="article-header__icon-toolbar-group article-header__icon-toolbar-group--end">
         <button
           type="button"
@@ -258,50 +266,6 @@ function onLanguagePick(row: ArticleLanguageLink) {
       </template>
     </div>
 
-    <CdxPopover
-      v-model:open="langMenuOpen"
-      :anchor="langAnchor"
-      :placement="effectiveSkin === 'mobile' ? 'bottom-start' : 'bottom-end'"
-      render-in-place
-    >
-      <div id="article-header-lang-menu" class="article-header__lang-panel" @click.stop>
-        <CdxTextInput
-          v-model="langSearch"
-          :start-icon="cdxIconSearch"
-          input-type="search"
-          :placeholder="LANG_SEARCH_PLACEHOLDER"
-          clearable
-        />
-        <ul class="article-header__lang-list" role="listbox" :aria-label="LANG_SEARCH_PLACEHOLDER">
-          <li v-for="row in filteredLanguageLinks" :key="row.href + row.label">
-            <a
-              class="article-header__lang-link"
-              :href="row.href"
-              rel="noopener noreferrer"
-              role="option"
-              @click.prevent="onLanguagePick(row)"
-            >
-              {{ row.label }}
-            </a>
-          </li>
-        </ul>
-        <div class="article-header__lang-footer">
-          <CdxButton
-            weight="quiet"
-            aria-label="Language settings"
-            @click="
-              () => {
-                emit('languageSettingsClick')
-                closeLangMenu()
-              }
-            "
-          >
-            <CdxIcon :icon="cdxIconSettings" />
-          </CdxButton>
-        </div>
-      </div>
-    </CdxPopover>
-
     <p v-if="effectiveSkin === 'desktop'" class="article-header__tagline">
       {{ DEFAULT_TAGLINE }}
     </p>
@@ -337,81 +301,13 @@ function onLanguagePick(row: ArticleLanguageLink) {
   flex-shrink: 0;
 }
 
-.article-header__languages {
+.article-header__languages.cdx-button {
   display: inline-flex;
+  gap: var(--spacing-25, 4px);
   align-items: center;
-  gap: var(--spacing-35, 5px);
-  margin: 0;
-  padding: var(--spacing-25, 2px) 0;
-  border: none;
-  background: transparent;
-  font: inherit;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-progressive);
-  cursor: pointer;
-}
-
-.article-header__languages:hover {
-  text-decoration: underline;
-}
-
-.article-header__lang-icon {
-  flex-shrink: 0;
-  color: var(--color-progressive);
 }
 
 .article-header__caret {
-  flex-shrink: 0;
-  opacity: 0.85;
-  color: var(--color-progressive);
-}
-
-.article-header__lang-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-50, 8px);
-  min-width: min(20rem, 90vw);
-  max-height: min(24rem, 70vh);
-}
-
-.article-header__lang-panel :deep(.cdx-text-input) {
-  flex-shrink: 0;
-}
-
-.article-header__lang-list {
-  flex: 1;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-y: auto;
-  border: 1px solid var(--border-color-subtle);
-  border-radius: var(--border-radius-base, 2px);
-  background-color: var(--background-color-base);
-}
-
-.article-header__lang-list li {
-  margin: 0;
-}
-
-.article-header__lang-link {
-  display: block;
-  padding: var(--spacing-50, 8px) var(--spacing-65, 12px);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-progressive);
-  text-decoration: none;
-}
-
-.article-header__lang-link:hover {
-  text-decoration: underline;
-  background-color: var(--background-color-interactive-subtle, #f8f9fa);
-}
-
-.article-header__lang-footer {
-  display: flex;
-  justify-content: flex-end;
   flex-shrink: 0;
 }
 
@@ -424,7 +320,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
   padding: 0;
   border-block: 1px solid var(--border-color-subtle);
   margin: 0;
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-system-sans);
   font-size: var(--font-size-small, 14px);
 }
 
@@ -432,7 +328,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header__actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-75, 12px);
+  gap: var(--spacing-50, 8px);
   flex-wrap: wrap;
 }
 
@@ -440,7 +336,8 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header__action {
   display: inline-flex;
   align-items: center;
-  padding: var(--spacing-50, 8px) var(--spacing-12, 1px);
+  gap: var(--spacing-25, 4px);
+  padding: var(--spacing-25, 4px);
   margin: 0;
   color: var(--color-progressive);
   text-decoration: none;
@@ -450,13 +347,13 @@ function onLanguagePick(row: ArticleLanguageLink) {
 
 .article-header__tab:hover,
 .article-header__action:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .article-header__tab--active,
 .article-header__action--active {
   color: var(--color-base);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-normal);
   border-bottom-color: var(--color-base);
   text-decoration: none;
 }
@@ -504,6 +401,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
   justify-content: center;
   width: 36px;
   height: 36px;
+  min-width: 36px;
   padding: 0;
   border: none;
   background: transparent;
@@ -522,6 +420,21 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header__icon-tool:focus-visible {
   outline: 2px solid var(--color-progressive, #36c);
   outline-offset: -2px;
+}
+
+/* CdxMenuButton wraps its button in a <div>, so the icon-tool geometry has to
+   land on the inner button — otherwise the language tool's hover and hit area
+   are Codex's 32px against the 36px of the plain tools beside it. */
+.article-header__lang-tool :deep(.cdx-button) {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border-radius: var(--border-radius-base, 2px);
+}
+
+.article-header__lang-tool :deep(.cdx-icon) {
+  color: var(--color-subtle);
 }
 
 /* Vertical kebab — Codex ships only a horizontal ellipsis, so we rotate it
@@ -557,6 +470,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header[data-skin='mobile'] .article-header__tab {
   margin-bottom: -1px;
   color: var(--color-subtle);
+  font-weight: var(--font-weight-bold);
 }
 
 .article-header[data-skin='mobile'] .article-header__tab:hover {

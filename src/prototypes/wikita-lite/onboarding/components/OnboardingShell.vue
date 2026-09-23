@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import { CdxButton, CdxDialog, CdxIcon } from '@wikimedia/codex'
 import { cdxIconClose, cdxIconPrevious } from '@wikimedia/codex-icons'
 
+import { globalSkin } from '@/theme'
+
 import './onboarding-layout.css'
 
 /**
@@ -16,6 +18,9 @@ import './onboarding-layout.css'
  * slot for the per-step CTA. The dialog is rendered in place (teleport disabled)
  * and its viewport-relative sizing is overridden so the card stays inside the
  * prototype's phone frame rather than covering the whole browser window.
+ *
+ * On the desktop skin the same steps run in an ordinary centred modal instead of
+ * a full-height takeover — see `isDesktop` below.
  */
 interface Props {
   /** Active step (1 = welcome, 2 = survey, 3 = interests). 0 = no step highlighted. */
@@ -32,6 +37,15 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{ dismiss: [] }>()
 
 const router = useRouter()
+
+/*
+ * Phone: a fixed-height takeover that fills the frame. Desktop: an ordinary
+ * centred modal that grows with its content up to `--size-4000` (640px), the
+ * same treatment the prototype splash gets. Keyed on the global skin rather
+ * than a media query so it flips at the same 640px threshold as the chrome,
+ * and follows `?skin=` when that pins it.
+ */
+const isDesktop = computed(() => globalSkin.value === 'desktop')
 
 /** Step 1 shows a close button that dismisses; later steps show a back button. */
 const isFirst = computed(() => props.current <= 1)
@@ -144,10 +158,17 @@ function onDialogClose(value: boolean): void {
 </script>
 
 <template>
-  <div ref="shellEl" class="onboarding-shell" :class="{ 'onboarding-shell--scrolls': bodyScrolls }">
+  <div
+    ref="shellEl"
+    class="onboarding-shell"
+    :class="{
+      'onboarding-shell--scrolls': bodyScrolls,
+      'onboarding-shell--centred': isDesktop,
+    }"
+  >
     <CdxDialog
       :open="true"
-      :fixed-height="true"
+      :fixed-height="!isDesktop"
       render-in-place
       title="Personalize your Home"
       @update:open="onDialogClose"
@@ -236,6 +257,16 @@ function onDialogClose(value: boolean): void {
 
 .onboarding-shell :deep(.cdx-dialog--fixed-height) {
   height: calc(100% - 2rem);
+}
+
+/* Desktop: hand height back to the content and restore Codex's own width clamp,
+   so the backdrop's flex centring places a normal modal on the page. The card
+   stops growing at `--size-4000` (640px) — past that the body scrolls, exactly
+   as it does on the phone. */
+.onboarding-shell--centred :deep(.cdx-dialog) {
+  width: calc(100% - 2rem);
+  max-width: 32rem;
+  max-height: min(var(--size-4000, 40rem), calc(100% - 2rem));
 }
 
 /* Codex sizes the body to its content and pushes the footer down with

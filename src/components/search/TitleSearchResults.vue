@@ -1,21 +1,34 @@
 <script setup lang="ts">
 import { CdxIcon } from '@wikimedia/codex'
-import { cdxIconImage } from '@wikimedia/codex-icons'
+import { cdxIconArticleSearch } from '@wikimedia/codex-icons'
 
-import type { TitleSearchResult } from '../data/titleSearch'
+import type { TitleSearchResult } from './titleSearch'
 
 interface Props {
   results: TitleSearchResult[]
-  /** Flush beneath an input (`attached`) or standalone dropdown (`detached`). */
+  /** Flush beneath an input (**`attached`**) or a standalone list (**`detached`**). */
   layout?: 'attached' | 'detached'
+  /**
+   * Real destination for each row. Given one, rows render as links — which is
+   * what a middle- or ⌘-click opens in a new tab, and what the browser shows in
+   * the status bar. Without one they render as buttons and **`select`** is the
+   * only way in.
+   */
+  resolveHref?: (title: string) => string
 }
 
 withDefaults(defineProps<Props>(), {
   layout: 'detached',
+  resolveHref: undefined,
 })
 
 defineEmits<{
-  select: [title: string]
+  /**
+   * A row was clicked. Carries the page title and the original event, so a
+   * listener can decide between handling it in place (**`preventDefault()`**)
+   * and letting the row's own **`href`** navigate.
+   */
+  select: [title: string, event: MouseEvent]
 }>()
 </script>
 
@@ -25,10 +38,16 @@ defineEmits<{
     :class="{ 'title-search-results--attached': layout === 'attached' }"
   >
     <li v-for="result in results" :key="result.title">
-      <button type="button" class="title-search-results__item" @click="$emit('select', result.title)">
+      <component
+        :is="resolveHref ? 'a' : 'button'"
+        :href="resolveHref ? resolveHref(result.title) : undefined"
+        :type="resolveHref ? undefined : 'button'"
+        class="title-search-results__item"
+        @click="$emit('select', result.title, $event)"
+      >
         <span class="title-search-results__thumb">
           <img v-if="result.thumbnailSrc" :src="result.thumbnailSrc" alt="" />
-          <CdxIcon v-else :icon="cdxIconImage" size="small" />
+          <CdxIcon v-else :icon="cdxIconArticleSearch" size="small" />
         </span>
         <span class="title-search-results__text">
           <span class="title-search-results__title">{{ result.title }}</span>
@@ -36,7 +55,7 @@ defineEmits<{
             result.description
           }}</span>
         </span>
-      </button>
+      </component>
     </li>
   </ul>
 </template>
@@ -82,6 +101,14 @@ defineEmits<{
   cursor: pointer;
 }
 
+/* The row is an `<a>` when it has an href — undo the wiki link treatment. */
+.title-search-results__item,
+.title-search-results__item:visited,
+.title-search-results__item:hover {
+  color: var(--color-base, #202122);
+  text-decoration: none;
+}
+
 .title-search-results__item:hover {
   background-color: var(--background-color-interactive-subtle, #f8f9fa);
 }
@@ -101,10 +128,7 @@ defineEmits<{
   border-radius: var(--border-radius-base, 2px);
   background-color: var(--background-color-interactive-subtle, #f8f9fa);
   overflow: hidden;
-}
-
-.title-search-results__thumb .cdx-icon {
-  color: var(--color-placeholder, #72777d);
+  color: var(--color-subtle, #54595d);
 }
 
 .title-search-results__thumb img {
@@ -115,26 +139,26 @@ defineEmits<{
 
 .title-search-results__text {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  flex: 1;
 }
 
 .title-search-results__title {
   display: block;
   font-size: var(--font-size-medium, 1rem);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-bold, 700);
   line-height: var(--line-height-small, 1.375);
-  color: var(--color-base);
+  color: var(--color-base, #202122);
 }
 
 .title-search-results__desc {
   display: block;
+  overflow: hidden;
   font-size: var(--font-size-small, 0.875rem);
   line-height: var(--line-height-small, 1.375);
-  color: var(--color-subtle);
-  overflow: hidden;
+  color: var(--color-subtle, #54595d);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

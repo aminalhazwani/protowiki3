@@ -125,6 +125,13 @@ Flow: **read article** → **create account** → **welcome** → **survey** →
 On completion, transient keys (`screen`, `title`, `username`, `email`, …) are
 stripped; `survey`, `interests`, and `displayName` remain in the URL.
 
+**Account setup (welcome → survey → interests)** runs in **`OnboardingShell`**,
+a `CdxDialog` rendered in place. On the mobile skin it's a `fixed-height`
+takeover filling the frame; on the desktop skin it's an ordinary centred modal —
+Codex's own `32rem` width clamp, height driven by the step's content and capped
+at **`--size-4000` (640px)**, past which the body scrolls. Same split, same
+reasoning, as `WikitaLiteFullscreenDialogShell`.
+
 **Interests pre-fill**: the interests step pre-fills from `?title=` only (the
 article the user saved or started account creation from). `?title=` persists
 through account → welcome → survey → interests. `?interests=` is written only

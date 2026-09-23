@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import {
@@ -13,9 +13,11 @@ import {
 } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
+import { createAccountOpener } from './createAccountOpener'
 import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
+import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import Search from '../Search.vue'
 
 const { user } = useConfig()
@@ -25,6 +27,9 @@ const WIKIPEDIA_WORDMARK_EN =
   'https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-wordmark-en-25.svg'
 const WIKIPEDIA_TAGLINE_EN =
   'https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-tagline-en-25.svg'
+
+/** Where "Create account" goes when the prototype has no flow of its own. */
+const CREATE_ACCOUNT_URL = 'https://en.wikipedia.org/w/index.php?title=Special:CreateAccount'
 
 interface Props {
   /** Local theme override. Sets `data-theme` on the root. */
@@ -52,6 +57,13 @@ const props = withDefaults(defineProps<Props>(), {
   navTools: undefined,
 })
 
+/**
+ * Below 1120px Vector trades the inline field for an icon, the same as
+ * production. There is no room to expand in place, so the icon opens the
+ * full-screen overlay — the same component the mobile bar uses.
+ */
+const searchOpen = ref(false)
+
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
 const trimmedUsername = computed(() => (props.username ?? '').trim())
 const showChromeUsernameLink = computed(() => trimmedUsername.value.length > 0)
@@ -66,6 +78,22 @@ const effectiveNavTools = computed(() =>
 
 function navHas(tool: ChromeNavTool): boolean {
   return effectiveNavTools.value.includes(tool)
+}
+
+/*
+ * "Create account" is a real link either way: a prototype that registered an
+ * opener gets its own in-ProtoWiki URL (so ⌘-click still opens a new tab on
+ * the right screen), everything else keeps Special:CreateAccount on enwiki.
+ */
+const createAccountHref = computed(() => createAccountOpener.value?.href() ?? CREATE_ACCOUNT_URL)
+
+function onCreateAccountClick(event: MouseEvent): void {
+  const opener = createAccountOpener.value
+  if (!opener) return
+  // Leave modified clicks to the browser — that's what the href is for.
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  event.preventDefault()
+  opener.open()
 }
 </script>
 
@@ -108,8 +136,8 @@ function navHas(tool: ChromeNavTool): boolean {
         </div>
         <CdxButton
           class="vector-chrome-header__search-submit"
-          tag="a"
-          href="https://en.wikipedia.org/wiki/Special:Search"
+          type="submit"
+          form="protowiki-search"
         >
           Search
         </CdxButton>
@@ -120,8 +148,7 @@ function navHas(tool: ChromeNavTool): boolean {
           class="vector-chrome-header__search-icon-toggle"
           weight="quiet"
           aria-label="Search"
-          tag="a"
-          href="https://en.wikipedia.org/wiki/Special:Search"
+          @click="searchOpen = true"
         >
           <CdxIcon :icon="cdxIconSearch" />
         </CdxButton>
@@ -136,8 +163,9 @@ function navHas(tool: ChromeNavTool): boolean {
             </a>
             <a
               class="vector-chrome-header__text-link"
-              href="https://en.wikipedia.org/w/index.php?title=Special:CreateAccount"
+              :href="createAccountHref"
               rel="noopener noreferrer"
+              @click="onCreateAccountClick"
             >
               Create account
             </a>
@@ -187,11 +215,28 @@ function navHas(tool: ChromeNavTool): boolean {
       </div>
     </nav>
   </header>
+
+  <MobileSearchOverlay v-if="searchOpen" :theme="effectiveTheme" @close="searchOpen = false" />
 </template>
 
 <style scoped>
 .vector-chrome-header {
   background-color: var(--background-color-base, #fff);
+  font-size: var(--font-size-small, 14px);
+}
+
+/*
+ * Vector's chrome runs a step below body copy. The root above covers everything
+ * that inherits, but Codex controls set `--font-size-medium` on themselves, and
+ * a rule on the element always beats an inherited value — so the ones this
+ * header uses have to be restated. Scoped to the header: this is the chrome's
+ * type scale, not a global Codex override.
+ */
+.vector-chrome-header :deep(.cdx-button),
+.vector-chrome-header :deep(.cdx-text-input__input),
+.vector-chrome-header :deep(.cdx-menu),
+.vector-chrome-header :deep(.cdx-menu-item) {
+  font-size: var(--font-size-small, 14px);
 }
 
 .vector-chrome-header__search {
@@ -325,7 +370,7 @@ function navHas(tool: ChromeNavTool): boolean {
 
 .vector-chrome-header__text-link {
   color: var(--color-progressive, #36c);
-  font-size: var(--font-size-medium, 1rem);
+  font-size: var(--font-size-small, 14px);
   font-weight: normal;
   line-height: 1.4;
   text-decoration: none;

@@ -4,17 +4,13 @@ import { cdxIconUserAvatarOutline } from '@wikimedia/codex-icons'
 
 import AccountMenuPopover from '@/components/settings/AccountMenuPopover.vue'
 
-import { useWikitaLiteUrlState } from '../composables/useWikitaLiteUrlState'
-import { useWikitaLiteOnboardingFlow } from '../onboarding/data/useWikitaLiteOnboardingFlow'
+import { useWikitaLiteCreateAccount } from '../composables/useWikitaLiteCreateAccountOpener'
 
-const flow = useWikitaLiteOnboardingFlow()
-const { isOnboarded, patchState } = useWikitaLiteUrlState()
+// Same entry point the desktop chrome's "Create account" link uses.
+const { openCreateAccount } = useWikitaLiteCreateAccount()
 
-async function onCreateAccount(): Promise<void> {
-  if (isOnboarded.value) {
-    await patchState({ onboarded: false })
-  }
-  await flow.goTo('account')
+function onCreateAccount(): void {
+  void openCreateAccount()
 }
 </script>
 

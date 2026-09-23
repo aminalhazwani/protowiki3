@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 
+import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
 import type { HeaderItem } from '@/components/header/headerItems'
 import { globalTheme } from '@/theme'
@@ -17,8 +18,15 @@ const MAX_FLANK_ITEMS = 4
 
 const DEFAULT_LEFT: HeaderItem[] = [{ type: 'button', icon: 'menu', label: 'Main menu' }]
 
+/**
+ * Full-screen search, the way Minerva does it. Owned here so every mobile
+ * chrome gets a working search icon; a prototype that overrides `right` with
+ * its own search item (an address of its own to navigate to, say) opts out.
+ */
+const searchOpen = ref(false)
+
 const DEFAULT_RIGHT: HeaderItem[] = [
-  { type: 'button', icon: 'search', label: 'Search' },
+  { type: 'button', icon: 'search', label: 'Search', onClick: () => (searchOpen.value = true) },
   { type: 'button', icon: 'bell-outline', label: 'Notifications' },
   { type: 'button', icon: 'user-avatar-outline', label: 'User menu' },
 ]
@@ -225,6 +233,8 @@ function isExternalHref(href: string): boolean {
       </div>
     </nav>
   </header>
+
+  <MobileSearchOverlay v-if="searchOpen" :theme="effectiveTheme" @close="searchOpen = false" />
 </template>
 
 <style scoped>

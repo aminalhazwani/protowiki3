@@ -204,3 +204,17 @@
     margin-left: 2px;
   }
 }
+
+
+/*
+ * Long unbreakable tokens. Minerva hangs `word-wrap: break-word` off `.content`
+ * — a class MediaWiki puts on its body wrapper and Parsoid HTML doesn't carry —
+ * so nothing here lets a token like Earth's infobox mass,
+ * `(5.97217±0.00028)×10^24`, break. The mobile infobox is `table-layout: fixed`,
+ * so the table itself stays in the column but the token spills out of its cell,
+ * widening the document: the page scrolls sideways and the viewport-fixed Home
+ * button is dragged off screen with it. Breaking the token fixes both.
+ */
+.article[data-skin='mobile'] .mw-parser-output {
+  overflow-wrap: break-word;
+}

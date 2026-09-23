@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
 
+import { useWikitaLiteCreateAccountOpener } from './composables/useWikitaLiteCreateAccountOpener'
 import { provideWikitaLiteSaveFeedback } from './composables/useWikitaLiteSaveFeedback'
 import { useWikitaLiteLeavePrototype } from './composables/useWikitaLiteLeavePrototype'
 import { useWikitaLitePrototypeSplash } from './composables/useWikitaLitePrototypeSplash'
@@ -24,6 +25,9 @@ definePage({
 
 initWikitaLiteUrlState()
 provideWikitaLiteSaveFeedback()
+
+// "Create account" in the desktop chrome opens this prototype's own flow.
+useWikitaLiteCreateAccountOpener()
 
 const { pageTitle: configPageTitle } = useConfig()
 const { isOnboarded, state } = useWikitaLiteUrlState()

@@ -1,12 +1,18 @@
 import { wikiHostFromLang, wikimediaApiFetchHeaders } from '@/config'
 
+/**
+ * Title suggestions from REST `search/title` — the endpoint the production
+ * search bars use for prefix completion. It returns the short description and a
+ * thumbnail with the title, so a result row needs no follow-up request (unlike
+ * Action API `opensearch`, which carries no image).
+ */
 export interface TitleSearchResult {
   title: string
   description: string
   thumbnailSrc?: string
 }
 
-interface TitleSearchOptions {
+export interface TitleSearchOptions {
   signal?: AbortSignal
   lang?: string
   limit?: number
@@ -36,7 +42,7 @@ export async function fetchTitleSearchResults(
     `https://${wikiHost}/w/rest.php/v1/search/title?${params.toString()}`,
     {
       signal: options.signal,
-      headers: wikimediaApiFetchHeaders(options.clientTag ?? 'wikita-lite-onboarding-title-search'),
+      headers: wikimediaApiFetchHeaders(options.clientTag ?? 'title-search'),
     },
   )
 

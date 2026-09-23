@@ -11,7 +11,7 @@ import {
 
 import InterestSuggestions from '../components/InterestSuggestions.vue'
 import { useInterestSuggestions } from '../data/useInterestSuggestions'
-import { fetchTitleSearchResults } from '../data/titleSearch'
+import { fetchTitleSearchResults } from '@/components/search/titleSearch'
 import { normalizeTitleKey } from '../data/titleKey'
 import type { FlowState } from '../data/useWikitaLiteOnboardingFlow'
 
