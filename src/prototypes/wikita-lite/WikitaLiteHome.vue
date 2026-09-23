@@ -53,9 +53,8 @@ import {
 } from './routes'
 
 const HOME_FEATURED_PREVIEW_LIMIT = 3
-const HOME_DYK_PREVIEW_LIMIT = 2
-const HOME_TRENDING_PREVIEW_LIMIT = 2
-const EXPLORE_UNSAVED_DYK_PREVIEW_LIMIT = 3
+const HOME_DYK_PREVIEW_LIMIT = 4
+const HOME_TRENDING_PREVIEW_LIMIT = 4
 const HOME_SAVED_PREVIEW_LIMIT = 5
 const HOME_MENTIONS_PREVIEW_LIMIT = 3
 const HOME_FURTHER_READING_PREVIEW_LIMIT = 4
@@ -63,7 +62,7 @@ const HOME_HELP_WANTED_PREVIEW_LIMIT = 4
 const HOME_RECENT_ACTIVITY_PREVIEW_LIMIT = 3
 const UNSAVED_HELP_WANTED_PREVIEW_LIMIT = 1
 const UNSAVED_RECENT_ACTIVITY_PREVIEW_LIMIT = 1
-const HOME_ACTIVE_DISCUSSIONS_PREVIEW_LIMIT = 2
+const HOME_ACTIVE_DISCUSSIONS_PREVIEW_LIMIT = 4
 const HOME_TRANSLATION_PREVIEW_LIMIT = 2
 
 const { listsVersion } = useWikitaSaveFeedback()
@@ -207,12 +206,8 @@ const contributeActiveDiscussionsPending = computed(
     !activeDiscussionsError.value,
 )
 
-const exploreDidYouKnowPreviewLimit = computed(() =>
-  hasSavedPages.value ? HOME_DYK_PREVIEW_LIMIT : EXPLORE_UNSAVED_DYK_PREVIEW_LIMIT,
-)
-
 const homeDidYouKnowPreview = computed(() =>
-  didYouKnow.value.slice(0, exploreDidYouKnowPreviewLimit.value),
+  didYouKnow.value.slice(0, HOME_DYK_PREVIEW_LIMIT),
 )
 
 const homePinnedDidYouKnowPreview = computed(() =>
@@ -722,7 +717,7 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           <DidYouKnowModule
             v-if="homeDidYouKnowPreview.length"
             :items="didYouKnow"
-            :preview-limit="exploreDidYouKnowPreviewLimit"
+            :preview-limit="HOME_DYK_PREVIEW_LIMIT"
           >
             <template
               v-if="readExploreTab.showLoadingBar('didYouKnow') && homeDidYouKnowPreview.length"
