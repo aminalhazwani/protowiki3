@@ -68,6 +68,18 @@
 }
 
 /*
+ * Vector home — each module is now a block of cards rather than a single
+ * column, so the phone's `spacing-150` no longer reads as a break between one
+ * module and the next. Widen it to `spacing-300`, and set the first module off
+ * from the special-page title rule above it.
+ */
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  .wikita-lite-home__panel {
+  gap: var(--spacing-300, 48px);
+  margin-top: var(--spacing-100, 16px);
+}
+
+/*
  * Vector home — the feed modules lay their four preview cards out 2x2 rather
  * than as one tall column, after the desktop sections in the `wikitab`
  * prototype. Drill-down subpages keep the list. `stretch` squares up the two
