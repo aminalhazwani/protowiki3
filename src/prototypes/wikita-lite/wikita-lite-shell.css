@@ -65,6 +65,67 @@
 }
 
 /*
+ * Vector home — Suggested edits and Daily reads lay their four preview cards
+ * out 2x2 rather than as one tall column, after the desktop sections in the
+ * `wikitab` prototype. Only these two: the rest of the feed reads better as a
+ * single column, and drill-down subpages stay a list. `stretch` squares up the
+ * two cards in a row when their descriptions run to different lengths.
+ */
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  :is(.help-wanted-module__cards, .related-module__cards) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: var(--spacing-100, 16px);
+}
+
+/* Grid items would otherwise take min-height from their content box. */
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  :is(.help-wanted-module__cards, .related-module__cards) > * {
+  min-height: 0;
+}
+
+/*
+ * Daily reads cards are a `WikitaLiteCardWithAction`: a positioning shell for
+ * the cover link and the save button, wrapping the `cdx-card` that actually
+ * draws the border. The shell stretches to the row, but its block child keeps
+ * its content height, so the bordered box came up short beside a taller
+ * neighbour. Make the shell a column and let the card fill it.
+ */
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  :is(.help-wanted-module__cards, .related-module__cards)
+  > .wikita-lite-card-with-action {
+  display: flex;
+  flex-direction: column;
+}
+
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  :is(.help-wanted-module__cards, .related-module__cards)
+  > .wikita-lite-card-with-action
+  > .wikita-lite-card-with-action__card {
+  flex: 1 1 auto;
+}
+
+/* A feed short enough to return one card shouldn't sit in half a row. */
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  :is(.help-wanted-module__cards, .related-module__cards) > :only-child {
+  grid-column: 1 / -1;
+}
+
+/*
+ * The module's "Show more" is a full-width bar under a single column; under a
+ * grid it reads as a fifth cell, so it shrinks to its label and sits at the
+ * bottom-right corner of the matrix instead.
+ */
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  :is(.help-wanted-module, .related-module)
+  > .wikita-lite-button-link {
+  display: inline-flex;
+  width: auto;
+  align-self: flex-end;
+}
+
+/*
  * Filter tabs run full-bleed: the track escapes the shell's inline padding so
  * the row scrolls to the column edge instead of being clipped, and re-pads
  * itself by the same amount so the first and last tab stay aligned with the
