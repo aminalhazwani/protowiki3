@@ -84,7 +84,9 @@ export default defineConfig(({ command }) => ({
     },
   },
   server: {
-    port: 5173,
+    // 5173 by default; `PORT` wins so a second agent/session can run its own
+    // dev server on an assigned port instead of silently landing on 5174.
+    port: Number(process.env.PORT) || 5173,
     strictPort: false,
   },
 }))
