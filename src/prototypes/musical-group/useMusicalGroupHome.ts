@@ -4,7 +4,11 @@ import { useRoute } from 'vue-router'
 import { useConfig } from '@/composables/useConfig'
 
 import { WIKITA_SAVE_FEEDBACK_KEY } from './composables/useWikitaSaveFeedback'
-import { fetchDailyReadsPreview, refillMissingDailyReadsThumbnails } from '../wikita-lite/data/fetchDailyReadsPreview'
+import {
+  DAILY_READS_PREVIEW_CARD_COUNT,
+  fetchDailyReadsPreview,
+  refillMissingDailyReadsThumbnails,
+} from '../wikita-lite/data/fetchDailyReadsPreview'
 import { fetchReadingListSummaries } from '../wikita-lite/data/fetchReadingListSummaries'
 import {
   readingListKey,
@@ -79,6 +83,15 @@ const EMPTY_FEATURED_TAB: HomeFeaturedTab = {
 
 function isAbort(err: unknown): boolean {
   return (err as Error)?.name === 'AbortError'
+}
+
+/**
+ * A cached Daily reads preview is only reusable once it holds a full set of
+ * cards — a short one is a leftover from a smaller preview and gets refetched,
+ * the same way a short `helpWanted` cache does.
+ */
+function isFullDailyReadsPreview(cached: HomeRelated[] | null): cached is HomeRelated[] {
+  return (cached?.length ?? 0) >= DAILY_READS_PREVIEW_CARD_COUNT
 }
 
 export type PersonalizedFeedId = 'related' | 'mentions' | 'helpWanted' | 'recentChanges'
@@ -257,7 +270,7 @@ export function useMusicalGroupHome(options: {
     const needsRelatedFetch =
       !skipFeeds.has('related') &&
       (savedPagesSource === 'readingList'
-        ? !getCachedDailyReadsPreview(dailyReadsPreviewCacheKey())?.length
+        ? !isFullDailyReadsPreview(getCachedDailyReadsPreview(dailyReadsPreviewCacheKey()))
         : !getCachedRelatedFeed('home', dependencyKey))
     const needsMentionsFetch =
       preferences.value.useSavedPages &&
@@ -293,7 +306,7 @@ export function useMusicalGroupHome(options: {
           if (savedPagesSource === 'readingList') {
             const dailyReadsKey = dailyReadsPreviewCacheKey()
             const cachedPreview = getCachedDailyReadsPreview(dailyReadsKey)
-            if (cachedPreview?.length) {
+            if (isFullDailyReadsPreview(cachedPreview)) {
               homeRelatedItems.value = cachedPreview
               if (cachedPreview.some((item) => !item.thumbnailUrl?.trim())) {
                 const refilled = await refillMissingDailyReadsThumbnails(cachedPreview, signal)

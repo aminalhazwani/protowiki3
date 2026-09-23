@@ -9,7 +9,10 @@ import type { HomeRelated } from '../../musical-group/data/types'
 
 const HITS_PER_SEED = 3
 const SEED_COUNT = 3
-const PREVIEW_CARD_COUNT = 3
+/** Cards the Daily reads home preview aims for. Exported so the cache check
+ *  in `useMusicalGroupHome` can tell a full preview from a short one. */
+export const DAILY_READS_PREVIEW_CARD_COUNT = 4
+const PREVIEW_CARD_COUNT = DAILY_READS_PREVIEW_CARD_COUNT
 const DAILY_READS_SUMMARY_PURPOSE = 'wikita-lite-daily-reads-summary'
 
 function normalizeTitleKey(title: string): string {
@@ -83,7 +86,8 @@ async function appendUniqueHit(
   return true
 }
 
-/** Up to 3 serial per-seed morelike calls; dedupe globally; up to 3 cards total. */
+/** Up to 3 serial per-seed morelike calls; dedupe globally; up to
+ *  `DAILY_READS_PREVIEW_CARD_COUNT` cards total. */
 export async function fetchDailyReadsPreview({
   seedTitles,
   onEach,

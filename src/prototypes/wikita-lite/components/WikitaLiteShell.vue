@@ -5,6 +5,7 @@ import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
+import { globalSkin } from '@/theme'
 
 import { useWikitaLiteCardBordersSingleton } from '../composables/useWikitaLiteCardBorders'
 import { useWikitaLiteChromeHeaderRight } from '../composables/useWikitaLiteChromeHeaderRight'
@@ -38,6 +39,14 @@ const { hideCardBorders } = useWikitaLiteCardBordersSingleton()
 const { headerRight } = useWikitaLiteChromeHeaderRight()
 
 const isSubpage = computed(() => props.title === null)
+
+/*
+ * Minerva keeps the greeting as a section-level heading above the feed; Vector
+ * renders the dashboard the way the wiki renders a special page (cf.
+ * `Special:CreateAccount` in CreateAccountScreen) — the greeting *is* the page
+ * title, so it takes the `h1` and the title rule under it.
+ */
+const isDesktop = computed(() => globalSkin.value === 'desktop')
 
 // Codex menus stay in-place (default). Teleporting into MobileWrapper's overlay
 // races with route changes — useFloatingMenu can touch a null floating element.
@@ -78,7 +87,9 @@ onMounted(async () => {
           :style="cardRadiusStyle"
         >
           <template v-if="!isSubpage && title" #header>
-            <h3 class="special-page-wrapper__title">{{ title }}</h3>
+            <component :is="isDesktop ? 'h1' : 'h3'" class="special-page-wrapper__title">
+              {{ title }}
+            </component>
           </template>
           <template v-if="$slots.actions" #actions>
             <slot name="actions" />

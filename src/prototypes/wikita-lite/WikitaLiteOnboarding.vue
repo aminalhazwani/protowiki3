@@ -33,14 +33,9 @@ const WIZARD_STEP: Partial<Record<OnboardingScreen, number>> = {
 const isWizard = computed(() => flow.screen.value in WIZARD_STEP)
 const wizardStep = computed(() => WIZARD_STEP[flow.screen.value] ?? 0)
 
-const autoSeedKeys = ref(new Set<string>())
-
 watch(
   () => flow.screen.value,
-  (screen, prev) => {
-    if (screen === 'interests' && prev !== 'interests') {
-      autoSeedKeys.value = new Set(flow.interests.value.map((title) => title.toLowerCase()))
-    }
+  (screen) => {
     if (screen in WIZARD_STEP && typeof window !== 'undefined') {
       window.scrollTo(0, 0)
     }
@@ -48,9 +43,14 @@ watch(
   { immediate: true },
 )
 
-const goHomeActive = computed(() =>
-  flow.interests.value.some((title) => !autoSeedKeys.value.has(title.toLowerCase())),
-)
+/**
+ * The interests step asks for three, so the CTA stays quiet until the list has
+ * three — then it goes primary. How they got there doesn't matter: a seed
+ * article from the saved page counts the same as one the user picked.
+ */
+const REQUESTED_INTERESTS = 3
+
+const goHomeActive = computed(() => flow.interests.value.length >= REQUESTED_INTERESTS)
 
 const wizardComponent = computed(() => {
   switch (flow.screen.value) {
