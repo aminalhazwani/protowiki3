@@ -40,10 +40,10 @@ const router = useRouter()
 
 /*
  * Phone: a fixed-height takeover that fills the frame. Desktop: an ordinary
- * centred modal that grows with its content up to `--size-4000` (640px), the
- * same treatment the prototype splash gets. Keyed on the global skin rather
- * than a media query so it flips at the same 640px threshold as the chrome,
- * and follows `?skin=` when that pins it.
+ * centred modal, `--size-4000` (640px) tall, in the same spirit as the
+ * treatment the prototype splash gets. Keyed on the global skin rather than a
+ * media query so it flips at the same 640px threshold as the chrome, and
+ * follows `?skin=` when that pins it.
  */
 const isDesktop = computed(() => globalSkin.value === 'desktop')
 
@@ -259,14 +259,17 @@ function onDialogClose(value: boolean): void {
   height: calc(100% - 2rem);
 }
 
-/* Desktop: hand height back to the content and restore Codex's own width clamp,
-   so the backdrop's flex centring places a normal modal on the page. The card
-   stops growing at `--size-4000` (640px) — past that the body scrolls, exactly
-   as it does on the phone. */
+/* Desktop: restore Codex's own width clamp so the backdrop's flex centring
+   places a normal modal on the page, and give the card one height for all three
+   steps — `--size-4000` (640px), or the space available when the window is
+   shorter than that. A content-driven height would resize the card mid-flow
+   (step 2 is the short one); holding it steady also keeps the screens' own
+   fill-the-height layouts working, as they do on the phone. Content past 640px
+   scrolls the body. */
 .onboarding-shell--centred :deep(.cdx-dialog) {
   width: calc(100% - 2rem);
   max-width: 32rem;
-  max-height: min(var(--size-4000, 40rem), calc(100% - 2rem));
+  height: min(var(--size-4000, 40rem), calc(100% - 2rem));
 }
 
 /* Codex sizes the body to its content and pushes the footer down with

@@ -222,21 +222,6 @@ function onCreateAccountClick(event: MouseEvent): void {
 <style scoped>
 .vector-chrome-header {
   background-color: var(--background-color-base, #fff);
-  font-size: var(--font-size-small, 14px);
-}
-
-/*
- * Vector's chrome runs a step below body copy. The root above covers everything
- * that inherits, but Codex controls set `--font-size-medium` on themselves, and
- * a rule on the element always beats an inherited value — so the ones this
- * header uses have to be restated. Scoped to the header: this is the chrome's
- * type scale, not a global Codex override.
- */
-.vector-chrome-header :deep(.cdx-button),
-.vector-chrome-header :deep(.cdx-text-input__input),
-.vector-chrome-header :deep(.cdx-menu),
-.vector-chrome-header :deep(.cdx-menu-item) {
-  font-size: var(--font-size-small, 14px);
 }
 
 .vector-chrome-header__search {
@@ -370,7 +355,7 @@ function onCreateAccountClick(event: MouseEvent): void {
 
 .vector-chrome-header__text-link {
   color: var(--color-progressive, #36c);
-  font-size: var(--font-size-small, 14px);
+  font-size: var(--font-size-medium, 1rem);
   font-weight: normal;
   line-height: 1.4;
   text-decoration: none;
