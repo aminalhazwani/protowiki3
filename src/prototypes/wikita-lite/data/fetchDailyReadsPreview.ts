@@ -7,8 +7,9 @@ import { resolveMorelikeHitToHomeRelated } from '../../musical-group/data/moreli
 import { fetchPageSummary } from '../../musical-group/data/pageSummary'
 import type { HomeRelated } from '../../musical-group/data/types'
 
-const HITS_PER_SEED = 3
-const SEED_COUNT = 3
+/** Most seeds used per preview — enough to cover a full onboarding interest
+ *  list without fanning out into too many morelike calls. */
+const SEED_COUNT = 5
 /** Cards the Daily reads home preview aims for — three pages of four, so
  *  "Show more" has something to reveal. Exported so the cache check in
  *  `useMusicalGroupHome` can tell a full preview from a short one. */
@@ -27,12 +28,6 @@ function pickRandomUnique<T>(items: T[], count: number): T[] {
     ;[pool[i], pool[j]] = [pool[j], pool[i]]
   }
   return pool.slice(0, count)
-}
-
-function distributeCardQuota(seedCount: number, total: number): number[] {
-  const base = Math.floor(total / seedCount)
-  const extra = total % seedCount
-  return Array.from({ length: seedCount }, (_, i) => base + (i < extra ? 1 : 0))
 }
 
 interface SeedFetchBatch {
@@ -87,8 +82,28 @@ async function appendUniqueHit(
   return true
 }
 
-/** Up to 3 serial per-seed morelike calls; dedupe globally; up to
- *  `DAILY_READS_PREVIEW_CARD_COUNT` cards total. */
+/** Append the batch's next hit that isn't a duplicate. Returns false once the
+ *  batch has nothing new left to offer. */
+async function appendNextFromBatch(
+  batch: SeedFetchBatch,
+  seen: Set<string>,
+  items: HomeRelated[],
+  onEach: FetchDailyReadsPreviewOptions['onEach'],
+  signal?: AbortSignal,
+): Promise<boolean> {
+  while (batch.nextIndex < batch.hits.length) {
+    const hit = batch.hits[batch.nextIndex]
+    batch.nextIndex++
+    if (await appendUniqueHit(hit, batch.seed, seen, items, onEach, signal)) return true
+  }
+  return false
+}
+
+/** Up to `SEED_COUNT` serial per-seed morelike calls; dedupe globally; up to
+ *  `DAILY_READS_PREVIEW_CARD_COUNT` cards total, interleaved round-robin across
+ *  seeds so the first page of the preview mixes interests instead of showing
+ *  one seed's whole block. Each seed's first card streams as soon as its fetch
+ *  lands; later rounds fill in once every seed has been fetched. */
 export async function fetchDailyReadsPreview({
   seedTitles,
   onEach,
@@ -100,55 +115,31 @@ export async function fetchDailyReadsPreview({
   )
   if (!picked.length) return []
 
-  const quotas = distributeCardQuota(picked.length, PREVIEW_CARD_COUNT)
+  // One extra hit per seed leaves headroom for cross-seed duplicates.
+  const hitsPerSeed = Math.ceil(PREVIEW_CARD_COUNT / picked.length) + 1
   const seen = new Set([...seedTitles, ...picked].map(normalizeTitleKey))
   const items: HomeRelated[] = []
   const batches: SeedFetchBatch[] = []
 
-  for (let i = 0; i < picked.length; i++) {
+  for (const seed of picked) {
     if (signal?.aborted || items.length >= PREVIEW_CARD_COUNT) break
 
-    const seed = picked[i]
-    const quota = quotas[i]
     const hits = await fetchMorelikeSuggestions(
       seed,
-      Math.max(HITS_PER_SEED, quota + 1),
+      hitsPerSeed,
       signal,
       'wikita-lite-daily-reads-morelike',
     )
-
     const batch: SeedFetchBatch = { seed, hits, nextIndex: 0 }
     batches.push(batch)
-
-    let added = 0
-    for (let j = 0; j < hits.length; j++) {
-      if (added >= quota || items.length >= PREVIEW_CARD_COUNT) break
-      batch.nextIndex = j + 1
-      const appended = await appendUniqueHit(hits[j], seed, seen, items, onEach, signal)
-      if (appended) added++
-    }
+    await appendNextFromBatch(batch, seen, items, onEach, signal)
   }
 
-  while (items.length < PREVIEW_CARD_COUNT) {
+  while (items.length < PREVIEW_CARD_COUNT && !signal?.aborted) {
     let progress = false
     for (const batch of batches) {
       if (items.length >= PREVIEW_CARD_COUNT) break
-      while (batch.nextIndex < batch.hits.length) {
-        const hit = batch.hits[batch.nextIndex]
-        batch.nextIndex++
-        const appended = await appendUniqueHit(
-          hit,
-          batch.seed,
-          seen,
-          items,
-          onEach,
-          signal,
-        )
-        if (appended) {
-          progress = true
-          break
-        }
-      }
+      if (await appendNextFromBatch(batch, seen, items, onEach, signal)) progress = true
     }
     if (!progress) break
   }

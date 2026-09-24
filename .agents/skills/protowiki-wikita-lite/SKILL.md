@@ -286,16 +286,18 @@ legacy suggestions configure page.
     (`loadPersonalizedSuggestionFeeds` in `useMusicalGroupHome.ts`), independent
     of visual `MODE_MODULE_ORDER`. Both shells may be visible at once; each
     module shows its own skeletons when its feed is loading.
-  - **Daily reads home fetch** — up to 3 **serial** per-seed generator morelike
-    calls (`fetchDailyReadsPreview` in `wikita-lite/data/`), 3 hits each,
-    global dedupe, **3 cards total** (3/2+1/1+1+1 by seed count; multiple per
-    seed when fewer than 3 seeds) with correct `relatedToTitle`. Thumbnails
+  - **Daily reads home fetch** — up to 5 randomly picked seeds, one **serial**
+    generator morelike call each (`fetchDailyReadsPreview` in
+    `wikita-lite/data/`), global dedupe, **12 cards total** with correct
+    `relatedToTitle`. Cards are **interleaved round-robin** across seeds (A, B,
+    C, A, B, C, …) so the first preview page mixes interests rather than
+    showing one seed's whole block; fewer seeds means more cards per seed. Thumbnails
     come from Action API `pageimages` first; when missing, REST `/page/summary`
     is used as fallback. Cards append progressively via `onEach`. No blocking
     `fetchReadingListSummaries` on the home reload path; synthetic saved items
     from `readingListToSavedItems`. Preview caches under `dailyReadsPreview` in
     `homeTabCache` (separate from the paginated related-feed state used by the
-    fullscreen subpage). Cache key is `dailyReadsPreviewCacheKey()` (UTC calendar
+    fullscreen subpage). Cache key is `dailyReadsPreviewCacheKey()` (versioned + UTC calendar
     day only) — at most one home preview fetch per UTC day, even when Personalization
     toggles or source lists change mid-day. Not cleared by `clearCachedSuggestionFeeds`.
   - **Saved module metadata** — non-blocking enrichment via

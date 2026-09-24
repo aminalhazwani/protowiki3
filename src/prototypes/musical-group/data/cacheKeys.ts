@@ -81,7 +81,7 @@ export function contributeRandomCacheKey(date = new Date()): string {
 
 /** Daily cache key for the Daily reads home preview — one fetch per UTC day. */
 export function dailyReadsPreviewCacheKey(date = new Date()): string {
-  return `daily-reads:${utcDayKey(date)}`
+  return `daily-reads:v2:${utcDayKey(date)}`
 }
 
 /** Fingerprint of suggestion preference toggles. */
