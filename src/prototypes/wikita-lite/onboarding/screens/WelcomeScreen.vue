@@ -121,6 +121,12 @@ const greeting = computed(() => {
   object-fit: contain;
 }
 
+/* On mobile the step fills the screen, so the mascot can use the full width. */
+[data-skin='mobile'] .welcome__hero {
+  max-width: 100%;
+  max-height: 100%;
+}
+
 /* First-run reveal (T1 step 4): each block eases up, the globe leads with a
    scale pop. Runs once on mount over the region fade; the two blocks are all
    the DOM this screen has (the CTA now lives in the dialog footer). */
