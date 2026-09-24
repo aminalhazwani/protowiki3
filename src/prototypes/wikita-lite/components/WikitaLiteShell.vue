@@ -69,7 +69,6 @@ onMounted(async () => {
         </template>
         <SpecialPageWrapper
           :title="isSubpage ? null : undefined"
-          :help="Boolean(title && !isSubpage)"
           :actions="props.actions"
           class="wikita-lite-shell"
           :class="{
