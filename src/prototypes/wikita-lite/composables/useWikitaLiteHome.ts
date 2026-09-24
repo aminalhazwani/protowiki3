@@ -6,10 +6,13 @@ import {
 } from '../../musical-group/useMusicalGroupHome'
 import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSuggestionPreferences'
 
-/** Home preview only needs a few cards. */
-export const WIKITA_LITE_HELP_WANTED_HOME_LIMIT = 4
-/** Review changes previews a 2x2 grid, so the fetch has to reach four. */
-export const WIKITA_LITE_RECENT_CHANGES_HOME_LIMIT = 4
+/*
+ * Home shows four at a time but "Show more" reveals the next four in place, so
+ * both feeds load three pages' worth up front. Each streams its results, so the
+ * first four still land as quickly as they did when four was all we asked for.
+ */
+export const WIKITA_LITE_HELP_WANTED_HOME_LIMIT = 12
+export const WIKITA_LITE_RECENT_CHANGES_HOME_LIMIT = 12
 export const WIKITA_LITE_TRANSLATION_HOME_COUNT = 2
 
 export type { PersonalizedFeedId }

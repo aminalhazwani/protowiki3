@@ -80,6 +80,35 @@
 }
 
 /*
+ * Vector home — Your impact and Your mentor are short enough to share a row,
+ * so when both are on the panel it becomes a two-column grid on the same
+ * matrix the feed cards use (same columns, same gutter): each takes one column
+ * and every other module spans both. `dense` keeps the pair together even if
+ * the layout order puts a module between them. With only one of the two on
+ * the panel it stays full width, as before.
+ */
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  .wikita-lite-home__panel:has(> [data-module-id='impact']):has(> [data-module-id='mentor']) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  column-gap: var(--wikita-lite-home-grid-gap);
+}
+
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  .wikita-lite-home__panel:has(> [data-module-id='impact']):has(> [data-module-id='mentor'])
+  > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  .wikita-lite-home__panel:has(> [data-module-id='impact']):has(> [data-module-id='mentor'])
+  > :is([data-module-id='impact'], [data-module-id='mentor']) {
+  grid-column: auto / span 1;
+}
+
+/*
  * Vector home — the feed modules lay their four preview cards out 2x2 rather
  * than as one tall column, after the desktop sections in the `wikitab`
  * prototype. Drill-down subpages keep the list. `stretch` squares up the two
@@ -311,6 +340,45 @@
 .wikita-lite-shell .wikita-lite-supporting-row__text {
   flex: 1;
   min-width: 0;
+}
+
+/* Timestamp sits apart at the end of the row instead of being bulleted in. */
+.wikita-lite-shell .wikita-lite-supporting-row__timestamp {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  padding-inline-start: var(--spacing-75, 12px);
+  white-space: nowrap;
+}
+
+/*
+ * Cards whose row carries a timestamp pin that row to the bottom edge, so in a
+ * grid row of uneven cards every timestamp lands in the bottom-right corner.
+ * `cdx-card` top-aligns its text column, so stretch it first.
+ */
+.wikita-lite-shell .cdx-card:has(.wikita-lite-supporting-row--timestamped) > .cdx-card__text {
+  align-self: stretch;
+}
+
+.wikita-lite-shell
+  .cdx-card:has(.wikita-lite-supporting-row--timestamped)
+  .cdx-card__text__supporting-text {
+  margin-top: auto;
+  padding-top: var(--spacing-50, 8px);
+}
+
+/* Chip cards wrap the `cdx-card` in a bordered shell: let both fill the grid cell. */
+.wikita-lite-shell .wikita-lite-card-with-chip:has(.wikita-lite-supporting-row--timestamped) {
+  display: flex;
+  flex-direction: column;
+}
+
+.wikita-lite-shell
+  .wikita-lite-card-with-chip:has(.wikita-lite-supporting-row--timestamped)
+  > .wikita-lite-card-with-chip__shell,
+.wikita-lite-shell
+  .wikita-lite-card-with-chip:has(.wikita-lite-supporting-row--timestamped)
+  .wikita-lite-card-with-chip__card {
+  flex: 1 1 auto;
 }
 
 /* Full-width navigation CTAs — Codex fake-button on RouterLink (not <button> inside <a>). */

@@ -13,7 +13,7 @@ import { fetchPageSummary } from './pageSummary'
 import type { HomeBornOnThisDay, HomeDidYouKnow, HomeFeatured, HomeFeaturedTab } from './types'
 import { normalizeQid } from './wikidataApi'
 
-const MAX_DYK = 5
+const MAX_DYK = 12
 const MAX_BIRTHS = 5
 const SUMMARY_CONCURRENCY = 3
 

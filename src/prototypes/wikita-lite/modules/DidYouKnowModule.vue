@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { RouterLink } from 'vue-router'
 
 import { CdxCard, CdxProgressBar } from '@wikimedia/codex'
 
@@ -9,6 +8,7 @@ import type { HomeDidYouKnow } from '../../musical-group/data/types'
 import { externalArticleHref } from '../composables/useWikitaLiteCardActions'
 import { splitTitleEmphasis } from '../composables/splitTitleEmphasis'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
+import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_POSITION_END, WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
 
@@ -18,6 +18,11 @@ interface Props {
   loading?: boolean
   previewLimit?: number
   listsVersion?: number
+  /**
+   * Reveal the next cards in place instead of navigating to the module's own
+   * page. The owner grows `previewLimit` in response to `expand`.
+   */
+  expandable?: boolean
   moreTo?: RouteLocationRaw
 }
 
@@ -27,8 +32,14 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   previewLimit: 3,
   listsVersion: 0,
+  expandable: false,
   moreTo: undefined,
 })
+
+defineEmits<{
+  /** Desktop "Show more": reveal the next cards rather than navigate. */
+  expand: []
+}>()
 
 const displayItems = computed(() =>
   props.standalone ? props.items : props.items.slice(0, props.previewLimit),
@@ -49,6 +60,14 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
   moreTo: () => props.moreTo,
   hasItems: () => displayItems.value.length > 0,
 })
+
+/*
+ * Navigating always has somewhere to go; revealing in place only makes sense
+ * while the feed holds more than the preview is showing.
+ */
+const showMoreControl = computed(
+  () => showMoreLink.value && (!props.expandable || props.items.length > props.previewLimit),
+)
 </script>
 
 <template>
@@ -79,13 +98,14 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
 
       <slot name="after-cards" />
 
-      <RouterLink
-        v-if="showMoreLink && moreTo"
+      <WikitaLiteShowMore
+        v-if="showMoreControl"
         :to="moreTo"
-        class="cdx-button cdx-button--fake-button cdx-button--fake-button--enabled wikita-lite-button-link"
+        :expandable="expandable"
+        @expand="$emit('expand')"
       >
         Show more
-      </RouterLink>
+      </WikitaLiteShowMore>
 
       <p v-if="standalone && !displayItems.length" class="did-you-know-module__empty">
         No Did you know hooks are available right now.

@@ -122,6 +122,7 @@ provide(WIKITA_LITE_CARD_SEPARATION, effectiveCardSeparation)
   <section
     class="wikita-lite-module"
     :class="{ 'wikita-lite-module--standalone': standalone }"
+    :data-module-id="moduleId"
   >
     <div v-if="showOverflowMenu" class="wikita-lite-module__header">
       <div class="wikita-lite-module__title-group">

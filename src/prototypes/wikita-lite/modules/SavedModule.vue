@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { RouterLink } from 'vue-router'
 
 import { CdxCard, CdxIcon, CdxProgressBar } from '@wikimedia/codex'
 import {
@@ -20,6 +19,7 @@ import { useWikitaLiteSaveFeedback } from '../composables/useWikitaLiteSaveFeedb
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
 import WikitaLiteCardWithAction from '../components/WikitaLiteCardWithAction.vue'
+import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 
 interface Props {
@@ -28,11 +28,10 @@ interface Props {
   loading?: boolean
   previewLimit?: number
   /**
-   * How many saved pages exist in total. `items` is only ever the newest few,
-   * so the overflow link needs the real count to know whether "more" exists.
-   * Defaults to `items.length` for callers that pass the whole list.
+   * Reveal the next cards in place instead of navigating to the module's own
+   * page. The owner grows `previewLimit` in response to `expand`.
    */
-  totalCount?: number
+  expandable?: boolean
   moreTo?: RouteLocationRaw
 }
 
@@ -41,9 +40,14 @@ const props = withDefaults(defineProps<Props>(), {
   items: () => [],
   loading: false,
   previewLimit: 4,
-  totalCount: undefined,
+  expandable: false,
   moreTo: undefined,
 })
+
+defineEmits<{
+  /** Desktop "Show more": reveal the next cards rather than navigate. */
+  expand: []
+}>()
 
 /** Standalone Saved page keeps items visible after unsave until the user leaves. */
 const sessionItems = ref<HomeSavedItem[] | null>(null)
@@ -113,15 +117,21 @@ function formatSavedLabel(savedAt: number | undefined): string {
 const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () => props.standalone })
 
 /* Nothing to go to until there is a saved page the preview didn't fit. */
-const hasOverflow = computed(
-  () => (props.totalCount ?? props.items.length) > props.previewLimit,
-)
+const hasOverflow = computed(() => props.items.length > props.previewLimit)
 
 const showMoreLink = useWikitaLiteOverflowShowMore({
   standalone: () => props.standalone,
   moreTo: () => props.moreTo,
   hasItems: () => hasOverflow.value,
 })
+
+/*
+ * Navigating always has somewhere to go; revealing in place only makes sense
+ * while the feed holds more than the preview is showing.
+ */
+const showMoreControl = computed(
+  () => showMoreLink.value && (!props.expandable || props.items.length > props.previewLimit),
+)
 </script>
 
 <template>
@@ -174,13 +184,14 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
 
         <slot name="after-cards" />
 
-        <RouterLink
-          v-if="showMoreLink && moreTo"
+        <WikitaLiteShowMore
+          v-if="showMoreControl"
           :to="moreTo"
-          class="cdx-button cdx-button--fake-button cdx-button--fake-button--enabled wikita-lite-button-link"
+          :expandable="expandable"
+          @expand="$emit('expand')"
         >
           Show more saved
-        </RouterLink>
+        </WikitaLiteShowMore>
       </template>
 
       <p

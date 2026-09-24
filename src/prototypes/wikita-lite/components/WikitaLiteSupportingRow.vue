@@ -12,6 +12,8 @@ import {
 /**
  * Card supporting-text row. Pass `icon` + slot content for a single signal, or
  * `signals` for several — those are bullet-joined instead of comma-joined.
+ * A `timestamp` is not bulleted in: it sits at the far end of the row, and the
+ * card pins the row to its bottom edge, so the time lands in the bottom corner.
  *
  * The first signal's icon stays a flex item so wrapped text hangs beside it
  * (matching the single-signal layout); any later icon sits inline in the text
@@ -25,20 +27,27 @@ const props = withDefaults(
   defineProps<{
     icon?: Icon
     signals?: WikitaLiteSupportingSignal[]
+    timestamp?: string
   }>(),
   {
     icon: undefined,
     signals: undefined,
+    timestamp: undefined,
   },
 )
 
 const shownSignals = computed(() => visibleSupportingSignals(props.signals))
 
 const leadIcon = computed(() => shownSignals.value[0]?.icon ?? props.icon)
+
+const shownTimestamp = computed(() => props.timestamp?.trim() ?? '')
 </script>
 
 <template>
-  <div class="wikita-lite-supporting-row">
+  <div
+    class="wikita-lite-supporting-row"
+    :class="{ 'wikita-lite-supporting-row--timestamped': shownTimestamp }"
+  >
     <CdxIcon v-if="leadIcon" :icon="leadIcon" size="small" />
     <span class="wikita-lite-supporting-row__text">
       <template v-if="shownSignals.length">
@@ -62,5 +71,9 @@ const leadIcon = computed(() => shownSignals.value[0]?.icon ?? props.icon)
       </template>
       <slot v-else />
     </span>
+    <span
+      v-if="shownTimestamp"
+      class="wikita-lite-supporting-row__timestamp"
+    >{{ shownTimestamp }}</span>
   </div>
 </template>

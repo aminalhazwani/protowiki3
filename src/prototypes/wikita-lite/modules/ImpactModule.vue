@@ -181,5 +181,6 @@ function formatStat(value: number | string | undefined): string {
 
 .impact-module__empty-cta {
   width: 100%;
+  max-width: none;
 }
 </style>

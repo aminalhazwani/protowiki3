@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { RouterLink } from 'vue-router'
 
 import { CdxButton, CdxCard, CdxProgressBar } from '@wikimedia/codex'
 import {
@@ -20,6 +19,7 @@ import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardLi
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
 import WikitaLiteCardWithAction from '../components/WikitaLiteCardWithAction.vue'
+import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 
 interface Props {
@@ -29,6 +29,11 @@ interface Props {
   error?: string | null
   previewLimit?: number
   listsVersion?: number
+  /**
+   * Reveal the next cards in place instead of navigating to the module's own
+   * page. The owner grows `previewLimit` in response to `expand`.
+   */
+  expandable?: boolean
   moreTo?: RouteLocationRaw
 }
 
@@ -39,11 +44,14 @@ const props = withDefaults(defineProps<Props>(), {
   error: null,
   previewLimit: 2,
   listsVersion: 0,
+  expandable: false,
   moreTo: undefined,
 })
 
 defineEmits<{
   retry: []
+  /** Desktop "Show more": reveal the next cards rather than navigate. */
+  expand: []
 }>()
 
 const listsVersionRef = computed(() => props.listsVersion)
@@ -75,6 +83,14 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
   moreTo: () => props.moreTo,
   hasItems: () => displayItems.value.length > 0,
 })
+
+/*
+ * Navigating always has somewhere to go; revealing in place only makes sense
+ * while the feed holds more than the preview is showing.
+ */
+const showMoreControl = computed(
+  () => showMoreLink.value && (!props.expandable || props.items.length > props.previewLimit),
+)
 </script>
 
 <template>
@@ -131,13 +147,14 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
 
       <slot name="after-cards" />
 
-      <RouterLink
-        v-if="showMoreLink && moreTo"
+      <WikitaLiteShowMore
+        v-if="showMoreControl"
         :to="moreTo"
-        class="cdx-button cdx-button--fake-button cdx-button--fake-button--enabled wikita-lite-button-link"
+        :expandable="expandable"
+        @expand="$emit('expand')"
       >
         Show more trending
-      </RouterLink>
+      </WikitaLiteShowMore>
 
       <p v-if="standalone && !displayItems.length" class="trending-module__empty">
         No trending articles are available right now.

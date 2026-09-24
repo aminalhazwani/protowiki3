@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, toRef, watch } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { RouterLink } from 'vue-router'
 
 import { CdxButton, CdxCard, CdxProgressBar } from '@wikimedia/codex'
 import type { Icon } from '@wikimedia/codex-icons'
@@ -31,6 +30,7 @@ import {
   isSentinelNearViewport,
   useViewportInfiniteScroll,
 } from '../composables/useViewportInfiniteScroll'
+import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 import type { WikitaLiteSupportingSignal } from '../data/supportingSignals'
 
@@ -43,6 +43,11 @@ interface Props {
   loading?: boolean
   loadingMore?: boolean
   previewLimit?: number
+  /**
+   * Reveal the next cards in place instead of navigating to the module's own
+   * page. The owner grows `previewLimit` in response to `expand`.
+   */
+  expandable?: boolean
   moreTo?: RouteLocationRaw
 }
 
@@ -54,8 +59,14 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   loadingMore: false,
   previewLimit: 3,
+  expandable: false,
   moreTo: undefined,
 })
+
+defineEmits<{
+  /** Desktop "Show more": reveal the next cards rather than navigate. */
+  expand: []
+}>()
 
 const useInternalFeed = computed(() => props.standalone && props.savedItems.length > 0)
 
@@ -142,6 +153,14 @@ const showMoreLink = computed(
   () => !props.standalone && Boolean(props.moreTo) && displayItems.value.length > 0,
 )
 
+/*
+ * Navigating always has somewhere to go; revealing in place only makes sense
+ * while the feed holds more than the preview is showing.
+ */
+const showMoreControl = computed(
+  () => showMoreLink.value && (!props.expandable || props.items.length > props.previewLimit),
+)
+
 const showStandaloneLoading = computed(() => {
   if (!props.standalone) return false
   if (useInternalFeed.value) {
@@ -203,10 +222,14 @@ function changeChips(change: HomeRecentChange): WikitaLiteChip[] {
   return chips
 }
 
-/** Who edited, then when — two signals rather than one comma-joined string. */
+/** Who edited; when goes in the row's timestamp, see {@link editTimestamp}. */
 function editSignals(change: HomeRecentChange): WikitaLiteSupportingSignal[] {
-  const { editor, relative } = splitEditMetaLabel(change.editedLabel)
-  return [{ icon: cdxIconUserAvatar, text: editor }, { text: relative }]
+  const { editor } = splitEditMetaLabel(change.editedLabel)
+  return [{ icon: cdxIconUserAvatar, text: editor }]
+}
+
+function editTimestamp(change: HomeRecentChange): string {
+  return splitEditMetaLabel(change.editedLabel).relative
 }
 
 const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () => props.standalone })
@@ -237,6 +260,7 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
           :title="change.title"
           :description="change.editSummary"
           :supporting-signals="editSignals(change)"
+            :supporting-timestamp="editTimestamp(change)"
           :force-thumbnail="false"
         />
 
@@ -248,6 +272,7 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
             :title="change.title"
             :description="change.editSummary"
             :supporting-signals="editSignals(change)"
+            :supporting-timestamp="editTimestamp(change)"
             :force-thumbnail="false"
           />
 
@@ -263,7 +288,10 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
               {{ change.editSummary }}
             </template>
             <template #supporting-text>
-              <WikitaLiteSupportingRow :signals="editSignals(change)" />
+              <WikitaLiteSupportingRow
+                :signals="editSignals(change)"
+                :timestamp="editTimestamp(change)"
+              />
             </template>
           </CdxCard>
         </template>
@@ -272,13 +300,14 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
 
     <slot name="after-cards" />
 
-    <RouterLink
-      v-if="showMoreLink && moreTo"
+    <WikitaLiteShowMore
+      v-if="showMoreControl"
       :to="moreTo"
-      class="cdx-button cdx-button--fake-button cdx-button--fake-button--enabled wikita-lite-button-link"
+      :expandable="expandable"
+      @expand="$emit('expand')"
     >
       Review more changes
-    </RouterLink>
+    </WikitaLiteShowMore>
 
     <CdxProgressBar v-if="showStandaloneLoading" inline aria-label="Loading recent activity" />
 

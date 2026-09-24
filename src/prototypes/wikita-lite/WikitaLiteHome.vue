@@ -12,6 +12,7 @@ import { useWikitaLiteDashboardMode } from './composables/useWikitaLiteDashboard
 import { useWikitaLiteDismissedModulesSingleton } from './composables/useWikitaLiteDismissedModules'
 import { useWikitaLiteExploreModuleOrder } from './composables/useWikitaLiteExploreModuleOrder'
 import { useWikitaLiteHideTabBarSingleton } from './composables/useWikitaLiteHideTabBar'
+import { useWikitaLiteHomeExpansion } from './composables/useWikitaLiteHomeExpansion'
 import { useWikitaLiteHomeLayout } from './composables/useWikitaLiteHomeLayout'
 import { useWikitaLiteImpact } from './composables/useWikitaLiteImpact'
 import { useWikitaLiteMentor } from './composables/useWikitaLiteMentor'
@@ -80,6 +81,7 @@ const { isDismissed } = useWikitaLiteDismissedModulesSingleton()
 const { hideTabBar } = useWikitaLiteHideTabBarSingleton()
 const { isLayoutModuleEnabled, layoutModuleOrderStyle } = useWikitaLiteHomeLayout()
 const { dashboardMode } = useWikitaLiteDashboardMode()
+const { canExpandInPlace, limitFor, expand } = useWikitaLiteHomeExpansion()
 
 let getBookmarkChangeSkipFeeds: () => PersonalizedFeedId[] = () => []
 
@@ -129,18 +131,30 @@ const homeMentionsPreview = computed(() =>
   homeMentions.value.slice(0, HOME_MENTIONS_PREVIEW_LIMIT),
 )
 
-/*
- * The Saved preview is the newest four. `savedSorted` is the whole list, so its
- * length is also what tells the module whether a "Show more saved" exists.
- */
-const savedPreview = computed(() => savedSorted.value.slice(0, HOME_SAVED_PREVIEW_LIMIT))
-const savedTotalCount = computed(() => savedSorted.value.length)
-
 const helpWantedPreviewLimit = computed(() =>
   suggestionSeedsAvailable.value || hasSavedPages.value
     ? HOME_HELP_WANTED_PREVIEW_LIMIT
     : UNSAVED_HELP_WANTED_PREVIEW_LIMIT,
 )
+
+/*
+ * A module's display limit is its preview plus whatever "Show more" has
+ * revealed. Every preview below derives from these, so the counts the loading
+ * and empty states check stay in step with what the grid renders.
+ */
+const suggestedEditsLimit = computed(() => limitFor('suggestedEdits', helpWantedPreviewLimit.value))
+const furtherReadingLimit = computed(() =>
+  limitFor('furtherReading', HOME_FURTHER_READING_PREVIEW_LIMIT),
+)
+const didYouKnowLimit = computed(() => limitFor('didYouKnow', HOME_DYK_PREVIEW_LIMIT))
+const trendingLimit = computed(() => limitFor('trending', HOME_TRENDING_PREVIEW_LIMIT))
+const activeDiscussionsLimit = computed(() =>
+  limitFor('activeDiscussions', HOME_ACTIVE_DISCUSSIONS_PREVIEW_LIMIT),
+)
+const savedLimit = computed(() => limitFor('saved', HOME_SAVED_PREVIEW_LIMIT))
+
+/* The Saved preview is the newest four of the whole list, not a recency window. */
+const savedPreview = computed(() => savedSorted.value.slice(0, savedLimit.value))
 
 const recentActivityPreviewLimit = computed(() =>
   suggestionSeedsAvailable.value
@@ -148,9 +162,11 @@ const recentActivityPreviewLimit = computed(() =>
     : UNSAVED_RECENT_ACTIVITY_PREVIEW_LIMIT,
 )
 
-const helpWantedPreview = computed(() =>
-  helpWanted.value.slice(0, helpWantedPreviewLimit.value),
+const recentActivityLimit = computed(() =>
+  limitFor('recentActivity', recentActivityPreviewLimit.value),
 )
+
+const helpWantedPreview = computed(() => helpWanted.value.slice(0, suggestedEditsLimit.value))
 
 const furtherReadingEmptyPending = computed(
   () =>
@@ -186,7 +202,7 @@ const suggestedEditsPreviewCount = computed(
 )
 
 const recentActivityPreview = computed(() =>
-  recentChanges.value.slice(0, recentActivityPreviewLimit.value),
+  recentChanges.value.slice(0, recentActivityLimit.value),
 )
 
 const activeDiscussionsPreviewCount = computed(() => activeDiscussions.value.length)
@@ -213,12 +229,10 @@ const contributeActiveDiscussionsPending = computed(
     !activeDiscussionsError.value,
 )
 
-const homeDidYouKnowPreview = computed(() =>
-  didYouKnow.value.slice(0, HOME_DYK_PREVIEW_LIMIT),
-)
+const homeDidYouKnowPreview = computed(() => didYouKnow.value.slice(0, didYouKnowLimit.value))
 
 const homePinnedDidYouKnowPreview = computed(() =>
-  didYouKnow.value.slice(0, HOME_DYK_PREVIEW_LIMIT),
+  didYouKnow.value.slice(0, didYouKnowLimit.value),
 )
 
 const showDidYouKnowOnHome = computed(
@@ -277,6 +291,7 @@ const editTab = useWikitaLiteTabLoading([
     id: 'furtherReading',
     loading: homeRelatedLoading,
     previewCount: furtherReadingPreviewCount,
+    previewLimit: furtherReadingLimit,
     emptyPending: furtherReadingEmptyPending,
     enabled: computed(() => isLayoutModuleEnabled('furtherReading')),
   },
@@ -284,6 +299,7 @@ const editTab = useWikitaLiteTabLoading([
     id: 'suggestedEdits',
     loading: helpWantedLoading,
     previewCount: suggestedEditsPreviewCount,
+    previewLimit: suggestedEditsLimit,
     emptyPending: suggestedEditsEmptyPending,
     enabled: computed(() => isLayoutModuleEnabled('suggestedEdits')),
   },
@@ -291,6 +307,7 @@ const editTab = useWikitaLiteTabLoading([
     id: 'recentActivity',
     loading: recentChangesLoading,
     previewCount: computed(() => recentActivityPreview.value.length),
+    previewLimit: recentActivityLimit,
     enabled: computed(() => isLayoutModuleEnabled('recentActivity')),
   },
   {
@@ -338,6 +355,7 @@ const readExploreTab = useWikitaLiteTabLoading([
     id: 'furtherReading',
     loading: homeRelatedLoading,
     previewCount: homeRelatedPreviewCount,
+    previewLimit: furtherReadingLimit,
     emptyPending: furtherReadingEmptyPending,
     enabled: suggestionSeedsAvailable,
   },
@@ -354,6 +372,7 @@ const contributeTab = useWikitaLiteTabLoading([
     id: 'suggestedEdits',
     loading: helpWantedLoading,
     previewCount: computed(() => helpWantedPreview.value.length),
+    previewLimit: suggestedEditsLimit,
     emptyPending: suggestedEditsEmptyPending,
   },
   {
@@ -368,6 +387,7 @@ const contributeTab = useWikitaLiteTabLoading([
     id: 'recentActivity',
     loading: recentChangesLoading,
     previewCount: computed(() => recentActivityPreview.value.length),
+    previewLimit: recentActivityLimit,
   },
   {
     id: 'activeDiscussions',
@@ -493,7 +513,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="trendingItems.length || trendingTabError"
             :items="trendingItems"
             :error="trendingTabError"
-            :preview-limit="HOME_TRENDING_PREVIEW_LIMIT"
+            :preview-limit="trendingLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('trending')"
             :lists-version="listsVersion"
             :more-to="wikitaLiteRoute(TRENDING_PAGE)"
             @retry="retryTrendingFeed"
@@ -524,7 +546,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-else-if="homeRelatedItems.length"
             :items="homeRelatedItems"
             :loading="homeRelatedLoading"
-            :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
+            :preview-limit="furtherReadingLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('furtherReading')"
             :lists-version="listsVersion"
           >
             <template
@@ -554,12 +578,14 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           </div>
           <HelpWantedModule
             v-else-if="helpWantedPreview.length"
-            :items="helpWantedPreview"
-            :preview-limit="helpWantedPreviewLimit"
+            :items="helpWanted"
+            :preview-limit="suggestedEditsLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('suggestedEdits')"
             :more-to="wikitaLiteRoute(HELP_WANTED_PAGE)"
           >
             <template
-              v-if="helpWantedLoading && helpWantedPreview.length"
+              v-if="editTab.showLoadingBar('suggestedEdits') && helpWantedPreview.length"
               #after-cards
             >
               <div class="wikita-lite-home__loading">
@@ -584,8 +610,10 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           </div>
           <RecentActivityModule
             v-if="recentActivityPreview.length"
-            :items="recentActivityPreview"
-            :preview-limit="recentActivityPreviewLimit"
+            :items="recentChanges"
+            :preview-limit="recentActivityLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('recentActivity')"
             :more-to="wikitaLiteRoute(RECENT_ACTIVITY_PAGE)"
           >
             <template
@@ -616,7 +644,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="showActiveDiscussionsContent"
             :items="activeDiscussions"
             :error="activeDiscussionsError"
-            :preview-limit="HOME_ACTIVE_DISCUSSIONS_PREVIEW_LIMIT"
+            :preview-limit="activeDiscussionsLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('activeDiscussions')"
             :more-to="wikitaLiteRoute(ACTIVE_DISCUSSIONS_PAGE)"
             @retry="retryActiveDiscussionsFeed"
           >
@@ -669,7 +699,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           <DidYouKnowModule
             v-if="homePinnedDidYouKnowPreview.length"
             :items="didYouKnow"
-            :preview-limit="HOME_DYK_PREVIEW_LIMIT"
+            :preview-limit="didYouKnowLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('didYouKnow')"
             :lists-version="listsVersion"
             :more-to="wikitaLiteRoute(DID_YOU_KNOW_PAGE)"
           />
@@ -689,9 +721,10 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             <CdxProgressBar inline aria-label="Loading saved pages" />
           </div>
           <SavedModule
-            :items="hasSavedPages ? savedPreview : []"
-            :preview-limit="HOME_SAVED_PREVIEW_LIMIT"
-            :total-count="hasSavedPages ? savedTotalCount : 0"
+            :items="hasSavedPages ? savedSorted : []"
+            :preview-limit="savedLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('saved')"
             :more-to="wikitaLiteRoute(SAVED_PAGE)"
           />
         </WikitaLiteModule>
@@ -725,7 +758,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           <DidYouKnowModule
             v-if="homeDidYouKnowPreview.length"
             :items="didYouKnow"
-            :preview-limit="HOME_DYK_PREVIEW_LIMIT"
+            :preview-limit="didYouKnowLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('didYouKnow')"
           >
             <template
               v-if="readExploreTab.showLoadingBar('didYouKnow') && homeDidYouKnowPreview.length"
@@ -752,9 +787,10 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             <CdxProgressBar inline aria-label="Loading saved pages" />
           </div>
           <SavedModule
-            :items="hasSavedPages ? savedPreview : []"
-            :preview-limit="HOME_SAVED_PREVIEW_LIMIT"
-            :total-count="hasSavedPages ? savedTotalCount : 0"
+            :items="hasSavedPages ? savedSorted : []"
+            :preview-limit="savedLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('saved')"
             :more-to="wikitaLiteRoute(SAVED_PAGE)"
           >
             <template
@@ -791,7 +827,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="homeRelatedItems.length"
             :items="homeRelatedItems"
             :loading="homeRelatedLoading"
-            :preview-limit="HOME_FURTHER_READING_PREVIEW_LIMIT"
+            :preview-limit="furtherReadingLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('furtherReading')"
             :lists-version="listsVersion"
           >
             <template
@@ -862,8 +900,10 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           </div>
           <HelpWantedModule
             v-if="helpWantedPreview.length"
-            :items="helpWantedPreview"
-            :preview-limit="helpWantedPreviewLimit"
+            :items="helpWanted"
+            :preview-limit="suggestedEditsLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('suggestedEdits')"
             :more-to="wikitaLiteRoute(HELP_WANTED_PAGE)"
           >
             <template
@@ -931,8 +971,10 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
           </div>
           <RecentActivityModule
             v-if="recentActivityPreview.length"
-            :items="recentActivityPreview"
-            :preview-limit="recentActivityPreviewLimit"
+            :items="recentChanges"
+            :preview-limit="recentActivityLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('recentActivity')"
             :more-to="wikitaLiteRoute(RECENT_ACTIVITY_PAGE)"
           >
             <template
@@ -963,7 +1005,9 @@ getBookmarkChangeSkipFeeds = (): PersonalizedFeedId[] => {
             v-if="showActiveDiscussionsContent"
             :items="activeDiscussions"
             :error="activeDiscussionsError"
-            :preview-limit="HOME_ACTIVE_DISCUSSIONS_PREVIEW_LIMIT"
+            :preview-limit="activeDiscussionsLimit"
+            :expandable="canExpandInPlace"
+            @expand="expand('activeDiscussions')"
             :more-to="wikitaLiteRoute(ACTIVE_DISCUSSIONS_PAGE)"
             @retry="retryActiveDiscussionsFeed"
           >

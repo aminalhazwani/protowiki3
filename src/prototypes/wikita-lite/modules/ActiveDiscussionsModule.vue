@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { RouterLink } from 'vue-router'
 
 import { CdxButton, CdxCard, CdxProgressBar } from '@wikimedia/codex'
 import { cdxIconSpeechBubbles } from '@wikimedia/codex-icons'
 
 import type { HomeActiveDiscussion } from '../../musical-group/data/types'
 import WikitaLiteDailyReadsTabs from '../components/WikitaLiteDailyReadsTabs.vue'
+import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 import { useWikitaLiteActiveDiscussionsTabs } from '../composables/useWikitaLiteActiveDiscussionsTabs'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
@@ -21,6 +21,11 @@ interface Props {
   loading?: boolean
   error?: string | null
   previewLimit?: number
+  /**
+   * Reveal the next cards in place instead of navigating to the module's own
+   * page. The owner grows `previewLimit` in response to `expand`.
+   */
+  expandable?: boolean
   moreTo?: RouteLocationRaw
 }
 
@@ -30,21 +35,23 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   error: null,
   previewLimit: 3,
+  expandable: false,
   moreTo: undefined,
 })
 
 defineEmits<{
   retry: []
+  /** Desktop "Show more": reveal the next cards rather than navigate. */
+  expand: []
 }>()
 
-/** Comment count, then the latest reply's relative time. */
+/** Comment count; the latest reply's relative time goes in the row's timestamp. */
 function discussionSignals(discussion: HomeActiveDiscussion): WikitaLiteSupportingSignal[] {
   return [
     {
       icon: cdxIconSpeechBubbles,
       text: `${discussion.commentCount} ${discussion.commentCount === 1 ? 'comment' : 'comments'}`,
     },
-    { text: discussion.latestCommentLabel },
   ]
 }
 
@@ -66,6 +73,14 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
   moreTo: () => props.moreTo,
   hasItems: () => displayItems.value.length > 0,
 })
+
+/*
+ * Navigating always has somewhere to go; revealing in place only makes sense
+ * while the feed holds more than the preview is showing.
+ */
+const showMoreControl = computed(
+  () => showMoreLink.value && (!props.expandable || props.items.length > props.previewLimit),
+)
 </script>
 
 <template>
@@ -101,20 +116,24 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
             {{ activeDiscussionCategoryLabel(discussion.noticeboardTitle) }}
           </template>
           <template #supporting-text>
-            <WikitaLiteSupportingRow :signals="discussionSignals(discussion)" />
+            <WikitaLiteSupportingRow
+              :signals="discussionSignals(discussion)"
+              :timestamp="discussion.latestCommentLabel"
+            />
           </template>
         </CdxCard>
       </div>
 
       <slot name="after-cards" />
 
-      <RouterLink
-        v-if="showMoreLink && moreTo"
+      <WikitaLiteShowMore
+        v-if="showMoreControl"
         :to="moreTo"
-        class="cdx-button cdx-button--fake-button cdx-button--fake-button--enabled wikita-lite-button-link"
+        :expandable="expandable"
+        @expand="$emit('expand')"
       >
         Show more active discussions
-      </RouterLink>
+      </WikitaLiteShowMore>
 
       <p v-if="standalone && !displayItems.length" class="active-discussions-module__empty">
         No active discussions right now.

@@ -107,5 +107,6 @@ function mentorAvatarThumbnail(initial: string) {
 
 .mentor-module__cta {
   width: 100%;
+  max-width: none;
 }
 </style>

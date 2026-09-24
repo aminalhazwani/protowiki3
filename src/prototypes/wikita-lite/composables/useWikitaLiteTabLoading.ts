@@ -4,6 +4,12 @@ export interface FeedLoadingConfig {
   id: string
   loading: Ref<boolean> | ComputedRef<boolean>
   previewCount: Ref<number> | ComputedRef<number>
+  /**
+   * Cards the module shows right now. Once `previewCount` reaches it, the grid
+   * is full and any loading still running only feeds "Show more", so the
+   * trailing bar would be promising cards the reader can't see yet.
+   */
+  previewLimit?: Ref<number> | ComputedRef<number>
   /** When set, used for empty-slot selection instead of loading + zero preview. */
   emptyPending?: Ref<boolean> | ComputedRef<boolean>
   hasError?: Ref<boolean> | ComputedRef<boolean>
@@ -46,7 +52,10 @@ export function useWikitaLiteTabLoading(feeds: FeedLoadingConfig[]) {
 
     const previewCount = unref(feed.previewCount)
     const hasError = Boolean(unref(feed.hasError))
-    if (previewCount > 0 || hasError) return true
+    if (hasError) return true
+    if (previewCount > 0) {
+      return feed.previewLimit === undefined || previewCount < unref(feed.previewLimit)
+    }
 
     if (feed.emptyPending !== undefined) {
       // emptyPending can keep a shell visible while a sibling feed loads first (e.g. Daily reads

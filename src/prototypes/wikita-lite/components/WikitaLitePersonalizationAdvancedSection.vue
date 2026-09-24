@@ -5,12 +5,18 @@ import { CdxAccordion, CdxButton, CdxField, CdxTextInput } from '@wikimedia/code
 import type { ValidationStatusType } from '@wikimedia/codex'
 
 import { useConfig } from '@/composables/useConfig'
-import { backfillReadingListSavedAt, formatPageList, parsePageList } from '@/config'
+import {
+  backfillReadingListSavedAt,
+  formatPageList,
+  normalizeWikiUsername,
+  parsePageList,
+} from '@/config'
 
 import {
   FetchUserEditedPagesError,
   fetchUserEditedPages,
 } from '../data/fetchUserEditedPages'
+import { useWikitaLiteUrlState } from '../composables/useWikitaLiteUrlState'
 
 interface Props {
   /** Accordion label. */
@@ -29,6 +35,7 @@ const {
   setCurrentUserPageList,
   setReadingListWithTimestamps,
 } = useConfig()
+const { patchState } = useWikitaLiteUrlState()
 
 const fetchUsername = ref('')
 const fetchingEditedPages = ref(false)
@@ -49,6 +56,9 @@ async function onFetchEditedPages(): Promise<void> {
   try {
     const titles = await fetchUserEditedPages(fetchUsername.value, signal)
     setCurrentUserPageList('editedPages', titles)
+    // Patch both together: the URL re-hydrates config, so `edited` must land with
+    // `editedFrom`. `editedFrom` lets the impact module show this account's real impact.
+    void patchState({ edited: titles, editedFrom: normalizeWikiUsername(fetchUsername.value) })
     fetchEditedPagesStatus.value = 'success'
     fetchEditedPagesMessage.value =
       titles.length === 1 ? 'Added 1 edited page.' : `Added ${titles.length} edited pages.`

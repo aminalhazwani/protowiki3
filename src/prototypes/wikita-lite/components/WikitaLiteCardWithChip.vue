@@ -34,6 +34,8 @@ interface Props {
   supportingIcon?: Icon
   /** Several bullet-joined signals, instead of `supportingText` + `supportingIcon`. */
   supportingSignals?: WikitaLiteSupportingSignal[]
+  /** Relative time, set apart at the end of the supporting row. */
+  supportingTimestamp?: string
   thumbnailUrl?: string
   forceThumbnail?: boolean
   separation?: WikitaLiteCardSeparation
@@ -45,6 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
   supportingText: undefined,
   supportingIcon: undefined,
   supportingSignals: undefined,
+  supportingTimestamp: undefined,
   thumbnailUrl: undefined,
   forceThumbnail: true,
 })
@@ -82,6 +85,7 @@ const showSupporting = computed(
     Boolean(
       props.supportingText?.trim() ||
         props.supportingIcon ||
+        props.supportingTimestamp?.trim() ||
         visibleSupportingSignals(props.supportingSignals).length,
     ),
 )
@@ -134,7 +138,11 @@ const showSupporting = computed(
         </template>
 
         <template v-if="showSupporting" #supporting-text>
-          <WikitaLiteSupportingRow :icon="supportingIcon" :signals="supportingSignals">
+          <WikitaLiteSupportingRow
+            :icon="supportingIcon"
+            :signals="supportingSignals"
+            :timestamp="supportingTimestamp"
+          >
             {{ supportingText }}
           </WikitaLiteSupportingRow>
         </template>

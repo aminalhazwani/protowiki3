@@ -114,6 +114,8 @@ export interface WikitaLiteUrlState {
   saved: string[]
   savedTs: number[]
   edited: string[]
+  /** English Wikipedia user whose history filled `edited` (Advanced personalization). */
+  editedFrom: string
   watchlist: string[]
   suggestionPreferences: SuggestionPreferences
   helpWantedOverrides: WikitaLiteHelpWantedOverrides
@@ -154,6 +156,7 @@ export type WikitaLiteUrlStatePatch = Partial<{
   saved: string[] | null
   savedTs: number[] | null
   edited: string[] | null
+  editedFrom: string | null
   watchlist: string[] | null
   suggestionPreferences: SuggestionPreferences | null
   helpWantedOverrides: WikitaLiteHelpWantedOverrides | null
@@ -194,6 +197,7 @@ export function defaultWikitaLiteUrlState(): WikitaLiteUrlState {
     saved: [],
     savedTs: [],
     edited: [],
+    editedFrom: '',
     watchlist: [],
     suggestionPreferences: { ...DEFAULT_SUGGESTION_PREFERENCES },
     helpWantedOverrides: {
@@ -396,6 +400,7 @@ export function parseWikitaLiteQuery(query: LocationQuery): WikitaLiteUrlState {
       numberArray(query.savedTs),
     ),
     edited: stringArray(query.edited).map((t) => normalizeEnwikiTitle(t) ?? t),
+    editedFrom: firstString(query.editedFrom).trim(),
     watchlist: stringArray(query.watchlist).map((t) => normalizeEnwikiTitle(t) ?? t),
     suggestionPreferences: {
       useSavedPages: parsePrefBool(firstString(query.prefSaved), DEFAULT_SUGGESTION_PREFERENCES.useSavedPages),
@@ -521,6 +526,7 @@ export function serializeWikitaLiteState(
     }
   }
   if (state.edited.length) next.edited = state.edited
+  if (state.editedFrom) next.editedFrom = state.editedFrom
   if (state.watchlist.length) next.watchlist = state.watchlist
 
   const prefSaved = prefToFlag(
@@ -650,6 +656,9 @@ export function mergeWikitaLiteQuery(
     ...(patch.saved !== undefined && patch.saved !== null ? { saved: patch.saved } : {}),
     ...(patch.savedTs !== undefined && patch.savedTs !== null ? { savedTs: patch.savedTs } : {}),
     ...(patch.edited !== undefined && patch.edited !== null ? { edited: patch.edited } : {}),
+    ...(patch.editedFrom !== undefined && patch.editedFrom !== null
+      ? { editedFrom: patch.editedFrom }
+      : {}),
     ...(patch.watchlist !== undefined && patch.watchlist !== null ? { watchlist: patch.watchlist } : {}),
     ...(patch.suggestionPreferences !== undefined && patch.suggestionPreferences !== null
       ? { suggestionPreferences: patch.suggestionPreferences }
@@ -718,6 +727,7 @@ export function stripWikitaLiteQuery(query: LocationQuery): LocationQueryRaw {
     'saved',
     'savedTs',
     'edited',
+    'editedFrom',
     'watchlist',
     'prefSaved',
     'prefHistory',

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { RouterLink } from 'vue-router'
 
 import { CdxCard, CdxProgressBar } from '@wikimedia/codex'
 import { cdxIconLightbulb } from '@wikimedia/codex-icons'
@@ -9,6 +8,7 @@ import { cdxIconLightbulb } from '@wikimedia/codex-icons'
 import type { HomeHelpWanted } from '../../musical-group/data/types'
 import { helpWantedHref } from '../composables/useWikitaLiteCardActions'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
+import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 
 interface Props {
@@ -17,6 +17,11 @@ interface Props {
   loading?: boolean
   loadingMore?: boolean
   previewLimit?: number
+  /**
+   * Reveal the next cards in place instead of navigating to the module's own
+   * page. The owner grows `previewLimit` in response to `expand`.
+   */
+  expandable?: boolean
   moreTo?: RouteLocationRaw
 }
 
@@ -26,8 +31,14 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   loadingMore: false,
   previewLimit: 3,
+  expandable: false,
   moreTo: undefined,
 })
+
+defineEmits<{
+  /** Desktop "Show more": reveal the next cards rather than navigate. */
+  expand: []
+}>()
 
 const displayItems = computed(() =>
   props.standalone ? props.items : props.items.slice(0, props.previewLimit),
@@ -35,6 +46,14 @@ const displayItems = computed(() =>
 
 const showMoreLink = computed(
   () => !props.standalone && Boolean(props.moreTo) && displayItems.value.length > 0,
+)
+
+/*
+ * Navigating always has somewhere to go; revealing in place only makes sense
+ * while the feed holds more than the preview is showing.
+ */
+const showMoreControl = computed(
+  () => showMoreLink.value && (!props.expandable || props.items.length > props.previewLimit),
 )
 
 function cardThumbnail(url?: string) {
@@ -71,13 +90,14 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
 
     <slot name="after-cards" />
 
-    <RouterLink
-      v-if="showMoreLink && moreTo"
+    <WikitaLiteShowMore
+      v-if="showMoreControl"
       :to="moreTo"
-      class="cdx-button cdx-button--fake-button cdx-button--fake-button--enabled wikita-lite-button-link"
+      :expandable="expandable"
+      @expand="$emit('expand')"
     >
       Show more suggestions
-    </RouterLink>
+    </WikitaLiteShowMore>
 
     <CdxProgressBar
       v-if="standalone && (loading || loadingMore)"

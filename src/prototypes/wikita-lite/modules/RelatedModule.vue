@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { RouterLink } from 'vue-router'
 
 import { useConfig } from '@/composables/useConfig'
 
@@ -25,6 +24,7 @@ import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardLi
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
 import WikitaLiteCardWithAction from '../components/WikitaLiteCardWithAction.vue'
+import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 
 interface Props {
@@ -34,6 +34,11 @@ interface Props {
   loadingMore?: boolean
   previewLimit?: number
   listsVersion?: number
+  /**
+   * Reveal the next cards in place instead of navigating to the module's own
+   * page. The owner grows `previewLimit` in response to `expand`.
+   */
+  expandable?: boolean
   moreTo?: RouteLocationRaw
 }
 
@@ -44,8 +49,14 @@ const props = withDefaults(defineProps<Props>(), {
   loadingMore: false,
   previewLimit: 3,
   listsVersion: 0,
+  expandable: false,
   moreTo: undefined,
 })
+
+defineEmits<{
+  /** Desktop "Show more": reveal the next cards rather than navigate. */
+  expand: []
+}>()
 
 const listsVersionRef = computed(() => props.listsVersion)
 const { currentUserPageLists } = useConfig()
@@ -78,6 +89,14 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
   moreTo: () => props.moreTo,
   hasItems: () => displayItems.value.length > 0,
 })
+
+/*
+ * Navigating always has somewhere to go; revealing in place only makes sense
+ * while the feed holds more than the preview is showing.
+ */
+const showMoreControl = computed(
+  () => showMoreLink.value && (!props.expandable || props.items.length > props.previewLimit),
+)
 
 const saveActionsDisabled = computed(() => !props.standalone && props.loading)
 </script>
@@ -127,13 +146,14 @@ const saveActionsDisabled = computed(() => !props.standalone && props.loading)
 
     <slot name="after-cards" />
 
-    <RouterLink
-      v-if="showMoreLink && moreTo"
+    <WikitaLiteShowMore
+      v-if="showMoreControl"
       :to="moreTo"
-      class="cdx-button cdx-button--fake-button cdx-button--fake-button--enabled wikita-lite-button-link"
+      :expandable="expandable"
+      @expand="$emit('expand')"
     >
       Show more further reading
-    </RouterLink>
+    </WikitaLiteShowMore>
 
     <CdxProgressBar
       v-if="standalone && (loading || loadingMore)"
