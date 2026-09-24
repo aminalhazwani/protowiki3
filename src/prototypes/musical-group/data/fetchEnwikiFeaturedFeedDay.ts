@@ -3,6 +3,7 @@ import { fetchWikimedia } from '@/lib/fetchWikimedia'
 
 import { utcDayParts } from './cacheKeys'
 import { EN_WIKI_HOST } from './enwikiTitle'
+import { createSharedRequest, joinSharedRequest, type SharedRequest } from './sharedRequest'
 
 export interface FeaturedFeedDayResponse {
   tfa?: {
@@ -30,7 +31,7 @@ export interface FeaturedFeedDayResponse {
 }
 
 const sessionCache = new Map<string, FeaturedFeedDayResponse>()
-const inFlight = new Map<string, Promise<FeaturedFeedDayResult>>()
+const inFlight = new Map<string, SharedRequest<FeaturedFeedDayResult>>()
 
 export interface FeaturedFeedDayResult {
   dayKey: string
@@ -57,11 +58,11 @@ export async function fetchEnwikiFeaturedFeedDay(
   const sessionHit = sessionCache.get(dayKey)
   if (sessionHit) return { dayKey, json: sessionHit, ok: true }
 
-  let bodyPromise = inFlight.get(dayKey)
-  if (!bodyPromise) {
-    bodyPromise = (async (): Promise<FeaturedFeedDayResult> => {
+  let request = inFlight.get(dayKey)
+  if (!request) {
+    const created = createSharedRequest(async (sharedSignal): Promise<FeaturedFeedDayResult> => {
       const response = await fetchWikimedia(url, {
-        signal,
+        signal: sharedSignal,
         headers: wikimediaApiFetchHeaders(purpose),
       })
       if (!response.ok) {
@@ -70,13 +71,16 @@ export async function fetchEnwikiFeaturedFeedDay(
       const json = (await response.json()) as FeaturedFeedDayResponse
       sessionCache.set(dayKey, json)
       return { dayKey, json, ok: true }
-    })().finally(() => {
-      inFlight.delete(dayKey)
-    })
-    inFlight.set(dayKey, bodyPromise)
+    }, signal)
+    const clear = () => {
+      if (inFlight.get(dayKey) === created) inFlight.delete(dayKey)
+    }
+    created.promise.then(clear, clear)
+    inFlight.set(dayKey, created)
+    request = created
   }
 
-  return bodyPromise
+  return joinSharedRequest(request, signal)
 }
 
 export function wikimediaFeedErrorMessage(

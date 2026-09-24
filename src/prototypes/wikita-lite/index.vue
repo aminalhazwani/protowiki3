@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, shallowRef, watch, type Component } from 'vue'
 
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
@@ -14,7 +14,6 @@ import WikitaLiteLeavePrototypeDialog from './components/WikitaLiteLeavePrototyp
 import WikitaLitePrototypeSplash from './components/WikitaLitePrototypeSplash.vue'
 import WikitaLiteShell from './components/WikitaLiteShell.vue'
 import WikitaLiteHome from './WikitaLiteHome.vue'
-import WikitaLiteOnboarding from './WikitaLiteOnboarding.vue'
 
 definePage({
   meta: {
@@ -36,6 +35,35 @@ const { onLeaveCapture } = useWikitaLiteLeavePrototype()
 
 const showOnboarding = computed(() => !isOnboarded.value)
 
+/*
+ * Onboarding (screens, account form, article reader) is only ever shown before
+ * Home, so it lives in its own chunk. It's fetched right away when it's next
+ * (the splash covers the wait) and on idle otherwise, so "Create account" from
+ * Home still opens it without a gap.
+ */
+const WikitaLiteOnboarding = shallowRef<Component | null>(null)
+let onboardingLoad: Promise<void> | null = null
+
+function loadOnboarding(): Promise<void> {
+  onboardingLoad ??= import('./WikitaLiteOnboarding.vue').then((module) => {
+    WikitaLiteOnboarding.value = module.default
+  })
+  return onboardingLoad
+}
+
+watch(showOnboarding, (show) => {
+  if (show) void loadOnboarding()
+})
+
+if (showOnboarding.value) {
+  void loadOnboarding()
+} else {
+  onMounted(() => {
+    const whenIdle = window.requestIdleCallback ?? ((callback: () => void) => setTimeout(callback, 2000))
+    whenIdle(() => void loadOnboarding())
+  })
+}
+
 const pageTitle = computed(() => {
   const name = state.value.displayName || state.value.username
   if (name) return `Hello, ${name}!`
@@ -46,7 +74,7 @@ const pageTitle = computed(() => {
 <template>
   <MobileWrapper v-if="showOnboarding" fluid>
     <div class="wikita-lite-index" @click.capture="onLeaveCapture">
-      <WikitaLiteOnboarding v-if="!showSplash" />
+      <component :is="WikitaLiteOnboarding" v-if="!showSplash && WikitaLiteOnboarding" />
       <WikitaLitePrototypeSplash v-if="showSplash" />
       <WikitaLiteLeavePrototypeDialog />
     </div>

@@ -2,6 +2,7 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useConfig } from '@/composables/useConfig'
+import { backgroundSignal } from '@/lib/fetchWikimedia'
 
 import { WIKITA_SAVE_FEEDBACK_KEY } from './composables/useWikitaSaveFeedback'
 import {
@@ -21,8 +22,10 @@ import {
   bookmarksKey,
   contributeRandomCacheKey,
   dailyReadsPreviewCacheKey,
+  editedPagesKey,
   helpWantedFeedsKey,
   utcDayKey,
+  watchlistKey,
 } from './data/cacheKeys'
 import { fetchActiveDiscussions, clearActiveDiscussionsSessionCache } from './data/fetchActiveDiscussions'
 import { fetchFeaturedTabContent, isUsableFeaturedTab } from './data/fetchFeaturedFeed'
@@ -51,6 +54,7 @@ import {
   getCachedDailyReadsPreview,
   getCachedFeaturedTab,
   getCachedHelpWanted,
+  isCachedHelpWantedComplete,
   getCachedHomeMentions,
   getCachedRecentChangesPreview,
   getCachedRelatedFeed,
@@ -96,6 +100,13 @@ function isFullDailyReadsPreview(cached: HomeRelated[] | null): cached is HomeRe
 
 export type PersonalizedFeedId = 'related' | 'mentions' | 'helpWanted' | 'recentChanges'
 
+export type HomeFeedId =
+  | PersonalizedFeedId
+  | 'featured'
+  | 'trending'
+  | 'activeDiscussions'
+  | 'translation'
+
 export type SavedPagesSource = 'bookmarks' | 'readingList'
 
 export interface ReloadBookmarksOptions {
@@ -115,6 +126,13 @@ export function useMusicalGroupHome(options: {
   savedPagesSource?: SavedPagesSource
   /** Interest titles for global Daily reads / suggestion seeds (default: localStorage). */
   listInterests?: () => string[]
+  /**
+   * Whether a feed is on screen right now. Hidden feeds still load in full,
+   * but their requests queue behind the visible ones'. Default: all visible.
+   */
+  isFeedVisible?: (feed: HomeFeedId) => boolean
+  /** Suggested edits shown before "Show more"; the rest load at low priority. */
+  helpWantedForegroundCount?: number
 } = {}) {
   const helpWantedLimit = options.helpWantedLimit ?? 2
   const recentChangesLimit = options.recentChangesLimit
@@ -199,9 +217,34 @@ export function useMusicalGroupHome(options: {
 
   let abort: AbortController | null = null
   let bookmarkAbort: AbortController | null = null
+  /** Per-feed controllers for retries and refreshes, so one never cancels another. */
+  const feedAborts = new Map<string, AbortController>()
+
+  /** `signal`, demoted to background priority when `feed` isn't on screen. */
+  function feedSignal(feed: HomeFeedId, signal: AbortSignal): AbortSignal {
+    return options.isFeedVisible && !options.isFeedVisible(feed) ? backgroundSignal(signal) : signal
+  }
+
+  function freshFeedSignal(feed: string): AbortSignal {
+    feedAborts.get(feed)?.abort()
+    const controller = new AbortController()
+    feedAborts.set(feed, controller)
+    return controller.signal
+  }
   let savedSummariesAbort: AbortController | null = null
   let savedSummariesInFlight: { key: string; promise: Promise<void> } | null = null
   let lastTranslationDependencyKey: string | null = null
+  /** Mount runs both translation loaders at once; the second joins the first. */
+  let translationInFlight: { key: string; promise: Promise<void> } | null = null
+
+  function trackTranslationLoad(key: string, run: () => Promise<void>): Promise<void> {
+    if (translationInFlight?.key === key) return translationInFlight.promise
+    const promise = run().finally(() => {
+      if (translationInFlight?.promise === promise) translationInFlight = null
+    })
+    translationInFlight = { key, promise }
+    return promise
+  }
 
   function currentTranslationDependencyKey(): string {
     return translationSuggestionsCacheKey(translationTargetLangs.value)
@@ -281,7 +324,8 @@ export function useMusicalGroupHome(options: {
     const needsHelpFetch =
       !skipFeeds.has('helpWanted') &&
       seedItems.length > 0 &&
-      (!cachedHelp || cachedHelp.length < helpWantedLimit)
+      (!cachedHelp ||
+        (cachedHelp.length < helpWantedLimit && !isCachedHelpWantedComplete(dependencyKey)))
     const needsRecentFetch =
       !skipFeeds.has('recentChanges') &&
       seedItems.length > 0 &&
@@ -328,7 +372,7 @@ export function useMusicalGroupHome(options: {
             const collected: HomeRelated[] = []
             await fetchDailyReadsPreview({
               seedTitles,
-              signal,
+              signal: feedSignal('related', signal),
               onEach: (card) => {
                 collected.push(card)
                 homeRelatedItems.value = [...collected]
@@ -360,7 +404,13 @@ export function useMusicalGroupHome(options: {
               ? (getCachedDailyReadsPreview(dailyReadsPreviewCacheKey()) ??
                 homeRelatedItems.value)
               : (getCachedRelatedFeed('home', dependencyKey)?.items ?? [])
-          homeMentionsRaw.value = await fetchHomeMentions(items, signal, undefined, excludeRelated)
+          homeMentionsRaw.value = await fetchHomeMentions(
+            items,
+            feedSignal('mentions', signal),
+            undefined,
+            excludeRelated,
+            savedPagesCacheKey(),
+          )
         } catch (err) {
           if (isAbort(err)) return
           homeMentionsRaw.value = []
@@ -371,10 +421,11 @@ export function useMusicalGroupHome(options: {
       (async () => {
         if (!needsRecentFetch) return
         try {
-          recentChanges.value = await fetchRecentChanges(seedItems, signal, {
-            dependencyKey,
-            limit: recentChangesLimit,
-          })
+          recentChanges.value = await fetchRecentChanges(
+            seedItems,
+            feedSignal('recentChanges', signal),
+            { dependencyKey, limit: recentChangesLimit },
+          )
         } catch (err) {
           if (isAbort(err)) return
         } finally {
@@ -384,12 +435,18 @@ export function useMusicalGroupHome(options: {
       (async () => {
         if (!needsHelpFetch) return
         try {
-          helpWanted.value = await fetchHelpWanted(seedItems, signal, helpWantedLimit, {
-            onEach: appendHelpWanted,
-            dependencyKey,
-            includeSavedSuggestions,
-            savedItems: items,
-          })
+          helpWanted.value = await fetchHelpWanted(
+            seedItems,
+            feedSignal('helpWanted', signal),
+            helpWantedLimit,
+            {
+              onEach: appendHelpWanted,
+              dependencyKey,
+              includeSavedSuggestions,
+              savedItems: items,
+              foregroundCount: options.helpWantedForegroundCount,
+            },
+          )
         } catch (err) {
           if (isAbort(err)) return
         } finally {
@@ -518,6 +575,15 @@ export function useMusicalGroupHome(options: {
     savedItems.value = resolveReadingListSavedItems(readingListTitles)
     if (readingListNeedsSummaryFetch(savedItems.value)) {
       void ensureReadingListSummaries()
+    }
+    // Translation suggestions are seeded from saved pages; reload them only
+    // when the reading list changed and that load isn't already running.
+    const translationKey = currentTranslationDependencyKey()
+    if (
+      translationKey !== lastTranslationDependencyKey &&
+      translationInFlight?.key !== translationKey
+    ) {
+      void reloadTranslationForBookmarks(freshFeedSignal('translationForSaved'))
     }
   }
 
@@ -679,6 +745,16 @@ export function useMusicalGroupHome(options: {
   async function reloadTranslationForBookmarks(signal: AbortSignal): Promise<void> {
     const dependencyKey = currentTranslationDependencyKey()
     if (dependencyKey === lastTranslationDependencyKey) return
+    if (translationInFlight?.key === dependencyKey) return translationInFlight.promise
+    return trackTranslationLoad(dependencyKey, () =>
+      reloadTranslationForBookmarksNow(dependencyKey, signal),
+    )
+  }
+
+  async function reloadTranslationForBookmarksNow(
+    dependencyKey: string,
+    signal: AbortSignal,
+  ): Promise<void> {
 
     translationError.value = null
     const targetLangs = translationTargetLangs.value
@@ -785,7 +861,16 @@ export function useMusicalGroupHome(options: {
     }
   }
 
-  async function loadTranslationSuggestions(
+  function loadTranslationSuggestions(
+    signal: AbortSignal,
+    options?: { background?: boolean },
+  ): Promise<void> {
+    return trackTranslationLoad(currentTranslationDependencyKey(), () =>
+      loadTranslationSuggestionsNow(signal, options),
+    )
+  }
+
+  async function loadTranslationSuggestionsNow(
     signal: AbortSignal,
     options?: { background?: boolean },
   ): Promise<void> {
@@ -826,9 +911,7 @@ export function useMusicalGroupHome(options: {
     clearActiveDiscussionsSessionCache()
     clearCachedActiveDiscussions(dayKey)
 
-    abort?.abort()
-    abort = new AbortController()
-    await loadActiveDiscussions(abort.signal)
+    await loadActiveDiscussions(freshFeedSignal('activeDiscussions'))
   }
 
   async function retryTranslationFeed(): Promise<void> {
@@ -837,18 +920,12 @@ export function useMusicalGroupHome(options: {
     clearCachedTranslationSuggestions(cacheKey)
     lastTranslationDependencyKey = null
 
-    abort?.abort()
-    abort = new AbortController()
-    await loadTranslationSuggestions(abort.signal)
+    await loadTranslationSuggestions(freshFeedSignal('translation'))
   }
 
   async function refreshIncompleteTrending(signal?: AbortSignal): Promise<void> {
     if (!trendingItems.value.some(isTrendingSummaryIncomplete)) return
-    if (!signal) {
-      abort?.abort()
-      abort = new AbortController()
-      signal = abort.signal
-    }
+    if (!signal) signal = freshFeedSignal('trending')
     try {
       trendingItems.value = await fetchTrendingFeed(signal)
     } catch (err) {
@@ -862,9 +939,7 @@ export function useMusicalGroupHome(options: {
     clearFeaturedFeedSessionCache()
     clearCachedFeaturedTab(dayKey)
 
-    abort?.abort()
-    abort = new AbortController()
-    await loadFeatured(abort.signal)
+    await loadFeatured(freshFeedSignal('featured'))
   }
 
   async function retryTrendingFeed(): Promise<void> {
@@ -872,9 +947,7 @@ export function useMusicalGroupHome(options: {
     clearTrendingSessionCache()
     clearCachedTrendingFeed(dayKey)
 
-    abort?.abort()
-    abort = new AbortController()
-    await loadTrending(abort.signal)
+    await loadTrending(freshFeedSignal('trending'))
   }
 
   function primeHomeRelatedLoading(): void {
@@ -939,10 +1012,16 @@ export function useMusicalGroupHome(options: {
     void (async () => {
       const bookmarksPromise = reloadBookmarks()
       await Promise.all([
-        featuredCached ? Promise.resolve() : loadFeatured(signal),
-        loadTrending(signal, { background: Boolean(trendingCached?.length) }),
-        loadActiveDiscussions(signal, { background: Boolean(activeDiscussionsCached?.length) }),
-        loadTranslationSuggestions(signal, { background: Boolean(translationCached?.length) }),
+        featuredCached ? Promise.resolve() : loadFeatured(feedSignal('featured', signal)),
+        loadTrending(feedSignal('trending', signal), {
+          background: Boolean(trendingCached?.length),
+        }),
+        loadActiveDiscussions(feedSignal('activeDiscussions', signal), {
+          background: Boolean(activeDiscussionsCached?.length),
+        }),
+        loadTranslationSuggestions(feedSignal('translation', freshFeedSignal('translation')), {
+          background: Boolean(translationCached?.length),
+        }),
         bookmarksPromise,
       ])
     })()
@@ -956,12 +1035,10 @@ export function useMusicalGroupHome(options: {
     },
   )
 
-  watch(
-    () => [route.query.item, route.query.tab] as const,
-    () => {
-      void reloadBookmarks()
-    },
-  )
+  // Sources listed separately so unrelated query changes don't count as a change.
+  watch([() => route.query.item, () => route.query.tab], () => {
+    void reloadBookmarks()
+  })
 
   watch(
     () => saveFeedback?.listsVersion.value,
@@ -983,30 +1060,27 @@ export function useMusicalGroupHome(options: {
     })
   })
 
-  watch(
-    () => currentUserPageLists.value.editedPages,
-    () => {
-      clearCachedSuggestionFeeds()
-      void reloadBookmarks({
-        skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
-      })
-    },
-    { deep: true },
-  )
+  // Keyed by content: any config replacement re-runs these getters, and a deep
+  // watcher would fire (and wipe the suggestion caches) even with nothing changed.
+  watch(editedPagesKey, () => {
+    clearCachedSuggestionFeeds()
+    void reloadBookmarks({
+      skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
+    })
+  })
+
+  watch(watchlistKey, () => {
+    clearCachedSuggestionFeeds()
+    void reloadBookmarks({
+      skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
+    })
+  })
 
   watch(
-    () => currentUserPageLists.value.watchlist,
     () => {
-      clearCachedSuggestionFeeds()
-      void reloadBookmarks({
-        skipFeeds: options.getBookmarkChangeSkipFeeds?.() ?? [],
-      })
+      const lists = currentUserPageLists.value
+      return `${lists.readingList.join('\n')}\t${lists.readingListSavedAt.join(',')}`
     },
-    { deep: true },
-  )
-
-  watch(
-    () => currentUserPageLists.value.readingList,
     () => {
       if (savedPagesSource !== 'readingList') return
       // Bookmark saves already bump listsVersion (sync only). A full reload here
@@ -1014,23 +1088,21 @@ export function useMusicalGroupHome(options: {
       // skipFeeds, can leave visible modules empty.
       syncReadingListSavedItems()
     },
-    { deep: true },
   )
 
   watch(
-    translationTargetLangs,
+    () => translationTargetLangs.value.join('|'),
     () => {
-      abort?.abort()
-      abort = new AbortController()
-      void loadTranslationSuggestions(abort.signal)
+      void loadTranslationSuggestions(freshFeedSignal('translation'))
     },
-    { deep: true },
   )
 
   onMounted(load)
   onBeforeUnmount(() => {
     abort?.abort()
     bookmarkAbort?.abort()
+    savedSummariesAbort?.abort()
+    for (const controller of feedAborts.values()) controller.abort()
   })
 
   return {

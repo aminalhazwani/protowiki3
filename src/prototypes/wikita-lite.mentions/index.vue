@@ -15,7 +15,9 @@ definePage({
 
 const { listsVersion } = provideWikitaLiteSaveFeedback()
 
-const { homeMentions, homeMentionsLoading } = useWikitaLiteHome()
+const { homeMentions, homeMentionsLoading } = useWikitaLiteHome({
+  isFeedVisible: (feed) => feed === 'mentions',
+})
 </script>
 
 <template>

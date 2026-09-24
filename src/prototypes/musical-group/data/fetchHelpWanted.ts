@@ -1,3 +1,5 @@
+import { backgroundSignal } from '@/lib/fetchWikimedia'
+
 import { bookmarksKey } from './cacheKeys'
 import { normalizeEnwikiTitle } from './enwikiTitle'
 import {
@@ -5,15 +7,40 @@ import {
   fetchSavedSuggestionsUpToLimit,
 } from './fetchEditSuggestion'
 import { fetchMorelikeTitles, resolveRelatedSummary } from './fetchRelatedReading'
-import { getCachedHelpWanted, setCachedHelpWanted } from './homeTabCache'
+import {
+  getCachedHelpWanted,
+  isCachedHelpWantedComplete,
+  setCachedHelpWanted,
+} from './homeTabCache'
 import type { HomeHelpWanted, HomeSavedItem } from './types'
 
 const DEFAULT_HELP_WANTED_LIMIT = 2
+
+/**
+ * Shared across the repeated `fetchUnsavedSuggestion` calls of one run, which
+ * would otherwise redo the same morelike searches and re-check the same titles
+ * that already came back without a suggestion.
+ */
+interface UnsavedSearchContext {
+  morelikeBySeed: Map<string, Promise<string[]>>
+  /** Titles already tried, or taken by a concurrent search. */
+  rejectedTitles: Set<string>
+  /** Wikidata items taken by a concurrent search (two titles can share one). */
+  claimedIds: Set<string>
+}
+
+/** Unsaved suggestions searched for at once; each is a long sequential chain. */
+const UNSAVED_SEARCH_CONCURRENCY = 2
+
+function newSearchContext(): UnsavedSearchContext {
+  return { morelikeBySeed: new Map(), rejectedTitles: new Set(), claimedIds: new Set() }
+}
 
 async function fetchUnsavedSuggestion(
   items: HomeSavedItem[],
   signal?: AbortSignal,
   existing: HomeHelpWanted[] = [],
+  context: UnsavedSearchContext = newSearchContext(),
 ): Promise<HomeHelpWanted | null> {
   const seeds = items.filter((item) => item.enwikiTitle)
   if (!seeds.length) return null
@@ -36,15 +63,29 @@ async function fetchUnsavedSuggestion(
   const shuffledSeeds = [...seeds].sort(() => Math.random() - 0.5)
 
   for (const seed of shuffledSeeds) {
-    const titles = await fetchMorelikeTitles(seed.enwikiTitle as string, signal, 8)
+    const seedTitle = seed.enwikiTitle as string
+    let titlesPromise = context.morelikeBySeed.get(seedTitle)
+    if (!titlesPromise) {
+      titlesPromise = fetchMorelikeTitles(seedTitle, signal, 8)
+      context.morelikeBySeed.set(seedTitle, titlesPromise)
+    }
+    const titles = await titlesPromise
 
     for (const title of titles) {
       const titleKey = normalizeEnwikiTitle(title).toLowerCase()
-      if (excludedTitles.has(titleKey)) continue
+      if (excludedTitles.has(titleKey) || context.rejectedTitles.has(titleKey)) continue
+      // Claim it before awaiting, so a concurrent search skips it.
+      context.rejectedTitles.add(titleKey)
 
       const summary = await resolveRelatedSummary(title, seed.title, signal)
-      if (!summary?.itemId) continue
-      if (excludedIds.has(summary.itemId)) continue
+      if (
+        !summary?.itemId ||
+        excludedIds.has(summary.itemId) ||
+        context.claimedIds.has(summary.itemId)
+      ) {
+        continue
+      }
+      context.claimedIds.add(summary.itemId)
 
       excludedTitles.add(titleKey)
       excludedIds.add(summary.itemId)
@@ -80,11 +121,13 @@ export async function fetchHelpWanted(
     includeSavedSuggestions?: boolean
     /** Saved bookmark summaries for the direct-suggestion leg. Defaults to seedItems. */
     savedItems?: HomeSavedItem[]
+    /** Suggestions past this many (the "Show more" ones) load at low queue priority. */
+    foregroundCount?: number
   },
 ): Promise<HomeHelpWanted[]> {
   const dependencyKey = options?.dependencyKey ?? bookmarksKey()
   const cached = getCachedHelpWanted(dependencyKey)
-  if (cached?.length >= limit) {
+  if (cached && (cached.length >= limit || isCachedHelpWantedComplete(dependencyKey))) {
     return cached.slice(0, limit)
   }
 
@@ -92,6 +135,13 @@ export async function fetchHelpWanted(
   const savedForDirect = options?.savedItems ?? seedItems
 
   const suggestions: HomeHelpWanted[] = []
+  const foregroundCount = options?.foregroundCount
+  let demotedSignal: AbortSignal | undefined
+  const nextSignal = (): AbortSignal | undefined => {
+    if (foregroundCount === undefined || suggestions.length < foregroundCount) return signal
+    demotedSignal ??= backgroundSignal(signal)
+    return demotedSignal
+  }
 
   function persistPreviewCache(): void {
     if (suggestions.length) {
@@ -110,16 +160,31 @@ export async function fetchHelpWanted(
     })
   }
 
-  while (suggestions.length < limit) {
-    const unsavedSuggestion = await fetchUnsavedSuggestion(seedItems, signal, suggestions)
-    if (!unsavedSuggestion) break
-    suggestions.push(unsavedSuggestion)
-    options?.onEach?.(unsavedSuggestion)
-    persistPreviewCache()
+  const searchContext = newSearchContext()
+  let exhausted = false
+  const searchUnsaved = async (): Promise<void> => {
+    while (suggestions.length < limit && !exhausted) {
+      const unsavedSuggestion = await fetchUnsavedSuggestion(
+        seedItems,
+        nextSignal(),
+        suggestions,
+        searchContext,
+      )
+      if (!unsavedSuggestion) {
+        exhausted = !signal?.aborted
+        return
+      }
+      if (suggestions.length >= limit) return
+      suggestions.push(unsavedSuggestion)
+      options?.onEach?.(unsavedSuggestion)
+      persistPreviewCache()
+    }
   }
+  const workers = Math.min(UNSAVED_SEARCH_CONCURRENCY, Math.max(0, limit - suggestions.length))
+  await Promise.all(Array.from({ length: workers }, searchUnsaved))
 
   if (suggestions.length) {
-    setCachedHelpWanted(dependencyKey, suggestions)
+    setCachedHelpWanted(dependencyKey, suggestions, { complete: exhausted })
   }
   return suggestions
 }

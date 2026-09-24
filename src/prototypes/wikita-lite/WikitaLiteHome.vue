@@ -6,7 +6,11 @@ import { CdxProgressBar, CdxTab, CdxTabs } from '@wikimedia/codex'
 import { useConfig } from '@/composables/useConfig'
 
 import { useWikitaSaveFeedback } from '../musical-group/composables/useWikitaSaveFeedback'
-import { useWikitaLiteHome, type PersonalizedFeedId } from './composables/useWikitaLiteHome'
+import {
+  useWikitaLiteHome,
+  type HomeFeedId,
+  type PersonalizedFeedId,
+} from './composables/useWikitaLiteHome'
 import { useWikitaLiteContributeModuleOrder } from './composables/useWikitaLiteContributeModuleOrder'
 import { useWikitaLiteDashboardMode } from './composables/useWikitaLiteDashboardMode'
 import { useWikitaLiteDismissedModulesSingleton } from './composables/useWikitaLiteDismissedModules'
@@ -52,6 +56,7 @@ import {
   VIEW_TAB_LABELS,
   type WikitaLiteView,
 } from './routes'
+import type { WikitaLiteModuleId } from './data/homeModuleIds'
 
 const HOME_FEATURED_PREVIEW_LIMIT = 3
 const HOME_DYK_PREVIEW_LIMIT = 4
@@ -85,6 +90,40 @@ const { canExpandInPlace, limitFor, expand } = useWikitaLiteHomeExpansion()
 
 let getBookmarkChangeSkipFeeds: () => PersonalizedFeedId[] = () => []
 
+/** Home modules each feed fills; a feed is on screen when any of them is. */
+const FEED_MODULES: Record<HomeFeedId, WikitaLiteModuleId[]> = {
+  featured: ['featured', 'didYouKnow'],
+  trending: ['trending'],
+  activeDiscussions: ['activeDiscussions'],
+  translation: ['translation'],
+  related: ['furtherReading'],
+  mentions: ['mentions'],
+  helpWanted: ['suggestedEdits'],
+  recentChanges: ['recentActivity'],
+}
+
+const READ_TAB_MODULES: WikitaLiteModuleId[] = ['didYouKnow', 'saved', 'furtherReading', 'mentions']
+const CONTRIBUTE_TAB_MODULES: WikitaLiteModuleId[] = [
+  'suggestedEdits',
+  'translation',
+  'recentActivity',
+  'activeDiscussions',
+]
+
+/**
+ * Only decides request priority: feeds for modules the current tab doesn't
+ * show still load, queued behind the ones on screen.
+ */
+function isFeedVisible(feed: HomeFeedId): boolean {
+  const view = hideTabBar.value ? 'edit' : activeView.value
+  return FEED_MODULES[feed].some((moduleId) => {
+    if (isDismissed(moduleId)) return false
+    if (view === 'read') return READ_TAB_MODULES.includes(moduleId)
+    if (view === 'contribute') return CONTRIBUTE_TAB_MODULES.includes(moduleId)
+    return isLayoutModuleEnabled(moduleId)
+  })
+}
+
 const {
   featuredArticle,
   featuredTabLoading,
@@ -117,7 +156,10 @@ const {
   translationLoading,
   translationError,
   retryTranslationFeed,
-} = useWikitaLiteHome({ getBookmarkChangeSkipFeeds: () => getBookmarkChangeSkipFeeds() })
+} = useWikitaLiteHome({
+  getBookmarkChangeSkipFeeds: () => getBookmarkChangeSkipFeeds(),
+  isFeedVisible,
+})
 
 const featuredHasContent = computed(() => Boolean(featuredArticle.value))
 

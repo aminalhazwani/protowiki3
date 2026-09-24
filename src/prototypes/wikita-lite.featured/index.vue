@@ -33,7 +33,7 @@ const {
   featuredTabLoading,
   featuredTabError,
   retryFeaturedFeed,
-} = useWikitaLiteHome()
+} = useWikitaLiteHome({ isFeedVisible: (feed) => feed === 'featured' })
 </script>
 
 <template>

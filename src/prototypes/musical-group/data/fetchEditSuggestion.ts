@@ -34,6 +34,32 @@ function stableSuggestionItemId(itemId: string | undefined, enwikiTitle: string)
   return `enwiki:${normalizeEnwikiTitle(enwikiTitle).toLowerCase()}`
 }
 
+/** Session cache of quality-check results by title (`null`: page doesn't exist). */
+const qualityCheckCache = new Map<string, QualityCheckResult | null>()
+
+async function fetchQualityCheck(
+  enwikiTitle: string,
+  signal: AbortSignal | undefined,
+  userAgentSuffix: string,
+): Promise<QualityCheckResult | null | undefined> {
+  const cacheKey = normalizeEnwikiTitle(enwikiTitle)
+  if (qualityCheckCache.has(cacheKey)) return qualityCheckCache.get(cacheKey)
+
+  const response = await fetchWithTimeout(MICROTASK_QUALITY_CHECK_URL, {
+    method: 'POST',
+    signal,
+    headers: microtaskFetchHeaders(userAgentSuffix),
+    body: JSON.stringify({ lang: 'en', titles: [enwikiTitle] }),
+  })
+  // Failures aren't cached, so a later load can retry.
+  if (!response.ok) return undefined
+
+  const json = (await response.json()) as { results?: QualityCheckResult[] }
+  const result = json.results?.[0] ?? null
+  qualityCheckCache.set(cacheKey, result)
+  return result
+}
+
 function microtaskFetchHeaders(userAgentSuffix: string): HeadersInit {
   const contact = loadConfig().apiContact.trim() || undefined
   return {
@@ -49,16 +75,7 @@ export async function fetchEditSuggestionForPage(
   userAgentSuffix = 'musical-group-edit-suggestion',
 ): Promise<HomeHelpWanted | null> {
   try {
-    const response = await fetchWithTimeout(MICROTASK_QUALITY_CHECK_URL, {
-      method: 'POST',
-      signal,
-      headers: microtaskFetchHeaders(userAgentSuffix),
-      body: JSON.stringify({ lang: 'en', titles: [page.enwikiTitle] }),
-    })
-    if (!response.ok) return null
-
-    const json = (await response.json()) as { results?: QualityCheckResult[] }
-    const result = json.results?.[0]
+    const result = await fetchQualityCheck(page.enwikiTitle, signal, userAgentSuffix)
     if (!result?.exists) return null
 
     const needs = (result.potential_needs ?? [])

@@ -15,7 +15,8 @@ definePage({
 
 provideWikitaLiteSaveFeedback()
 
-const { savedSorted, savedItemsLoading } = useWikitaLiteHome()
+// Saved pages aren't a feed; every feed this loads is for other pages.
+const { savedSorted, savedItemsLoading } = useWikitaLiteHome({ isFeedVisible: () => false })
 </script>
 
 <template>

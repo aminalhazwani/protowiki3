@@ -1,7 +1,11 @@
 import { normalizeEnwikiTitle } from './enwikiTitle'
 import { fetchSnippetMentions } from './fetchMusicalGroupOverview'
 import { bookmarksKey } from './cacheKeys'
-import { getCachedHomeMentions, setCachedHomeMentions } from './homeTabCache'
+import {
+  getCachedHomeMentions,
+  isCachedHomeMentionsComplete,
+  setCachedHomeMentions,
+} from './homeTabCache'
 import type { HomeMention, HomeRelated, HomeSavedItem } from './types'
 
 /** How many mention cards to fetch and cache for the home / For you feeds. */
@@ -43,10 +47,11 @@ export async function fetchHomeMentions(
   signal?: AbortSignal,
   limit = HOME_MENTIONS_FETCH_LIMIT,
   excludeRelated: HomeRelated[] = [],
+  /** Cache key for the saved pages behind `items` (reading-list callers pass their own). */
+  dependencyKey = bookmarksKey(),
 ): Promise<HomeMention[]> {
-  const dependencyKey = bookmarksKey()
   const cached = getCachedHomeMentions(dependencyKey)
-  if (cached?.length >= limit) {
+  if (cached && (cached.length >= limit || isCachedHomeMentionsComplete(dependencyKey))) {
     return filterMentionsExcludingRelated(cached, excludeRelated).slice(0, limit)
   }
 
@@ -92,6 +97,8 @@ export async function fetchHomeMentions(
     }
   }
 
-  if (mentions.length) setCachedHomeMentions(dependencyKey, mentions)
+  if (mentions.length) {
+    setCachedHomeMentions(dependencyKey, mentions, { complete: !signal?.aborted })
+  }
   return mentions
 }

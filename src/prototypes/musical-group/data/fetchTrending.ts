@@ -11,8 +11,8 @@ import { normalizeQid } from './wikidataApi'
 const MAX_TRENDING = 10
 const SUMMARY_CONCURRENCY = 3
 
-interface MostreadArticle {
-  title?: string
+/** Most-read entries are full page summaries plus view counts. */
+interface MostreadArticle extends PageSummary {
   views?: number
   rank?: number
 }
@@ -106,7 +106,11 @@ async function enrichMostreadArticle(
   if (!article.title || article.views == null) return null
 
   const enwikiTitle = article.title.replace(/_/g, ' ')
-  const summary = await fetchPageSummary(enwikiTitle, signal, 'musical-group-trending')
+  // The feed already embeds each article's summary; fetch only when it's partial.
+  const summary: PageSummary | null =
+    article.timestamp && article.content_urls?.desktop?.page
+      ? article
+      : await fetchPageSummary(enwikiTitle, signal, 'musical-group-trending')
   const title = (summary?.normalizedtitle ?? summary?.title ?? enwikiTitle).replace(/_/g, ' ')
   const timestamp = summary?.timestamp ?? ''
   const viewCount = article.views

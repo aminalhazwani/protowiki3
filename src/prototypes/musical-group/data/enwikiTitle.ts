@@ -117,10 +117,16 @@ export function parseEnwikiArticleTitle(href: string): string | null {
   return normalized
 }
 
+/** Title → Wikidata id for this session; a page's item doesn't change under us. */
+const wikibaseItemIdCache = new Map<string, string | undefined>()
+
 export async function fetchWikibaseItemId(
   title: string,
   signal?: AbortSignal,
 ): Promise<string | undefined> {
+  const cacheKey = normalizeEnwikiTitle(title)
+  if (wikibaseItemIdCache.has(cacheKey)) return wikibaseItemIdCache.get(cacheKey)
+
   const url = wikiActionUrl({
     action: 'query',
     prop: 'pageprops',
@@ -138,7 +144,9 @@ export async function fetchWikibaseItemId(
     query?: { pages?: Record<string, { pageprops?: { wikibase_item?: string } }> }
   }
   const page = Object.values(json.query?.pages ?? {})[0]
-  return normalizeQid(page?.pageprops?.wikibase_item) ?? undefined
+  const itemId = normalizeQid(page?.pageprops?.wikibase_item) ?? undefined
+  wikibaseItemIdCache.set(cacheKey, itemId)
+  return itemId
 }
 
 export async function fetchWikibaseItemIds(

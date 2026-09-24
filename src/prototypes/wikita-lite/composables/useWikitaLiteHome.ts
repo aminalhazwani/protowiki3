@@ -2,6 +2,7 @@ import { useConfig } from '@/composables/useConfig'
 
 import {
   useMusicalGroupHome,
+  type HomeFeedId,
   type PersonalizedFeedId,
 } from '../../musical-group/useMusicalGroupHome'
 import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSuggestionPreferences'
@@ -14,8 +15,10 @@ import { useWikitaLiteSuggestionPreferencesSingleton } from './useWikitaLiteSugg
 export const WIKITA_LITE_HELP_WANTED_HOME_LIMIT = 12
 export const WIKITA_LITE_RECENT_CHANGES_HOME_LIMIT = 12
 export const WIKITA_LITE_TRANSLATION_HOME_COUNT = 2
+/** Suggested edits visible before "Show more"; the rest load at low priority. */
+export const WIKITA_LITE_HELP_WANTED_FOREGROUND_COUNT = 4
 
-export type { PersonalizedFeedId }
+export type { HomeFeedId, PersonalizedFeedId }
 
 export function useWikitaLiteHome(options?: {
   helpWantedLimit?: number
@@ -23,6 +26,8 @@ export function useWikitaLiteHome(options?: {
   translationCountPerLanguage?: number
   translationLanguages?: () => string[]
   getBookmarkChangeSkipFeeds?: () => PersonalizedFeedId[]
+  /** Feeds on screen; the others load behind them (see `useMusicalGroupHome`). */
+  isFeedVisible?: (feed: HomeFeedId) => boolean
 }) {
   const { knownLanguages } = useConfig()
   const { listInterests } = useWikitaLiteSuggestionPreferencesSingleton()
@@ -39,6 +44,8 @@ export function useWikitaLiteHome(options?: {
         return langs.length ? [langs[0]] : []
       }),
     getBookmarkChangeSkipFeeds: options?.getBookmarkChangeSkipFeeds,
+    isFeedVisible: options?.isFeedVisible,
+    helpWantedForegroundCount: WIKITA_LITE_HELP_WANTED_FOREGROUND_COUNT,
     savedPagesSource: 'readingList',
     listInterests,
   })

@@ -22,8 +22,9 @@ export function useWikitaLiteModuleSuggestionPreferences() {
 
   const helpWantedOverrides = computed(() => state.value.helpWantedOverrides)
 
+  // Fingerprinted: the parsed overrides are a new object on every navigation.
   watch(
-    helpWantedOverrides,
+    () => JSON.stringify(helpWantedOverrides.value),
     () => {
       if (!configsInitialized) {
         configsInitialized = true
@@ -31,7 +32,6 @@ export function useWikitaLiteModuleSuggestionPreferences() {
       }
       modulePreferencesVersion.value += 1
     },
-    { deep: true },
   )
 
   function getModuleConfig(moduleId: WikitaLiteModuleId): ModuleSuggestionConfig {

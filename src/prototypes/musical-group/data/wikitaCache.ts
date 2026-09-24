@@ -3,6 +3,19 @@ export interface VersionedStore<TEntry> {
   entries: Record<string, TEntry>
 }
 
+interface ParsedStore {
+  raw: string
+  version: number
+  entries: Record<string, unknown>
+}
+
+/**
+ * Last parsed copy of each store, keyed by storage key. Reads compare the raw
+ * string first (cheap next to `JSON.parse` + validation of the whole store),
+ * so outside writes — another tab, `localStorage.clear()` — are still seen.
+ */
+const parsedStores = new Map<string, ParsedStore>()
+
 export function readVersionedStore<TEntry>(
   storageKey: string,
   version: number,
@@ -12,7 +25,15 @@ export function readVersionedStore<TEntry>(
 
   try {
     const raw = window.localStorage.getItem(storageKey)
-    if (!raw) return {}
+    if (!raw) {
+      parsedStores.delete(storageKey)
+      return {}
+    }
+
+    const memo = parsedStores.get(storageKey)
+    if (memo && memo.version === version && memo.raw === raw) {
+      return { ...memo.entries } as Record<string, TEntry>
+    }
 
     const parsed = JSON.parse(raw) as VersionedStore<unknown>
     if (parsed.version !== version || typeof parsed.entries !== 'object' || parsed.entries === null) {
@@ -23,7 +44,8 @@ export function readVersionedStore<TEntry>(
     for (const [key, entry] of Object.entries(parsed.entries)) {
       if (isValidEntry(entry)) entries[key] = entry
     }
-    return entries
+    parsedStores.set(storageKey, { raw, version, entries })
+    return { ...entries }
   } catch {
     return {}
   }
@@ -38,13 +60,17 @@ export function writeVersionedStore<TEntry>(
 
   try {
     if (Object.keys(entries).length === 0) {
+      parsedStores.delete(storageKey)
       window.localStorage.removeItem(storageKey)
       return
     }
     const payload: VersionedStore<TEntry> = { version, entries }
-    window.localStorage.setItem(storageKey, JSON.stringify(payload))
+    const raw = JSON.stringify(payload)
+    window.localStorage.setItem(storageKey, raw)
+    parsedStores.set(storageKey, { raw, version, entries: { ...entries } })
   } catch {
     // Quota or private-mode failures — ignore.
+    parsedStores.delete(storageKey)
   }
 }
 

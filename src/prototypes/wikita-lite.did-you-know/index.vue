@@ -15,7 +15,9 @@ definePage({
 
 const { listsVersion } = provideWikitaLiteSaveFeedback()
 
-const { didYouKnow, featuredTabLoading } = useWikitaLiteHome()
+const { didYouKnow, featuredTabLoading } = useWikitaLiteHome({
+  isFeedVisible: (feed) => feed === 'featured',
+})
 </script>
 
 <template>

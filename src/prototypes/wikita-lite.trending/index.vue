@@ -15,7 +15,9 @@ definePage({
 
 const { listsVersion } = provideWikitaLiteSaveFeedback()
 
-const { trendingItems, trendingLoading, trendingTabError, retryTrendingFeed } = useWikitaLiteHome()
+const { trendingItems, trendingLoading, trendingTabError, retryTrendingFeed } = useWikitaLiteHome({
+  isFeedVisible: (feed) => feed === 'trending',
+})
 </script>
 
 <template>

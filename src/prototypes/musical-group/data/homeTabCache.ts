@@ -128,6 +128,8 @@ interface CachedHelpWantedEntry {
   dependencyKey: string
   data: HomeHelpWanted[]
   fetchedAt: number
+  /** The search ran out of candidates: fewer than asked for is all there is. */
+  complete?: boolean
 }
 
 interface CachedRecentChangesEntry {
@@ -140,6 +142,8 @@ interface CachedHomeMentionsEntry {
   dependencyKey: string
   data: HomeMention[]
   fetchedAt: number
+  /** Every seed was searched: a short list is all there is, not a partial fetch. */
+  complete?: boolean
 }
 
 type HomeCacheEntry =
@@ -279,8 +283,21 @@ export function getCachedHelpWanted(dependencyKey: string): HomeHelpWanted[] | n
   return data
 }
 
-export function setCachedHelpWanted(dependencyKey: string, data: HomeHelpWanted[]): void {
-  setEntry('helpWanted', { dependencyKey, data, fetchedAt: Date.now() })
+export function isCachedHelpWantedComplete(dependencyKey: string): boolean {
+  return Boolean(getEntry<CachedHelpWantedEntry>('helpWanted', dependencyKey)?.complete)
+}
+
+export function setCachedHelpWanted(
+  dependencyKey: string,
+  data: HomeHelpWanted[],
+  options: { complete?: boolean } = {},
+): void {
+  setEntry('helpWanted', {
+    dependencyKey,
+    data,
+    fetchedAt: Date.now(),
+    ...(options.complete ? { complete: true } : {}),
+  })
 }
 
 export function getCachedRecentChangesPreview(dependencyKey: string): HomeRecentChange[] | null {
@@ -299,8 +316,21 @@ export function getCachedHomeMentions(dependencyKey: string): HomeMention[] | nu
   return data
 }
 
-export function setCachedHomeMentions(dependencyKey: string, data: HomeMention[]): void {
-  setEntry('homeMentions', { dependencyKey, data, fetchedAt: Date.now() })
+export function isCachedHomeMentionsComplete(dependencyKey: string): boolean {
+  return Boolean(getEntry<CachedHomeMentionsEntry>('homeMentions', dependencyKey)?.complete)
+}
+
+export function setCachedHomeMentions(
+  dependencyKey: string,
+  data: HomeMention[],
+  options: { complete?: boolean } = {},
+): void {
+  setEntry('homeMentions', {
+    dependencyKey,
+    data,
+    fetchedAt: Date.now(),
+    ...(options.complete ? { complete: true } : {}),
+  })
 }
 
 interface CachedDailyReadsPreviewEntry {

@@ -320,11 +320,27 @@ export async function fetchNextActivityCandidates(
   return candidates
 }
 
-async function fetchEditorEditCount(
+/** Edit counts per username for this session; many revisions share an editor. */
+const editCountCache = new Map<string, Promise<number | undefined>>()
+
+function fetchEditorEditCount(user: string, signal?: AbortSignal): Promise<number | undefined> {
+  if (!user) return Promise.resolve(undefined)
+  const cached = editCountCache.get(user)
+  if (cached) return cached
+
+  const promise = fetchEditorEditCountFromNetwork(user, signal)
+  editCountCache.set(user, promise)
+  // Drop failures (aborts included) so the next caller asks again.
+  promise.catch(() => {
+    if (editCountCache.get(user) === promise) editCountCache.delete(user)
+  })
+  return promise
+}
+
+async function fetchEditorEditCountFromNetwork(
   user: string,
   signal?: AbortSignal,
 ): Promise<number | undefined> {
-  if (!user) return undefined
 
   const url = wikiActionUrl({
     action: 'query',

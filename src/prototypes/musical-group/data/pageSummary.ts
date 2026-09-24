@@ -8,6 +8,7 @@ import {
   setCachedPageSummary,
   setPageSummaryInFlight,
 } from './pageSummaryCache'
+import { createSharedRequest, joinSharedRequest } from './sharedRequest'
 
 export interface PageSummary {
   title?: string
@@ -55,19 +56,22 @@ export async function fetchPageSummary(
   }
 
   const inFlight = getPageSummaryInFlight(title)
-  if (inFlight) return inFlight
+  if (inFlight) return joinSharedRequest(inFlight, signal)
 
-  const promise = fetchPageSummaryFromNetwork(title, signal, purpose)
-    .then((summary) => {
-      setCachedPageSummary(title, summary)
-      return summary
-    })
-    .catch((err) => {
-      if ((err as Error).name === 'AbortError') throw err
-      setCachedPageSummary(title, null)
-      return null
-    })
+  const request = createSharedRequest((sharedSignal) =>
+    fetchPageSummaryFromNetwork(title, sharedSignal, purpose)
+      .then((summary) => {
+        setCachedPageSummary(title, summary)
+        return summary
+      })
+      .catch((err) => {
+        if ((err as Error).name === 'AbortError') throw err
+        setCachedPageSummary(title, null)
+        return null
+      }),
+    signal,
+  )
 
-  setPageSummaryInFlight(title, promise)
-  return promise
+  setPageSummaryInFlight(title, request)
+  return joinSharedRequest(request, signal)
 }

@@ -248,8 +248,9 @@ export async function fetchTranslationSuggestions(
         return true
       })
 
+    // Every recommendation enriches to a card, so only the ones shown need a summary.
     const enriched = await mapWithConcurrency(
-      titles,
+      titles.slice(0, countPerLanguage),
       SUMMARY_CONCURRENCY,
       async (title) => enrichRecommendation(title, targetLang, signal),
     )

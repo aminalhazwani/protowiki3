@@ -1,9 +1,14 @@
 import { normalizeEnwikiTitle } from './enwikiTitle'
 import type { PageSummary } from './pageSummary'
-import { readVersionedStore, setVersionedEntry, writeVersionedStore } from './wikitaCache'
+import type { SharedRequest } from './sharedRequest'
+import { readVersionedStore, writeVersionedStore } from './wikitaCache'
 
 const STORAGE_KEY = 'musical-group-page-summary-cache'
 const CACHE_VERSION = 1
+/** Newest entries kept in localStorage; older ones are dropped on write. */
+const MAX_STORED_ENTRIES = 500
+/** Summaries land in bursts; persist them together instead of one rewrite each. */
+const WRITE_DELAY_MS = 200
 
 interface CachedPageSummaryEntry {
   summary: PageSummary | null
@@ -11,7 +16,23 @@ interface CachedPageSummaryEntry {
 }
 
 const memoryCache = new Map<string, PageSummary | null>()
-const inFlight = new Map<string, Promise<PageSummary | null>>()
+const inFlight = new Map<string, SharedRequest<PageSummary | null>>()
+let pendingWrites: Record<string, PageSummary | null> = {}
+let writeTimer: ReturnType<typeof setTimeout> | null = null
+
+function flushPendingWrites(): void {
+  if (writeTimer) {
+    clearTimeout(writeTimer)
+    writeTimer = null
+  }
+  const entries = pendingWrites
+  pendingWrites = {}
+  if (Object.keys(entries).length) persistPageSummaryBatch(entries)
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushPendingWrites)
+}
 
 function titleCacheKey(title: string): string {
   return normalizeEnwikiTitle(title).toLowerCase()
@@ -43,31 +64,32 @@ export function getCachedPageSummary(title: string): PageSummary | null | undefi
 export function setCachedPageSummary(title: string, summary: PageSummary | null): void {
   const key = titleCacheKey(title)
   memoryCache.set(key, summary)
-  setVersionedEntry(
-    STORAGE_KEY,
-    CACHE_VERSION,
-    key,
-    { summary, fetchedAt: Date.now() },
-    isValidEntry,
-  )
+  pendingWrites[key] = summary
+  writeTimer ??= setTimeout(flushPendingWrites, WRITE_DELAY_MS)
 }
 
-export function getPageSummaryInFlight(title: string): Promise<PageSummary | null> | undefined {
+export function getPageSummaryInFlight(
+  title: string,
+): SharedRequest<PageSummary | null> | undefined {
   return inFlight.get(titleCacheKey(title))
 }
 
 export function setPageSummaryInFlight(
   title: string,
-  promise: Promise<PageSummary | null>,
+  request: SharedRequest<PageSummary | null>,
 ): void {
   const key = titleCacheKey(title)
-  inFlight.set(key, promise)
-  promise.finally(() => {
-    if (inFlight.get(key) === promise) inFlight.delete(key)
-  })
+  inFlight.set(key, request)
+  const clear = () => {
+    if (inFlight.get(key) === request) inFlight.delete(key)
+  }
+  request.promise.then(clear, clear)
 }
 
 export function clearPageSummaryCache(): void {
+  if (writeTimer) clearTimeout(writeTimer)
+  writeTimer = null
+  pendingWrites = {}
   memoryCache.clear()
   inFlight.clear()
   if (typeof window === 'undefined') return
@@ -85,12 +107,19 @@ export function clearPageSummaryMemoryCache(): void {
 }
 
 export function persistPageSummaryBatch(entries: Record<string, PageSummary | null>): void {
-  const store = readEntries()
+  let store = readEntries()
   const now = Date.now()
   for (const [title, summary] of Object.entries(entries)) {
     const key = titleCacheKey(title)
     store[key] = { summary, fetchedAt: now }
     memoryCache.set(key, summary)
+  }
+  const keys = Object.keys(store)
+  if (keys.length > MAX_STORED_ENTRIES) {
+    const newest = keys
+      .sort((a, b) => store[b].fetchedAt - store[a].fetchedAt)
+      .slice(0, MAX_STORED_ENTRIES)
+    store = Object.fromEntries(newest.map((key) => [key, store[key]]))
   }
   writeVersionedStore(STORAGE_KEY, CACHE_VERSION, store)
 }

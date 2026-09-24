@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 
@@ -69,17 +69,17 @@ export function useWikitaLiteSaveActions(listsVersion: Ref<number>) {
   const { currentUserPageLists } = useConfig()
   const { isPageInAnyList } = useWikitaLiteListsSingleton()
 
-  function relatedReadingSaved(title: string): boolean {
+  // Normalized once per reading-list change, not once per card per render.
+  const savedTitleKeys = computed(() => {
     void listsVersion.value
     void saveListsVersion.value
-    void currentUserPageLists.value.readingList
+    return new Set(currentUserPageLists.value.readingList.map(savedTitleKey))
+  })
 
+  function relatedReadingSaved(title: string): boolean {
     const key = savedTitleKey(title)
     if (!key) return false
-
-    return currentUserPageLists.value.readingList.some(
-      (entry) => savedTitleKey(entry) === key,
-    )
+    return savedTitleKeys.value.has(key)
   }
 
   function relatedReadingInList(itemId: string): boolean {

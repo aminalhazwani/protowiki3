@@ -17,7 +17,7 @@ const {
   activeDiscussionsLoading,
   activeDiscussionsError,
   retryActiveDiscussionsFeed,
-} = useWikitaLiteHome()
+} = useWikitaLiteHome({ isFeedVisible: (feed) => feed === 'activeDiscussions' })
 </script>
 
 <template>

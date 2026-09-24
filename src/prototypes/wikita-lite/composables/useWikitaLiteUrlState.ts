@@ -23,42 +23,86 @@ import {
 import { useWikitaLiteRoute } from './useWikitaLiteRoute'
 
 let configRef: Ref<Config> | null = null
+/** Fingerprint of the config the URL last hydrated, so syncing it back is skipped. */
+let lastHydratedConfigKey: string | null = null
+
+function sameList<T>(a: readonly T[], b: readonly T[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index])
+}
+
+/** `next` when its contents differ from `current`, else `current` (keeps identity). */
+function keepList<T>(current: T[], next: readonly T[]): T[] {
+  return sameList(current, next) ? current : [...next]
+}
 
 function hydrateConfigFromState(state: WikitaLiteUrlState): void {
   if (!configRef) return
 
+  const current = configRef.value
   const patch = stateToConfigPatch(state)
   // During onboarding, WikitaLiteOnboarding owns simulated user state — URL defaults
   // would otherwise reset `user` to `'logged-out'` on every title/search navigation.
-  const activeUser = state.onboarded ? state.user : configRef.value.user
-  const existingLists = configRef.value.userPageLists[activeUser]
+  const activeUser = state.onboarded ? state.user : current.user
+  const existingLists = current.userPageLists[activeUser]
   const applySavedFromUrl =
-    state.onboarded || (configRef.value.user === 'new' && patch.readingList.length > 0)
+    state.onboarded || (current.user === 'new' && patch.readingList.length > 0)
+
+  const nextUser = state.onboarded ? patch.user : current.user
+  const nextRealUsername = state.onboarded ? patch.realUsername : current.realUsername
+  const knownLanguages = keepList(current.knownLanguages, patch.knownLanguages)
+  const readingList = applySavedFromUrl
+    ? keepList(existingLists.readingList, patch.readingList)
+    : existingLists.readingList
+  const readingListSavedAt = applySavedFromUrl
+    ? keepList(existingLists.readingListSavedAt, patch.readingListSavedAt)
+    : existingLists.readingListSavedAt
+  const editedPages = keepList(existingLists.editedPages, patch.editedPages)
+  const watchlist = keepList(existingLists.watchlist, patch.watchlist)
+
+  const unchanged =
+    current.theme === patch.theme &&
+    current.appPlatform === patch.appPlatform &&
+    current.webSkin === patch.webSkin &&
+    current.user === nextUser &&
+    current.realUsername === nextRealUsername &&
+    knownLanguages === current.knownLanguages &&
+    readingList === existingLists.readingList &&
+    readingListSavedAt === existingLists.readingListSavedAt &&
+    editedPages === existingLists.editedPages &&
+    watchlist === existingLists.watchlist
+
+  // Most navigations (tab switches, dismissals, layout edits) don't touch
+  // config at all; replacing it anyway re-runs everything that reads it.
+  if (unchanged) {
+    lastHydratedConfigKey = configStateKey(current)
+    return
+  }
 
   setWikitaLiteConfigSaveSuppressed(true)
   configRef.value = {
-    ...configRef.value,
+    ...current,
     theme: patch.theme,
     appPlatform: patch.appPlatform,
     webSkin: patch.webSkin,
     ...(state.onboarded ? { user: patch.user, realUsername: patch.realUsername } : {}),
-    knownLanguages: [...patch.knownLanguages],
+    knownLanguages,
     userPageLists: {
-      ...configRef.value.userPageLists,
+      ...current.userPageLists,
       [activeUser]: {
         ...existingLists,
-        readingList: applySavedFromUrl
-          ? [...patch.readingList]
-          : [...existingLists.readingList],
-        readingListSavedAt: applySavedFromUrl
-          ? [...patch.readingListSavedAt]
-          : [...existingLists.readingListSavedAt],
-        editedPages: [...patch.editedPages],
-        watchlist: [...patch.watchlist],
+        readingList,
+        readingListSavedAt,
+        editedPages,
+        watchlist,
       },
     },
   }
+  lastHydratedConfigKey = configStateKey(configRef.value)
   setWikitaLiteConfigSaveSuppressed(false)
+}
+
+function configStateKey(config: Config): string {
+  return JSON.stringify(configToStatePatch(config))
 }
 
 function configToStatePatch(config: Config): WikitaLiteUrlStatePatch {
@@ -95,7 +139,15 @@ function createWikitaLiteUrlState() {
   let syncDebounce: ReturnType<typeof setTimeout> | null = null
   let configWatchStop: (() => void) | null = null
 
-  const state = computed(() => parseWikitaLiteQuery(route.query))
+  // Path-only navigations hand out a fresh but identical query; keep the parsed
+  // state so nothing downstream recomputes.
+  let lastQueryKey = ''
+  const state = computed<WikitaLiteUrlState>((previous) => {
+    const queryKey = JSON.stringify(route.query)
+    if (previous && queryKey === lastQueryKey) return previous
+    lastQueryKey = queryKey
+    return parseWikitaLiteQuery(route.query)
+  })
 
   const isOnboarded = computed(() => state.value.onboarded)
 
@@ -135,6 +187,9 @@ function createWikitaLiteUrlState() {
       (config) => {
         if (isHydrating.value || isWikitaLiteConfigHydrationSuppressed()) return
         if (!isWikitaLiteRoute(route.path)) return
+        // The flags above are already reset by the time this deep watcher runs,
+        // so compare contents: a config the URL just produced needn't go back.
+        if (configStateKey(config) === lastHydratedConfigKey) return
         if (syncDebounce) clearTimeout(syncDebounce)
         syncDebounce = setTimeout(() => {
           const patch = configToStatePatch(config)

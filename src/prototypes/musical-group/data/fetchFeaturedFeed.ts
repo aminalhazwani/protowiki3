@@ -9,7 +9,7 @@ import {
   getCachedFeaturedTab,
   setCachedFeaturedTab,
 } from './homeTabCache'
-import { fetchPageSummary } from './pageSummary'
+import { fetchPageSummary, type PageSummary } from './pageSummary'
 import type { HomeBornOnThisDay, HomeDidYouKnow, HomeFeatured, HomeFeaturedTab } from './types'
 import { normalizeQid } from './wikidataApi'
 
@@ -17,9 +17,8 @@ const MAX_DYK = 12
 const MAX_BIRTHS = 5
 const SUMMARY_CONCURRENCY = 3
 
-interface FeedPage {
-  title?: string
-}
+/** Feed pages are full page summaries (on-this-day); DYK entries carry none. */
+type FeedPage = PageSummary
 
 interface FeedTfa {
   title?: string
@@ -68,9 +67,15 @@ function parseTfa(tfa: FeedTfa | undefined): HomeFeatured | undefined {
   }
 }
 
+/** A feed-embedded summary is as good as a fetched one when it has the card fields. */
+function isCompleteFeedSummary(page: FeedPage | undefined): page is FeedPage {
+  return Boolean(page?.title && page.content_urls?.desktop?.page)
+}
+
 async function pageCardFields(
   enwikiTitle: string,
   signal?: AbortSignal,
+  embedded?: FeedPage,
 ): Promise<{
   title: string
   description?: string
@@ -78,7 +83,9 @@ async function pageCardFields(
   articleUrl: string
   itemId?: string
 }> {
-  const summary = await fetchPageSummary(enwikiTitle, signal, 'musical-group-featured-feed')
+  const summary = isCompleteFeedSummary(embedded)
+    ? embedded
+    : await fetchPageSummary(enwikiTitle, signal, 'musical-group-featured-feed')
   const title = (summary?.normalizedtitle ?? summary?.title ?? enwikiTitle).replace(/_/g, ' ')
   const description = summary?.description?.trim()
   return {
@@ -201,8 +208,9 @@ async function parseBornOnThisDay(
     slice,
     SUMMARY_CONCURRENCY,
     async (item) => {
-      const pageTitle = item.pages![0].title!
-      const fields = await pageCardFields(pageTitle, signal)
+      const page = item.pages![0]
+      const pageTitle = page.title!
+      const fields = await pageCardFields(pageTitle, signal, page)
       return {
         year: item.year!,
         text: item.text!.trim(),
