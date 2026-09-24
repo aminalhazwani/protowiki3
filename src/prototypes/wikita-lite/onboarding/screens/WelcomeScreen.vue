@@ -24,16 +24,42 @@ const POSTER = `${import.meta.env.BASE_URL}images/wikita-lite-onboarding-globe-p
 const GIF_START_DELAY_MS = 1000
 
 /**
- * Hold the frozen first frame, then after the delay swap in a cache-busted URL
- * for the animated GIF — the unique query forces the browser to (re)load from
- * frame 1 so it plays once each time Welcome is opened (screens are v-if-mounted).
- * The animated file is preloaded during the hold so the swap doesn't flash.
+ * Hold the frozen first frame, then after the delay swap in the animated GIF.
+ * A GIF only restarts from frame 1 when the <img> gets a URL it hasn't decoded
+ * yet, so the file is fetched once (during the hold) as a Blob and every play
+ * mints a fresh object URL for it. That covers both the first play each time
+ * Welcome is opened (screens are v-if-mounted) and tap-to-replay, without
+ * re-downloading the ~640KB file. If the fetch fails we fall back to a
+ * cache-busted URL, which still restarts the animation.
  *
  * When the user prefers reduced motion we never swap: the static poster is the
- * final state, so no preload or timer is scheduled.
+ * final state, so no fetch or timer is scheduled and taps do nothing.
  */
 const heroSrc = ref(POSTER)
+const canAnimate = ref(false)
 let startTimer: ReturnType<typeof setTimeout> | null = null
+let gifReady: Promise<Blob | null> = Promise.resolve(null)
+let objectUrl: string | null = null
+let disposed = false
+
+async function play() {
+  const blob = await gifReady
+  if (disposed) return
+  const previous = objectUrl
+  objectUrl = blob ? URL.createObjectURL(blob) : null
+  heroSrc.value = objectUrl ?? `${GLOBE}?t=${Date.now()}`
+  if (previous) URL.revokeObjectURL(previous)
+}
+
+function replay() {
+  if (!canAnimate.value) return
+  if (startTimer) {
+    clearTimeout(startTimer)
+    startTimer = null
+  }
+  play()
+}
+
 onMounted(() => {
   const prefersReduced =
     typeof window !== 'undefined' &&
@@ -41,14 +67,19 @@ onMounted(() => {
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (prefersReduced) return // keep the static poster, no animation
 
-  const animated = `${GLOBE}?t=${Date.now()}`
-  new Image().src = animated // warm the cache so the poster -> GIF swap is seamless
+  canAnimate.value = true
+  gifReady = fetch(GLOBE)
+    .then((res) => (res.ok ? res.blob() : null))
+    .catch(() => null)
   startTimer = setTimeout(() => {
-    heroSrc.value = animated
+    startTimer = null
+    play()
   }, GIF_START_DELAY_MS)
 })
 onBeforeUnmount(() => {
+  disposed = true
   if (startTimer) clearTimeout(startTimer)
+  if (objectUrl) URL.revokeObjectURL(objectUrl)
 })
 
 const greeting = computed(() => {
@@ -69,7 +100,17 @@ const greeting = computed(() => {
     <h1 class="welcome__title ob-stagger ob-stagger--1">{{ greeting }}</h1>
 
     <div class="welcome__illustration ob-stagger ob-stagger--lead">
-      <img class="welcome__hero" :src="heroSrc" alt="" width="480" height="480" />
+      <!-- Tap/click the globe to play it again. -->
+      <button
+        v-if="canAnimate"
+        type="button"
+        class="welcome__replay"
+        aria-label="Play animation again"
+        @click="replay"
+      >
+        <img class="welcome__hero" :src="heroSrc" alt="" width="480" height="480" />
+      </button>
+      <img v-else class="welcome__hero" :src="heroSrc" alt="" width="480" height="480" />
     </div>
   </div>
 </template>
@@ -125,6 +166,32 @@ const greeting = computed(() => {
 [data-skin='mobile'] .welcome__hero {
   max-width: 100%;
   max-height: 100%;
+}
+
+/*
+ * Tap target for replaying the globe. Unstyled so the mascot looks exactly as
+ * it does without it; it carries the hero's size cap so the <img> inside can
+ * simply fill it.
+ */
+.welcome__replay {
+  display: block;
+  width: 100%;
+  max-width: 256px;
+  padding: 0;
+  border: none;
+  border-radius: var(--border-radius-base, 2px);
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-skin='mobile'] .welcome__replay {
+  max-width: 100%;
+}
+
+.welcome__replay:focus-visible {
+  outline: var(--border-width-thick, 2px) solid var(--outline-color-progressive--focus, #36c);
+  outline-offset: 2px;
 }
 
 /* First-run reveal (T1 step 4): each block eases up, the globe leads with a
