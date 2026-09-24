@@ -262,18 +262,28 @@ legacy suggestions configure page.
 
 ## UX rules (mandatory)
 
-### One loading bar per surface
+### One loading indicator per surface
 
 - **Home, Explore, and Contribute tabs** — loading UX is driven by
-  `useWikitaLiteTabLoading.ts` in `WikitaLiteHome.vue`:
-  - **Empty module** — one bar at the first pending slot in that tab's visual
-    module order; bar under the module title.
+  `useWikitaLiteTabLoading.ts` in `WikitaLiteHome.vue`, and shows as **skeleton
+  cards**, not a progress bar. `showLoadingBar(id)` still decides *whether* a
+  module is loading; `skeletonsFor(loading, shown, limit)` turns that into the
+  number of preview slots no card fills yet, passed to the module's
+  `skeletons` prop. The module renders them (`WikitaLiteCardSkeletons`) inside
+  its own cards container after the real cards, so on Vector they take the
+  exact 2×2 cells the cards will and cards replace them one by one. Skeletons
+  are flat `background-color-neutral-subtle` blocks at the card radius
+  (`border-radius-base` by default), sized by `--wikita-lite-card-skeleton-height`
+  per module and skin in `wikita-lite-shell.css`. Featured holds one hero-shaped
+  skeleton. **Impact** is the exception — it keeps its progress bar.
+  - **Empty module** — skeletons at the first pending slot in that tab's visual
+    module order, under the module title.
   - **Daily reads + Suggested edits on Home** — when suggestion seeds exist,
     both module shells render immediately (via `emptyPending`), even while
     empty. **Fetch order:** Daily reads and Suggested edits fetch **in parallel**
     (`loadPersonalizedSuggestionFeeds` in `useMusicalGroupHome.ts`), independent
     of visual `MODE_MODULE_ORDER`. Both shells may be visible at once; each
-    module shows its own progress bar when its feed is loading.
+    module shows its own skeletons when its feed is loading.
   - **Daily reads home fetch** — up to 3 **serial** per-seed generator morelike
     calls (`fetchDailyReadsPreview` in `wikita-lite/data/`), 3 hits each,
     global dedupe, **3 cards total** (3/2+1/1+1+1 by seed count; multiple per
@@ -297,11 +307,11 @@ legacy suggestions configure page.
     immediately (`resolveReadingListSavedItems`); missing metadata refetches in
     the background (with `bypassFailureCache` when refilling). Separate from
     Daily reads load order — never blocks `loadPersonalizedSuggestionFeeds`.
-  - **Refresh with preview cards** — stale cards stay visible; bar in each
-    updating module's `#after-cards` slot (above any CTA); multiple modules may
-    each show a bar while refreshing.
+  - **Refresh / partial preview** — cards already in hand stay visible; the
+    remaining preview slots show skeletons until they fill. A full preview
+    shows none. Multiple modules may each show skeletons at once.
   - **Hidden shells** — omit a module unless it has preview content or is
-    showing its loading bar (Daily reads and Suggested edits excepted — see
+    loading (Daily reads and Suggested edits excepted — see
     above). On **Home**, one of Daily reads / Suggested edits may stay visible
     with `WikitaLiteInterestsEmptyState` when layout-enabled but seeds are
     unavailable — which module depends on survey mode (see Configure layout).
@@ -314,7 +324,8 @@ legacy suggestions configure page.
   users use the same path as reading-list users); only the Contribute random fallback
   uses `contributeRandomCacheKey`.
 - **Home preview mode** (`standalone=false`) — modules must **not**
-  render their own progress bars; the home panel owns loading.
+  render their own progress bars; the home panel owns loading and passes
+  `skeletons`.
 
 ### Saved empty state (Explore + Saved subpage only)
 

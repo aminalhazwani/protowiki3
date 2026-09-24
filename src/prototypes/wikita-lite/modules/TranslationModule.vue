@@ -8,6 +8,7 @@ import { cdxIconLanguage } from '@wikimedia/codex-icons'
 
 import type { HomeTranslationSuggestion } from '../../musical-group/data/types'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
   loadingMore?: boolean
   error?: string | null
   previewLimit?: number
+  /** Empty card slots held at the end of the grid while the feed loads. */
+  skeletons?: number
   moreTo?: RouteLocationRaw
 }
 
@@ -27,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   loadingMore: false,
   error: null,
   previewLimit: 2,
+  skeletons: 0,
   moreTo: undefined,
 })
 
@@ -58,7 +62,11 @@ function cardThumbnail(url?: string) {
       <CdxButton weight="quiet" @click="$emit('retry')">Try again</CdxButton>
     </div>
 
-    <div v-if="displayItems.length" :class="['translation-module__cards', groupClass]">
+    <div
+      v-if="displayItems.length || skeletons"
+      :class="['translation-module__cards', groupClass]"
+      :aria-busy="skeletons > 0 || undefined"
+    >
       <CdxCard
         v-for="suggestion in displayItems"
         :key="suggestion.id"
@@ -79,6 +87,7 @@ function cardThumbnail(url?: string) {
           </WikitaLiteSupportingRow>
         </template>
       </CdxCard>
+      <WikitaLiteCardSkeletons :count="skeletons" />
     </div>
 
     <slot name="after-cards" />

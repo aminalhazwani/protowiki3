@@ -8,6 +8,7 @@ import { cdxIconLightbulb } from '@wikimedia/codex-icons'
 import type { HomeHelpWanted } from '../../musical-group/data/types'
 import { helpWantedHref } from '../composables/useWikitaLiteCardActions'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 
@@ -17,6 +18,8 @@ interface Props {
   loading?: boolean
   loadingMore?: boolean
   previewLimit?: number
+  /** Empty card slots held at the end of the grid while the feed loads. */
+  skeletons?: number
   /**
    * Reveal the next cards in place instead of navigating to the module's own
    * page. The owner grows `previewLimit` in response to `expand`.
@@ -31,6 +34,7 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   loadingMore: false,
   previewLimit: 3,
+  skeletons: 0,
   expandable: false,
   moreTo: undefined,
 })
@@ -65,7 +69,10 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
 
 <template>
   <div class="help-wanted-module">
-    <div :class="['help-wanted-module__cards', groupClass]">
+    <div
+      :class="['help-wanted-module__cards', groupClass]"
+      :aria-busy="skeletons > 0 || undefined"
+    >
       <CdxCard
         v-for="suggestion in displayItems"
         :key="suggestion.itemId"
@@ -86,6 +93,7 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
         </WikitaLiteSupportingRow>
       </template>
       </CdxCard>
+      <WikitaLiteCardSkeletons :count="skeletons" />
     </div>
 
     <slot name="after-cards" />

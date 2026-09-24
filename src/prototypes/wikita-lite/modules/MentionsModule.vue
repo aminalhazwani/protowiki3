@@ -21,6 +21,7 @@ import { useWikitaLiteSaveActions } from '../composables/useWikitaLiteCardAction
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteCardWithAction from '../components/WikitaLiteCardWithAction.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 
@@ -29,6 +30,8 @@ interface Props {
   items?: HomeMention[]
   loading?: boolean
   previewLimit?: number
+  /** Empty card slots held at the end of the grid while the feed loads. */
+  skeletons?: number
   listsVersion?: number
   moreTo?: RouteLocationRaw
 }
@@ -38,6 +41,7 @@ const props = withDefaults(defineProps<Props>(), {
   items: () => [],
   loading: false,
   previewLimit: 3,
+  skeletons: 0,
   listsVersion: 0,
   moreTo: undefined,
 })
@@ -81,7 +85,10 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
 
 <template>
   <div class="mentions-module">
-    <div :class="['mentions-module__cards', groupClass]">
+    <div
+      :class="['mentions-module__cards', groupClass]"
+      :aria-busy="skeletons > 0 || undefined"
+    >
       <template v-for="item in displayItems" :key="`${item.mentionedInTitle}-${item.title}`">
       <WikitaLiteCardWithAction
         v-if="item.itemId"
@@ -120,6 +127,7 @@ const showMoreLink = useWikitaLiteOverflowShowMore({
         </template>
       </CdxCard>
       </template>
+      <WikitaLiteCardSkeletons :count="skeletons" />
     </div>
 
     <slot name="after-cards" />

@@ -23,6 +23,7 @@ import {
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteCardWithAction from '../components/WikitaLiteCardWithAction.vue'
 import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
@@ -33,6 +34,8 @@ interface Props {
   loading?: boolean
   loadingMore?: boolean
   previewLimit?: number
+  /** Empty card slots held at the end of the grid while the feed loads. */
+  skeletons?: number
   listsVersion?: number
   /**
    * Reveal the next cards in place instead of navigating to the module's own
@@ -48,6 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   loadingMore: false,
   previewLimit: 3,
+  skeletons: 0,
   listsVersion: 0,
   expandable: false,
   moreTo: undefined,
@@ -103,7 +107,10 @@ const saveActionsDisabled = computed(() => !props.standalone && props.loading)
 
 <template>
   <div class="related-module">
-    <div :class="['related-module__cards', groupClass]">
+    <div
+      :class="['related-module__cards', groupClass]"
+      :aria-busy="skeletons > 0 || undefined"
+    >
       <template v-for="item in displayItems" :key="`${item.relatedToTitle}-${item.title}`">
       <WikitaLiteCardWithAction
         v-if="item.itemId"
@@ -142,6 +149,7 @@ const saveActionsDisabled = computed(() => !props.standalone && props.loading)
         </template>
       </CdxCard>
       </template>
+      <WikitaLiteCardSkeletons :count="skeletons" />
     </div>
 
     <slot name="after-cards" />

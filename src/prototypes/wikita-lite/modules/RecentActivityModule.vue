@@ -21,6 +21,7 @@ import {
 } from '../../musical-group/data/types'
 import { splitEditMetaLabel } from '../../musical-group/data/fetchRecentChanges'
 import { useActivityFeed } from '../../musical-group/useActivityFeed'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteCardWithChip, {
   type WikitaLiteChip,
   type WikitaLiteChipStatus,
@@ -43,6 +44,8 @@ interface Props {
   loading?: boolean
   loadingMore?: boolean
   previewLimit?: number
+  /** Empty card slots held at the end of the grid while the feed loads. */
+  skeletons?: number
   /**
    * Reveal the next cards in place instead of navigating to the module's own
    * page. The owner grows `previewLimit` in response to `expand`.
@@ -59,6 +62,7 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   loadingMore: false,
   previewLimit: 3,
+  skeletons: 0,
   expandable: false,
   moreTo: undefined,
 })
@@ -251,7 +255,11 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
       <CdxButton weight="quiet" @click="retryActivity">Try again</CdxButton>
     </div>
 
-    <div v-if="displayCards.length" :class="['recent-activity-module__cards', groupClass]">
+    <div
+      v-if="displayCards.length || skeletons"
+      :class="['recent-activity-module__cards', groupClass]"
+      :aria-busy="skeletons > 0 || undefined"
+    >
       <template v-for="{ change, chips } in displayCards" :key="`${change.enwikiTitle}-${change.revid}`">
         <WikitaLiteCardWithChip
           v-if="standalone"
@@ -296,6 +304,7 @@ const { groupClass, cardClass } = useWikitaLiteCardListClasses({ standalone: () 
           </CdxCard>
         </template>
       </template>
+      <WikitaLiteCardSkeletons :count="skeletons" />
     </div>
 
     <slot name="after-cards" />

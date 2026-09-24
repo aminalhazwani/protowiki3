@@ -12,6 +12,7 @@ import {
   WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE,
 } from '../wikita-lite-card'
 import { MODULE_TITLES } from '../routes'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
   loading?: boolean
   error?: string | null
   previewLimit?: number
+  /** Hold the hero card's slot with an empty card while the article loads. */
+  skeletons?: number
   listsVersion?: number
   /** `large`: thumbnail beside text; `portrait` (default): full-width image on top. */
   thumbnailLayout?: 'large' | 'portrait'
@@ -31,6 +34,7 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   error: null,
   previewLimit: 3,
+  skeletons: 0,
   listsVersion: 0,
   thumbnailLayout: 'portrait',
 })
@@ -89,6 +93,10 @@ const { cardClass } = useWikitaLiteCardListClasses()
 
         <slot name="after-cards" />
       </template>
+
+      <div v-else-if="skeletons" aria-busy="true">
+        <WikitaLiteCardSkeletons :count="1" />
+      </div>
 
       <p v-else-if="standalone" class="featured-module__empty">
         No featured article is available right now.

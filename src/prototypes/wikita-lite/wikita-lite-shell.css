@@ -176,7 +176,10 @@
  */
 .special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
   .featured-module
-  > .cdx-card {
+  > .cdx-card,
+.special-page-wrapper.wikita-lite-shell[data-skin='desktop']:not(.wikita-lite-shell--subpage)
+  .featured-module
+  .wikita-lite-card-skeleton {
   width: calc(50% - var(--wikita-lite-home-grid-gap) / 2);
 }
 
@@ -379,6 +382,94 @@
   .wikita-lite-card-with-chip:has(.wikita-lite-supporting-row--timestamped)
   .wikita-lite-card-with-chip__card {
   flex: 1 1 auto;
+}
+
+/*
+ * Home loading — empty card slots (WikitaLiteCardSkeletons) hold a module's
+ * grid cells until its cards land, in place of a progress bar, so the page
+ * doesn't jump. Flat and borderless, at the height of the module's typical
+ * card: a standard card is title + one-line description + supporting row;
+ * Daily reads and Trending carry the large thumbnail.
+ */
+.wikita-lite-shell .wikita-lite-card-skeleton {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  min-width: 0;
+  height: var(--wikita-lite-card-skeleton-height, 104px);
+  border-radius: var(--wikita-lite-card-radius, var(--border-radius-base));
+  background-color: var(--background-color-neutral-subtle);
+}
+
+/*
+ * A band of the next neutral step sweeps across each slot in reading
+ * direction, the way Codex's indeterminate progress bar moves: same tokens,
+ * `transform` only, so it stays on the compositor while the feeds are busy
+ * fetching and rendering. (A white highlight would vanish — `neutral-subtle`
+ * is already nearly white.) The sweep takes the first 60% of the cycle and the
+ * rest is a rest, so it reads as a pulse of activity rather than a conveyor belt.
+ */
+.wikita-lite-shell .wikita-lite-card-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    var(--background-color-neutral),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: wikita-lite-card-skeleton-sweep var(--animation-duration-medium, 1600ms)
+    var(--animation-timing-function-base, linear) var(--animation-iteration-count-base, infinite);
+}
+
+.wikita-lite-shell .wikita-lite-card-skeleton:dir(rtl)::after {
+  animation-direction: reverse;
+}
+
+@keyframes wikita-lite-card-skeleton-sweep {
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Reduced motion — no travelling band; the block gently breathes instead. */
+@media (prefers-reduced-motion: reduce) {
+  .wikita-lite-shell .wikita-lite-card-skeleton {
+    animation: wikita-lite-card-skeleton-breathe var(--animation-duration-slow, 2000ms)
+      var(--animation-timing-function-bouncing, ease-in-out) infinite alternate;
+  }
+
+  .wikita-lite-shell .wikita-lite-card-skeleton::after {
+    content: none;
+  }
+}
+
+@keyframes wikita-lite-card-skeleton-breathe {
+  to {
+    opacity: 0.6;
+  }
+}
+
+.wikita-lite-shell :is(.related-module, .trending-module) {
+  --wikita-lite-card-skeleton-height: 122px;
+}
+
+/* Minerva's narrower column wraps the description to a second line. */
+.wikita-lite-shell[data-skin='mobile'] {
+  --wikita-lite-card-skeleton-height: 126px;
+}
+
+.wikita-lite-shell[data-skin='mobile'] :is(.related-module, .trending-module) {
+  --wikita-lite-card-skeleton-height: 148px;
+}
+
+/* Featured's one hero card leads with a 16:9 image over its text. */
+.wikita-lite-shell .featured-module .wikita-lite-card-skeleton {
+  height: auto;
+  aspect-ratio: 4 / 3;
 }
 
 /* Full-width navigation CTAs — Codex fake-button on RouterLink (not <button> inside <a>). */

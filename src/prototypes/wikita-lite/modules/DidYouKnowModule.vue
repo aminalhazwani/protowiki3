@@ -8,6 +8,7 @@ import type { HomeDidYouKnow } from '../../musical-group/data/types'
 import { externalArticleHref } from '../composables/useWikitaLiteCardActions'
 import { splitTitleEmphasis } from '../composables/splitTitleEmphasis'
 import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardListClasses'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_POSITION_END, WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
@@ -17,6 +18,8 @@ interface Props {
   items?: HomeDidYouKnow[]
   loading?: boolean
   previewLimit?: number
+  /** Empty card slots held at the end of the grid while the feed loads. */
+  skeletons?: number
   listsVersion?: number
   /**
    * Reveal the next cards in place instead of navigating to the module's own
@@ -31,6 +34,7 @@ const props = withDefaults(defineProps<Props>(), {
   items: () => [],
   loading: false,
   previewLimit: 3,
+  skeletons: 0,
   listsVersion: 0,
   expandable: false,
   moreTo: undefined,
@@ -75,7 +79,10 @@ const showMoreControl = computed(
     <CdxProgressBar v-if="standalone && loading" inline aria-label="Loading Did you know" />
 
     <template v-else>
-      <div :class="['did-you-know-module__cards', groupClass]">
+      <div
+        :class="['did-you-know-module__cards', groupClass]"
+        :aria-busy="skeletons > 0 || undefined"
+      >
         <CdxCard
           v-for="(item, index) in displayItems"
           :key="`dyk-${index}`"
@@ -94,6 +101,7 @@ const showMoreControl = computed(
           <template v-else>{{ item.text }}</template>
         </template>
         </CdxCard>
+        <WikitaLiteCardSkeletons :count="skeletons" />
       </div>
 
       <slot name="after-cards" />

@@ -6,6 +6,7 @@ import { CdxButton, CdxCard, CdxProgressBar } from '@wikimedia/codex'
 import { cdxIconSpeechBubbles } from '@wikimedia/codex-icons'
 
 import type { HomeActiveDiscussion } from '../../musical-group/data/types'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteDailyReadsTabs from '../components/WikitaLiteDailyReadsTabs.vue'
 import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
@@ -21,6 +22,8 @@ interface Props {
   loading?: boolean
   error?: string | null
   previewLimit?: number
+  /** Empty card slots held at the end of the grid while the feed loads. */
+  skeletons?: number
   /**
    * Reveal the next cards in place instead of navigating to the module's own
    * page. The owner grows `previewLimit` in response to `expand`.
@@ -35,6 +38,7 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   error: null,
   previewLimit: 3,
+  skeletons: 0,
   expandable: false,
   moreTo: undefined,
 })
@@ -102,7 +106,10 @@ const showMoreControl = computed(
         aria-label="Active discussion filters"
       />
 
-      <div :class="['active-discussions-module__cards', groupClass]">
+      <div
+        :class="['active-discussions-module__cards', groupClass]"
+        :aria-busy="skeletons > 0 || undefined"
+      >
         <CdxCard
           v-for="discussion in displayItems"
           :key="discussion.id"
@@ -122,6 +129,7 @@ const showMoreControl = computed(
             />
           </template>
         </CdxCard>
+        <WikitaLiteCardSkeletons :count="skeletons" />
       </div>
 
       <slot name="after-cards" />

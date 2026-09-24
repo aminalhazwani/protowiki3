@@ -18,6 +18,7 @@ import { useWikitaLiteCardListClasses } from '../composables/useWikitaLiteCardLi
 import { useWikitaLiteSaveFeedback } from '../composables/useWikitaLiteSaveFeedback'
 import { useWikitaLiteOverflowShowMore } from '../composables/useWikitaLiteOverflowShowMore'
 import { WIKITA_LITE_CARD_CLASS_THUMBNAIL_SIZE_LARGE } from '../wikita-lite-card'
+import WikitaLiteCardSkeletons from '../components/WikitaLiteCardSkeletons.vue'
 import WikitaLiteCardWithAction from '../components/WikitaLiteCardWithAction.vue'
 import WikitaLiteShowMore from '../components/WikitaLiteShowMore.vue'
 import WikitaLiteSupportingRow from '../components/WikitaLiteSupportingRow.vue'
@@ -27,6 +28,8 @@ interface Props {
   items?: HomeSavedItem[]
   loading?: boolean
   previewLimit?: number
+  /** Empty card slots held at the end of the grid while the feed loads. */
+  skeletons?: number
   /**
    * Reveal the next cards in place instead of navigating to the module's own
    * page. The owner grows `previewLimit` in response to `expand`.
@@ -40,6 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
   items: () => [],
   loading: false,
   previewLimit: 4,
+  skeletons: 0,
   expandable: false,
   moreTo: undefined,
 })
@@ -139,8 +143,11 @@ const showMoreControl = computed(
     <CdxProgressBar v-if="standalone && loading" inline aria-label="Loading saved pages" />
 
     <template v-else>
-      <template v-if="displayItems.length">
-        <div :class="['saved-module__cards', groupClass]">
+      <template v-if="displayItems.length || skeletons">
+        <div
+          :class="['saved-module__cards', groupClass]"
+          :aria-busy="skeletons > 0 || undefined"
+        >
           <template v-for="item in displayItems" :key="item.id">
             <WikitaLiteCardWithAction
               v-if="standalone"
@@ -180,6 +187,7 @@ const showMoreControl = computed(
               </template>
             </CdxCard>
           </template>
+          <WikitaLiteCardSkeletons :count="skeletons" />
         </div>
 
         <slot name="after-cards" />
