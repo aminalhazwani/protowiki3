@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { cdxIconHome } from '@wikimedia/codex-icons'
 
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
@@ -42,6 +43,8 @@ interface Props {
   mobileWordmarkSrc?: string
   /** When false, the default wordmark is decorative (not a link). */
   brandLink?: boolean
+  /** Float a Home button in the bottom-trailing corner; clicking it emits **`home`**. */
+  floatingHome?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -52,7 +55,13 @@ const props = withDefaults(defineProps<Props>(), {
   wordmarkSrc: undefined,
   mobileWordmarkSrc: undefined,
   brandLink: true,
+  floatingHome: false,
 })
+
+const emit = defineEmits<{
+  /** The floating Home button was clicked — where Home is belongs to the prototype. */
+  home: []
+}>()
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
 
@@ -232,12 +241,39 @@ function isExternalHref(href: string): boolean {
         </template>
       </div>
     </nav>
+
+    <!--
+      Outside `__nav` because it isn't part of the bar's layout: it's pinned to
+      the viewport, not to the header. Framed, thumb-sized and icon-only — a
+      labelled pill would cover more of the text it floats over.
+    -->
+    <CdxButton
+      v-if="floatingHome"
+      class="minerva-chrome-header__fab"
+      size="large"
+      aria-label="Home"
+      @click="emit('home')"
+    >
+      <CdxIcon :icon="cdxIconHome" />
+    </CdxButton>
   </header>
 
   <MobileSearchOverlay v-if="searchOpen" :theme="effectiveTheme" @close="searchOpen = false" />
 </template>
 
 <style scoped>
+/*
+ * Pinned to the viewport rather than the header, so it stays in the corner
+ * while the article scrolls. `inset-inline-end` keeps it on the trailing edge,
+ * which mirrors to the left in RTL chrome.
+ */
+.minerva-chrome-header__fab.cdx-button {
+  position: fixed;
+  bottom: var(--spacing-75, 12px);
+  inset-inline-end: var(--spacing-75, 12px);
+  z-index: var(--z-index-fixed, 200);
+}
+
 .minerva-chrome-header {
   border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
 }

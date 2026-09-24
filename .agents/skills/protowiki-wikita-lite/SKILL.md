@@ -19,7 +19,7 @@ fetching, bookmarks, and feed logic with `musical-group` via
 | `src/prototypes/wikita-lite/modules/`                         | Feed modules (`FeaturedModule`, `TrendingModule`, …) |
 | `src/prototypes/wikita-lite/composables/useWikitaLiteHome.ts` | Thin wrapper over `useMusicalGroupHome`              |
 | `src/prototypes/wikita-lite/routes.ts`                        | Paths, tab labels, module titles                     |
-| `src/prototypes/wikita-lite/components/WikitaLiteChromeHeader.vue` | Logged-in chrome (Home + shell + article page): desktop Home button, Reading lists, user menu; registers the article opener |
+| `src/prototypes/wikita-lite/components/WikitaLiteChromeHeader.vue` | Logged-in chrome (Home + shell + article page): desktop Home button, Reading lists, user menu; mobile `MinervaUserMenu`, working search, `floatingHome` (article page only); registers the article opener |
 | `src/prototypes/wikita-lite.wiki.[title]/index.vue` | Logged-in article page (`/wikita-lite/wiki/Earth`) that search opens once onboarded |
 | `src/prototypes/wikita-lite.*/index.vue`                      | Standalone subpages (one module each)                |
 

@@ -65,7 +65,7 @@ function onArticleLinkClick(event: MouseEvent): void {
     <div class="wikita-lite-article" @click.capture="onLeaveCapture">
       <ChromeWrapper :last-edited-notice="false">
         <template #header>
-          <WikitaLiteChromeHeader />
+          <WikitaLiteChromeHeader floating-home />
         </template>
 
         <article class="wikita-lite-article__body" :data-skin="globalSkin">

@@ -13,7 +13,7 @@ or **`MinervaChromeHeader`** (mobile skin) based on effective skin:
 | Skin | Component | Chrome feel | Notes |
 | --- | --- | --- | --- |
 | `desktop` | **`VectorChromeHeader`** | **Vector 2022–style** | Wordmark/tagline (**`wordmarkSrc`**, **`taglineSrc`**, **`#logo`**), **`Search`** + **Search** button, username link (**`username`** + **`#username`**), user-tool cluster (**`navTools`** vs **`#nav`**). Main-menu glyph is icon-only (mock). Global skin stays **desktop** until viewport **≤640px**; below **1120px** inline search collapses to a search icon; below **768px** watchlist hides. |
-| `mobile` | **`MinervaChromeHeader`** | **Minerva-style** | Grey elevated bar: menu · wordmark · search + notifications + user — prop-driven **`left`** / **`middle`** / **`right`** item arrays. **`navTools`** is ignored. |
+| `mobile` | **`MinervaChromeHeader`** | **Minerva-style** | Grey elevated bar: menu · wordmark · search + notifications + user — prop-driven **`left`** / **`middle`** / **`right`** item arrays. **`navTools`** is ignored. **`floatingHome`** pins an icon-only Home button to the bottom-trailing corner (emits **`home`**). For a working user menu, put **`MinervaUserMenu`** (optional **`username`**) in **`right`** as a `component` item. |
 
 **`ChromeFooter`** matches the skin:
 

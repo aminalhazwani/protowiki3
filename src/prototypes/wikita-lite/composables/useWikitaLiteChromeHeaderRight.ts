@@ -1,4 +1,4 @@
-import { computed, type ComputedRef, type MaybeRefOrGetter, toValue } from 'vue'
+import { computed, type Component, type ComputedRef, type MaybeRefOrGetter, toValue } from 'vue'
 
 import type { HeaderButtonItem, HeaderItem } from '@/components/header/headerItems'
 import { useConfig } from '@/composables/useConfig'
@@ -26,6 +26,8 @@ const DEFAULT_USER: HeaderButtonItem = {
 export function useWikitaLiteChromeHeaderRight(options?: {
   search?: MaybeRefOrGetter<HeaderButtonItem | undefined>
   hideUserMenu?: MaybeRefOrGetter<boolean>
+  /** Logged in: mounted in place of the inert avatar (e.g. `MinervaUserMenu`). */
+  userMenu?: MaybeRefOrGetter<Component | undefined>
 }): { headerRight: ComputedRef<HeaderItem[]> } {
   const { user } = useConfig()
 
@@ -40,7 +42,8 @@ export function useWikitaLiteChromeHeaderRight(options?: {
       if (user.value === 'logged-out') {
         items.push({ type: 'component', component: WikitaLiteAccountMenuButton })
       } else {
-        items.push(DEFAULT_USER)
+        const userMenu = toValue(options?.userMenu)
+        items.push(userMenu ? { type: 'component', component: userMenu } : DEFAULT_USER)
       }
     }
 

@@ -34,6 +34,8 @@ interface Props {
   right?: HeaderItem[]
   /** Minerva bar only — when false, the default wordmark is decorative (not a link). */
   brandLink?: boolean
+  /** Minerva only — float a Home button in the corner (emits **`home`**). */
+  floatingHome?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -48,10 +50,11 @@ const props = withDefaults(defineProps<Props>(), {
   middle: undefined,
   right: undefined,
   brandLink: true,
+  floatingHome: false,
 })
 
 const emit = defineEmits<{
-  /** Desktop only: the **`home`** nav tool was clicked. */
+  /** Desktop **`home`** nav tool, or the Minerva **`floatingHome`** button, was clicked. */
   home: []
 }>()
 
@@ -144,5 +147,7 @@ const minervaRight = computed((): HeaderItem[] | undefined => props.right)
     :wordmark-src="props.wordmarkSrc"
     :mobile-wordmark-src="props.mobileWordmarkSrc"
     :brand-link="props.brandLink"
+    :floating-home="props.floatingHome"
+    @home="emit('home')"
   />
 </template>
