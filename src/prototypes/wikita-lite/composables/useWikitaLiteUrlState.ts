@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, effectScope, ref, watch, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { getMutableConfigRef } from '@/composables/useConfig'
@@ -161,11 +161,17 @@ function createWikitaLiteUrlState() {
 
 let singleton: ReturnType<typeof createWikitaLiteUrlState> | null = null
 
-/** Call once from wikita-lite shell entry points. */
+/**
+ * Call once from wikita-lite shell entry points.
+ *
+ * The watchers run in a detached scope: created in the calling component's
+ * scope, they'd stop when that page unmounts, and config changes made on the
+ * next page (a save on a subpage, say) would never reach the URL.
+ */
 export function initWikitaLiteUrlState(): ReturnType<typeof createWikitaLiteUrlState> {
   if (!singleton) {
     configRef = getMutableConfigRef()
-    singleton = createWikitaLiteUrlState()
+    singleton = effectScope(true).run(createWikitaLiteUrlState)!
   }
   return singleton
 }

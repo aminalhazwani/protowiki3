@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue'
+import { onScopeDispose, ref, watch, type Ref } from 'vue'
 
 import { wikiHostFromLang, wikimediaApiFetchHeaders } from '@/config'
 
@@ -30,9 +30,16 @@ export function useArticleHtml(title: Ref<string>, lang = 'en'): UseArticleHtml 
   let abortController: AbortController | null = null
 
   async function load(rawTitle: string): Promise<void> {
+    // Every title change supersedes the request in flight — including a change
+    // to a cached or empty title, or the stale body lands on the new page.
+    abortController?.abort()
+    abortController = null
+
     const trimmed = rawTitle.trim()
     if (!trimmed.length) {
       html.value = null
+      error.value = null
+      loading.value = false
       return
     }
 
@@ -47,8 +54,8 @@ export function useArticleHtml(title: Ref<string>, lang = 'en'): UseArticleHtml 
       return
     }
 
-    abortController?.abort()
-    abortController = new AbortController()
+    const controller = new AbortController()
+    abortController = controller
     loading.value = true
     error.value = null
     html.value = null
@@ -56,23 +63,29 @@ export function useArticleHtml(title: Ref<string>, lang = 'en'): UseArticleHtml 
     try {
       const url = `https://${host}/api/rest_v1/page/html/${encodeURIComponent(trimmed)}`
       const response = await fetch(url, {
-        signal: abortController.signal,
+        signal: controller.signal,
         headers: { Accept: 'text/html; charset=utf-8', ...wikimediaApiFetchHeaders('page-html') },
       })
       if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`)
 
       const body = extractParserOutput(await response.text())
       bodyCache.set(cacheKey, body)
+      if (controller.signal.aborted) return
       html.value = body
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return
+      if (controller.signal.aborted) return
       error.value = err instanceof Error ? err.message : String(err)
     } finally {
-      loading.value = false
+      // A superseded request must not clear the newer one's loading state.
+      if (abortController === controller) {
+        abortController = null
+        loading.value = false
+      }
     }
   }
 
   watch(title, (value) => void load(value), { immediate: true })
+  onScopeDispose(() => abortController?.abort())
 
   return { html, loading, error }
 }
