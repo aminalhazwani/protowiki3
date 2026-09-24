@@ -19,6 +19,13 @@ export const IMPACT_PAGE = '/wikita-lite/impact'
 export const CONFIGURE_HOME_PAGE = '/wikita-lite/configure'
 export const PERSONALIZATION_PAGE = '/wikita-lite/personalization'
 
+/** Logged-in article reading: `/wikita-lite/wiki/Earth`, the way the wiki spells it. */
+export const ARTICLE_PAGE_PREFIX = '/wikita-lite/wiki'
+
+export function articlePagePath(title: string): string {
+  return `${ARTICLE_PAGE_PREFIX}/${encodeURIComponent(title.trim().replace(/ /g, '_'))}`
+}
+
 /** Fullscreen subpages whose configure button opens Personalization. */
 export const PERSONALIZED_SUBPAGE_PATHS = [
   HELP_WANTED_PAGE,

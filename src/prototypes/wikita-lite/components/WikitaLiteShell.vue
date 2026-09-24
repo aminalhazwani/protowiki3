@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted } from 'vue'
 
-import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import MobileWrapper from '@/components/MobileWrapper.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import { globalSkin } from '@/theme'
 
 import { useWikitaLiteCardBordersSingleton } from '../composables/useWikitaLiteCardBorders'
-import { useWikitaLiteChromeHeaderRight } from '../composables/useWikitaLiteChromeHeaderRight'
 import { useWikitaLiteCardRadiusSingleton } from '../composables/useWikitaLiteCardRadius'
 import { useWikitaLiteLeavePrototype } from '../composables/useWikitaLiteLeavePrototype'
 import { initWikitaLiteUrlState } from '../composables/useWikitaLiteUrlState'
@@ -18,8 +16,8 @@ import WikitaLiteLeavePrototypeDialog from './WikitaLiteLeavePrototypeDialog.vue
 initWikitaLiteUrlState()
 import { SHOW_WIKITA_LITE_FLOATING_NAV } from '../routes'
 import '../wikita-lite-shell.css'
+import WikitaLiteChromeHeader from './WikitaLiteChromeHeader.vue'
 import WikitaLiteFloatingNav from './WikitaLiteFloatingNav.vue'
-import WikitaLitePrototypeMenuPopover from './WikitaLitePrototypeMenuPopover.vue'
 
 interface Props {
   title?: string | null
@@ -36,7 +34,6 @@ const { isHomeFeed, goHome, scrollToTop } = useWikitaLiteView()
 const { onLeaveCapture } = useWikitaLiteLeavePrototype()
 const { cardRadiusStyle } = useWikitaLiteCardRadiusSingleton()
 const { hideCardBorders } = useWikitaLiteCardBordersSingleton()
-const { headerRight } = useWikitaLiteChromeHeaderRight()
 
 const isSubpage = computed(() => props.title === null)
 
@@ -68,11 +65,7 @@ onMounted(async () => {
         :brand-link="false"
       >
         <template v-if="!isSubpage" #header>
-          <ChromeHeader :right="headerRight" :brand-link="false">
-            <template #menu>
-              <WikitaLitePrototypeMenuPopover />
-            </template>
-          </ChromeHeader>
+          <WikitaLiteChromeHeader />
         </template>
         <SpecialPageWrapper
           :title="isSubpage ? null : undefined"

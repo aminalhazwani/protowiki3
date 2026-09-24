@@ -1,14 +1,26 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
+import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconAppearance,
   cdxIconBell,
+  cdxIconBookmarkList,
+  cdxIconExpand,
+  cdxIconHome,
+  cdxIconImageGallery,
+  cdxIconLabFlask,
+  cdxIconLanguage,
+  cdxIconLogOut,
   cdxIconMenu,
+  cdxIconSandbox,
   cdxIconSearch,
+  cdxIconSettings,
   cdxIconTray,
   cdxIconUserAvatar,
+  cdxIconUserContributions,
+  cdxIconUserTalk,
   cdxIconWatchlist,
 } from '@wikimedia/codex-icons'
 
@@ -20,7 +32,7 @@ import type { Theme } from '@/theme'
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import Search from '../Search.vue'
 
-const { user } = useConfig()
+const { user, displayName } = useConfig()
 
 /** Fallback EN CDN SVGs — override via **`wordmarkSrc`** / **`taglineSrc`**. */
 const WIKIPEDIA_WORDMARK_EN =
@@ -36,6 +48,8 @@ interface Props {
   theme?: Theme
   /**
    * Meta link mock before tool icons; trim; empty hides unless **`#username`** overrides.
+   * With **`user-menu`** in **`navTools`** the name labels that button instead
+   * (the mock user's display name stands in when empty).
    */
   username?: string
   /** Stacked wordmark image URL (`#logo` replaces both lines). */
@@ -57,6 +71,11 @@ const props = withDefaults(defineProps<Props>(), {
   navTools: undefined,
 })
 
+const emit = defineEmits<{
+  /** The **`home`** tool was clicked — where Home is belongs to the prototype. */
+  home: []
+}>()
+
 /**
  * Below 1120px Vector trades the inline field for an icon, the same as
  * production. There is no room to expand in place, so the icon opens the
@@ -66,7 +85,6 @@ const searchOpen = ref(false)
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
 const trimmedUsername = computed(() => (props.username ?? '').trim())
-const showChromeUsernameLink = computed(() => trimmedUsername.value.length > 0)
 const isLoggedOut = computed(() => user.value === 'logged-out')
 
 const desktopWordmarkSrc = computed(() => props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN)
@@ -79,6 +97,39 @@ const effectiveNavTools = computed(() =>
 function navHas(tool: ChromeNavTool): boolean {
   return effectiveNavTools.value.includes(tool)
 }
+
+/*
+ * The user menu carries the name as its label, so the meta link before the
+ * tool icons would only repeat it.
+ */
+const showChromeUsernameLink = computed(
+  () => trimmedUsername.value.length > 0 && !navHas('user-menu'),
+)
+const userMenuLabel = computed(() => trimmedUsername.value || displayName.value)
+
+/**
+ * Mocked Vector user menu. The name is already on the button that opens it,
+ * so the first row names the destination instead. Items are inert affordances
+ * like the rest of the chrome — selecting one closes the menu and clears the
+ * selection so no entry renders a persistent checkmark.
+ */
+const userMenuItems: MenuButtonItemData[] = [
+  { value: 'user-page', label: 'User page', icon: cdxIconUserAvatar },
+  { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
+  { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
+  { value: 'preferences', label: 'Preferences', icon: cdxIconSettings },
+  { value: 'beta', label: 'Beta', icon: cdxIconLabFlask },
+  { value: 'contributions', label: 'Contributions', icon: cdxIconUserContributions },
+  { value: 'translations', label: 'Translations', icon: cdxIconLanguage },
+  { value: 'uploaded-media', label: 'Uploaded media', icon: cdxIconImageGallery },
+  { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
+]
+
+const userMenuSelection = ref<MenuItemValue | null>(null)
+
+watch(userMenuSelection, (value) => {
+  if (value !== null) userMenuSelection.value = null
+})
 
 /*
  * "Create account" is a real link either way: a prototype that registered an
@@ -187,6 +238,16 @@ function onCreateAccountClick(event: MouseEvent): void {
           </a>
         </slot>
         <slot v-if="!isLoggedOut" name="nav">
+          <CdxButton
+            v-if="navHas('home')"
+            class="vector-chrome-header__home"
+            weight="quiet"
+            action="progressive"
+            @click="emit('home')"
+          >
+            <CdxIcon :icon="cdxIconHome" />
+            Home
+          </CdxButton>
           <CdxButton v-if="navHas('appearance')" weight="quiet" aria-label="Appearance">
             <CdxIcon :icon="cdxIconAppearance" />
           </CdxButton>
@@ -200,6 +261,9 @@ function onCreateAccountClick(event: MouseEvent): void {
           <CdxButton v-if="navHas('notices')" weight="quiet" aria-label="Notices">
             <CdxIcon :icon="cdxIconTray" />
           </CdxButton>
+          <CdxButton v-if="navHas('bookmarks')" weight="quiet" aria-label="Reading lists">
+            <CdxIcon :icon="cdxIconBookmarkList" />
+          </CdxButton>
           <CdxButton
             v-if="navHas('watchlist')"
             weight="quiet"
@@ -211,6 +275,21 @@ function onCreateAccountClick(event: MouseEvent): void {
           <CdxButton v-if="navHas('user')" weight="quiet" aria-label="User menu">
             <CdxIcon :icon="cdxIconUserAvatar" />
           </CdxButton>
+          <!-- The visible name is the accessible name, so no `aria-label`. -->
+          <CdxMenuButton
+            v-if="navHas('user-menu')"
+            v-model:selected="userMenuSelection"
+            class="vector-chrome-header__user-menu menu-content-width"
+            weight="quiet"
+            :menu-items="userMenuItems"
+          >
+            {{ userMenuLabel }}
+            <CdxIcon
+              class="vector-chrome-header__user-menu-chevron"
+              :icon="cdxIconExpand"
+              size="small"
+            />
+          </CdxMenuButton>
         </slot>
       </div>
     </nav>
@@ -341,7 +420,7 @@ function onCreateAccountClick(event: MouseEvent): void {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.2rem;
+  gap: 4px;
   margin-inline-start: auto;
 }
 
@@ -373,6 +452,29 @@ a.vector-chrome-header__text-link:hover {
   min-width: var(--size-icon-medium, 32px);
   height: var(--size-icon-medium, 32px);
   padding: 0.5rem 0.4rem;
+}
+
+/*
+ * Home and the user menu carry visible labels, so they size to their content
+ * and never shrink — the narrow-viewport rule below squares every end-cluster
+ * button off at 40px, which would clip the label. Three classes outrank it.
+ */
+.vector-chrome-header__end .vector-chrome-header__home.cdx-button,
+.vector-chrome-header__end .vector-chrome-header__user-menu :deep(.cdx-button) {
+  width: auto;
+  flex-shrink: 0;
+  gap: var(--spacing-25, 4px);
+  padding-inline: var(--spacing-50, 8px);
+  white-space: nowrap;
+}
+
+/* Menu items read as links: base-coloured icon, progressive label. */
+.vector-chrome-header__user-menu :deep(.cdx-menu-item .cdx-menu-item__icon) {
+  color: var(--color-base, #202122);
+}
+
+.vector-chrome-header__user-menu :deep(.cdx-menu-item .cdx-menu-item__text__label) {
+  color: var(--color-progressive, #36c);
 }
 
 .vector-chrome-header[data-theme='dark'] .vector-chrome-header__wordmark-img,

@@ -50,6 +50,11 @@ const props = withDefaults(defineProps<Props>(), {
   brandLink: true,
 })
 
+const emit = defineEmits<{
+  /** Desktop only: the **`home`** nav tool was clicked. */
+  home: []
+}>()
+
 const slots = useSlots()
 
 const effectiveSkin = computed<Skin>(() => props.skin ?? globalSkin.value)
@@ -114,6 +119,7 @@ const minervaRight = computed((): HeaderItem[] | undefined => props.right)
     :wordmark-src="props.wordmarkSrc"
     :tagline-src="props.taglineSrc"
     :nav-tools="props.navTools"
+    @home="emit('home')"
   >
     <template v-if="slots.menu" #menu>
       <slot name="menu" />

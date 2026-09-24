@@ -41,7 +41,7 @@ Public skin-aware delegator — import directly or use via **`ChromeWrapper`'s**
 | `wordmarkSrc` | `string` | EN CDN SVG | Desktop wordmark **`#logo`** (+ Minerva fallback when **`mobileWordmarkSrc`** omitted) |
 | `taglineSrc` | `string` | EN CDN SVG | Desktop tagline **`#logo`** stack |
 | `mobileWordmarkSrc` | `string` | **`wordmarkSrc`** then EN CDN | Minerva bar wordmark when **`middle`** is omitted |
-| `navTools` | `ChromeNavTool[]` | full set | **Desktop only** — which Vector tool icons render; **`#nav`** replaces cluster |
+| `navTools` | `ChromeNavTool[]` | full set | **Desktop only** — which Vector tool icons render; **`#nav`** replaces cluster. Opt-in extras beyond the default set: **`home`** (progressive labelled button, emits **`home`**), **`bookmarks`** (Reading lists), **`user-menu`** (inert Vector user menu labelled with **`username`** / the mock display name — replaces the username link) |
 | `left` | `HeaderItem[]` | Minerva default | **Mobile only** — override Minerva **`left`** region |
 | `middle` | `HeaderItem[]` | built-in wordmark | **Mobile only** — override Minerva **`middle`** region |
 | `right` | `HeaderItem[]` | Minerva default | **Mobile only** — override Minerva **`right`** region |
