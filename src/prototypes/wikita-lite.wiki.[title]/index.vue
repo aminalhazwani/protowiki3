@@ -69,7 +69,7 @@ function onArticleLinkClick(event: MouseEvent): void {
         </template>
 
         <article class="wikita-lite-article__body" :data-skin="globalSkin">
-          <ArticleHeader :title="title" />
+          <ArticleHeader :title="title" bookmark-affordance="bookmark" />
 
           <CdxProgressBar v-if="loading" inline aria-label="Loading article" />
 
