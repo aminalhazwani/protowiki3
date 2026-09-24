@@ -1,4 +1,5 @@
-import { backfillReadingListSavedAt, loadConfig } from '@/config'
+import { readActiveConfig } from '@/composables/useConfig'
+import { backfillReadingListSavedAt } from '@/config'
 
 import { getCachedSavedSummaries } from '../../musical-group/data/homeTabCache'
 import { normalizeEnwikiTitle } from '../../musical-group/data/enwikiTitle'
@@ -11,19 +12,19 @@ export function readingListSavedPageId(title: string): string {
 }
 
 export function readingListKey(): string {
-  const config = loadConfig()
+  const config = readActiveConfig()
   return (config.userPageLists[config.user]?.readingList ?? [])
     .map((title) => normalizeEnwikiTitle(title).toLowerCase())
     .join('|')
 }
 
 export function listReadingListTitles(): string[] {
-  const config = loadConfig()
+  const config = readActiveConfig()
   return [...(config.userPageLists[config.user]?.readingList ?? [])]
 }
 
 export function listReadingListSavedAt(titles?: readonly string[]): number[] {
-  const config = loadConfig()
+  const config = readActiveConfig()
   const lists = config.userPageLists[config.user]
   const readingList = titles ?? lists?.readingList ?? []
   return backfillReadingListSavedAt(readingList, lists?.readingListSavedAt ?? [])

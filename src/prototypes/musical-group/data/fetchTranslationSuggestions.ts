@@ -3,7 +3,7 @@ import { wikimediaApiFetchHeaders } from '@/config'
 import { fetchWikimedia } from '@/lib/fetchWikimedia'
 import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
 
-import { loadConfig } from '@/config'
+import { readActiveConfig } from '@/composables/useConfig'
 
 import { listBookmarks } from './bookmarks'
 import { bookmarksKey, utcDayKey } from './cacheKeys'
@@ -103,7 +103,7 @@ function collectSeedTitlesFromCache(): string[] {
     addSeedTitle(seen, seeds, cached?.data.enwikiTitle)
   }
 
-  const config = loadConfig()
+  const config = readActiveConfig()
   for (const title of config.userPageLists[config.user]?.readingList ?? []) {
     addSeedTitle(seen, seeds, title)
   }
@@ -119,7 +119,7 @@ function collectSeedTitlesFromCache(): string[] {
 /** Resolve enwiki titles from saved pages to seed translation recommendations. */
 export async function resolveTranslationSeedTitles(signal?: AbortSignal): Promise<string[]> {
   const seeds = collectSeedTitlesFromCache()
-  const config = loadConfig()
+  const config = readActiveConfig()
   const readingList = config.userPageLists[config.user]?.readingList ?? []
   if (seeds.length || (!listBookmarks().length && !readingList.length)) return seeds
 
