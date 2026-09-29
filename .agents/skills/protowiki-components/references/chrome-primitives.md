@@ -12,7 +12,7 @@ or **`MinervaChromeHeader`** (mobile skin) based on effective skin:
 
 | Skin | Component | Chrome feel | Notes |
 | --- | --- | --- | --- |
-| `desktop` | **`VectorChromeHeader`** | **Vector 2022–style** | Wordmark/tagline (**`wordmarkSrc`**, **`taglineSrc`**, **`#logo`**), **`Search`** + **Search** button, username link (**`username`** + **`#username`**), user-tool cluster (**`navTools`** vs **`#nav`**). Main-menu glyph is icon-only (mock). Global skin stays **desktop** until viewport **≤640px**; below **1120px** inline search collapses to a search icon; below **768px** watchlist hides. |
+| `desktop` | **`VectorChromeHeader`** | **Vector 2022–style** | Wordmark/tagline (**`wordmarkSrc`**, **`taglineSrc`**, **`#logo`**), **`Search`** + **Search** button, username affordances (**`username`** + **`#username`**, placed by the [playground](#desktop-nav-playground)), user-tool cluster (**`navTools`** vs **`#nav`**). Main-menu glyph is icon-only (mock). Global skin stays **desktop** until viewport **≤640px**; below **1120px** inline search collapses to a search icon; below **768px** watchlist hides. |
 | `mobile` | **`MinervaChromeHeader`** | **Minerva-style** | Grey elevated bar: menu · wordmark · search + notifications + user — prop-driven **`left`** / **`middle`** / **`right`** item arrays. **`navTools`** is ignored. |
 
 **`ChromeFooter`** matches the skin:
@@ -37,7 +37,7 @@ Public skin-aware delegator — import directly or use via **`ChromeWrapper`'s**
 | --- | --- | --- | --- |
 | `skin` | `'desktop' \| 'mobile'` | `undefined` | Local skin override; falls back to global `useSkin()` |
 | `theme` | `'light' \| 'dark'` | `undefined` | Local theme override; falls back to global `useTheme()` |
-| `username` | `string` | `'Username'` | **Desktop:** Meta link mock before tool icons; trimmed; **`''`** hides unless **`#username`** overrides |
+| `username` | `string` | mock user display name | **Desktop:** the name behind the username affordances; trimmed, display name substituted when empty. Where it shows is the [playground](#desktop-nav-playground)'s call, starting from the active preset. **`#username`** replaces the meta-link slot |
 | `wordmarkSrc` | `string` | EN CDN SVG | Desktop wordmark **`#logo`** (+ Minerva fallback when **`mobileWordmarkSrc`** omitted) |
 | `taglineSrc` | `string` | EN CDN SVG | Desktop tagline **`#logo`** stack |
 | `mobileWordmarkSrc` | `string` | **`wordmarkSrc`** then EN CDN | Minerva bar wordmark when **`middle`** is omitted |
@@ -60,7 +60,7 @@ Desktop **inline search** is always **`<Search />`** inside **`VectorChromeHeade
 | --- | --- | --- | --- |
 | `#menu` | both | menu button / icon | Replace main-menu control (**`ChromeWrapper`** forwards this) |
 | `#logo` | both | EN Wikipedia wordmark (+ tagline on desktop) | Replace wordmark / lockup |
-| `#username` | desktop | Anchor from **`username`** | Replace markup before tool icons |
+| `#username` | desktop | Anchor from **`username`** (when the playground places it in the toolbar) | Replace markup before tool icons |
 | `#nav` | desktop | Vector tool icons | Replace user-tool cluster (**`navTools`** ignored) |
 
 ### Example
@@ -87,6 +87,156 @@ Props: **`theme?`**, **`username?`**, **`wordmarkSrc?`**, **`taglineSrc?`**, **`
 
 Slots: **`#menu`**, **`#logo`**, **`#username`**, **`#nav`**
 
+### Desktop nav playground
+
+The main-menu popover groups its knobs by what each changes in the bar —
+**Home button**, **Username**, **Alerts and notices**, **Sticky header**. Like
+the Home controls, each round-trips through the URL, and writes its param only
+when it differs from the surface's own starting point, so links stay clean.
+
+Both panels (Vector and Minerva) open with a **Preset** select
+(`src/components/chrome/playgroundPresets.ts`, `?preset=`): production and
+treatments 1 and 2, each for desktop and mobile. A preset is a whole
+configuration — a skin plus a value for every knob — kept in one table,
+`PRESET_KNOBS`:
+
+- **The skin follows the preset.** A mobile preset on a desktop viewport
+  switches the page to Minerva and pins it; a skin change from anywhere else
+  (viewport crossing 640px, the settings panel) moves the preset to that
+  platform's production entry.
+- **Knobs are deltas on the preset.** Each starts from the preset's value and
+  writes its param only when it differs, so `?preset=` alone reproduces a
+  configuration. Picking a preset resets every knob.
+- With no `?preset=`, the page opens on production for the skin it booted on.
+
+**Production desktop** is Vector as it ships: no Home in the cluster, the name
+as the toolbar's meta link (and no user-page row in the user menu), separate
+alerts and notices, a stock sticky bar. The treatments and the mobile presets
+are placeholders until they're defined. **Treatment 1 desktop** puts a
+labelled Home in the cluster and the name's initials on the user-menu button,
+with the full name as the menu's first row (the user-page link). **Treatment 2
+desktop** puts the username on the Home button in place of “Home”, with
+production's user menu.
+
+Playground params are written in one batched navigation per tick (a preset
+switch resets a dozen knobs at once), and a new knob's param has to be added to
+`PLAYGROUND_KNOB_PARAMS` so a preset switch clears it.
+
+`src/components/chrome/desktopNavPlayground.ts` owns the two cluster settings:
+
+| Control | Param | Effect |
+| --- | --- | --- |
+| **Home button → Show in toolbar** | `?homeInToolbar=0\|1` | Home in the end cluster. Needs **`home`** in **`navTools`**. The styling knobs below it still drive the sticky header's Home when this is off. |
+| **Username → Placement** | `?usernameIn=menu\|toolbar\|button\|button-bare\|button-initials\|home` | Where the logged-in name shows: **Inside the user menu** (the menu's first row only), **In the toolbar** (Vector's meta link, before the tool icons), **As the menu button label** (beside the avatar on the button that closes the cluster — which then drops its `aria-label`, so the visible name *is* the accessible name), or the same label **without the icon** (`button-bare`: the name and the disclosure chevron alone, since the name already says whose menu it is), or **Initials as the menu button label** (`button-initials`: the name's first two letters and the chevron, no avatar — the button's accessible name is the full name, and the menu keeps it as its first row), or **As the Home button label** (`home`: the name in place of “Home”, the user button back to the bare avatar and the menu without its user-page row, as for `toolbar`; the accessible name is “*name*, Home”, and without Home in the cluster the name shows nowhere). One name, one place, so these are **radios**, not a switch per position — and with the name on the button, the menu's first row names the destination (**“User page”**) rather than repeating it. The starting value comes from the preset. |
+| **Help button → Progressive** | `?helpProgressive=0\|1` | The [floating help button](#desktop-floating-help-button) in progressive blue instead of the default grey — the same progressive, normal, large, round button Minerva's production preset floats. On in every desktop preset. |
+| **Alerts and notices → Merge into one button** | `?mergeNotices=1` | Echo's two inboxes share the alerts bell: the notices tray drops out of the cluster and the bell's label becomes **“Alerts and notices”**, so nothing is lost to a screen reader. Needs **`notifications`** / **`notices`** in **`navTools`** to have anything to merge. |
+
+The name itself comes from the **`username`** prop, or the mock user's display
+name when that prop is empty — so the toolbar link and the button label always
+read the same.
+
+<h3 id="desktop-floating-help-button">Floating help button</h3>
+
+Desktop seats Home in the end cluster, so the only thing floating over a page is
+help — a round icon button in the trailing bottom corner, on the same project,
+user and help pages as [Minerva's](#minerva-floating-buttons) and from the same
+`src/components/chrome/helpButton.ts`. It's fixed rather than playground-styled:
+a `quiet` button floating over article text would have no background of its own.
+
+Reaching those pages by clicking is the prototype's call. Article HTML links to
+them constantly (maintenance templates, policy links, `Help:IPA`), and
+**`wikiLinkClick`** classifies them as `wiki-other` — nothing to render — unless
+the page opts in:
+
+```ts
+import { wikiLinkClick } from '@/components/article/shared/wikiLinkClick'
+import { PROJECT_NAMESPACES } from '@/components/article/shared/wikiNamespace'
+
+const link = wikiLinkClick(event, { readableNamespaces: PROJECT_NAMESPACES })
+```
+
+`ArticleLive` renders a `Wikipedia:` or `Help:` page like any other, so the
+opt-in is all it takes. Talk pages stay out: `User talk:` is a discussion
+surface, not a page to read.
+
+### Sticky header
+
+Every desktop chrome page gets Vector 2022's condensed sticky bar — no prop, no
+opt-in. The site header scrolls away normally; the bar then slides down over the
+content and stays until the page is back near the top.
+
+`VectorStickyHeader` renders it, and it reads the page subject from
+`src/components/chrome/stickyHeaderSubject.ts`:
+
+- **With an article** — `ArticleHeader` registers its title and hands the bar
+  its **`<h1>`** as the trigger, so the bar appears exactly when the title
+  leaves. Contents: search, the title, talk / history / watch / reading lists /
+  edit, **“N languages”**, user menu.
+- **Without one** (special pages, dashboards, homepages) — nothing registers, so
+  the site nav becomes the trigger and the bar reduces to search plus the user
+  menu. Page-scoped tools would have nothing to act on.
+
+Two knobs sit in the main-menu playground under **Sticky header**, both
+round-tripping through the URL like the rest
+(`src/components/chrome/stickyHeaderPlayground.ts`):
+
+| Toggle | Param | Effect |
+| --- | --- | --- |
+| **Home button** | `?stickyHome=1` | Home at the head of the tool cluster, just before talk. Follows the playground's own `action` / `weight` / **Icon only** / **Show count** settings, so both Home buttons stay in step. Site navigation, so it doesn't wait on a registered subject — but like the site header's cluster it stays out of logged-out chrome. |
+| **Languages count only** | `?stickyLangCountOnly=1` | Shortens the interlanguage label to the bare count — **“445”**, not **“445 languages”**. The full phrase stays on as the button's `aria-label`, since a lone number tells a screen reader nothing. |
+
+Registering a different subject is a two-call contract, keyed by a per-instance
+token so a late unmount can't clear a newer registration:
+
+```ts
+import {
+  clearStickyHeaderSubject,
+  setStickyHeaderSubject,
+} from '@/components/chrome/stickyHeaderSubject'
+
+const token = Symbol('my-surface')
+setStickyHeaderSubject(token, { title: 'Wet Leg', sentinel: headingEl.value })
+onBeforeUnmount(() => clearStickyHeaderSubject(token))
+```
+
+The interlanguage menu comes from
+`@/components/article/shared/articleLanguageMenu`, the same composable
+**`ArticleHeader`** uses, so both offer identical rows and both swap the chrome's
+UI language on pick. The trigger itself is
+`useScrolledPast` (`src/composables/useScrolledPast.ts`) — an
+`IntersectionObserver`, not a scroll listener. The slide honours
+`prefers-reduced-motion`, and the parked bar is `inert` so it never catches a
+Tab.
+
+### Menus that size to their content
+
+Codex positions a **`CdxMenuButton`**'s menu with Floating UI, which writes an
+inline pixel `width` — the space available beside the trigger, clamped to
+**`8rem`**–**`16rem`**. So an icon-only trigger gets a 16rem menu and a labelled
+one gets a menu as narrow as its label, either way sized by the *button* rather
+than by the rows inside it.
+
+`src/styles/menu-content-width.css` (loaded in `main.ts`) is the opt-in fix: add
+**`menu-content-width`** alongside the component's own class and the menu sizes
+to its widest row instead, capped at **`22rem`** as a runaway guard.
+
+```vue
+<CdxMenuButton class="my-header__user-menu menu-content-width" :menu-items="items">
+```
+
+It's `!important` on `width`, because nothing in a stylesheet outranks an inline
+style — the one place in this repo where that's the right tool. Nothing breaks at
+the right edge: Floating UI measures the *rendered* menu, so it sees the content
+width and flips a `bottom-start` menu to `bottom-end` when the wider box would
+overflow, which is what already kept the icon-only user menu on screen. The rule
+also reserves the scrollbar gutter, so a scrolling menu (Codex
+**`visibleItemLimit`**) doesn't lay its scrollbar over the text it just sized
+itself around.
+
+Already applied to the desktop user menu (**`VectorChromeHeader`**), both sticky
+bar menus (**`VectorStickyHeader`**), and the interlanguage menu on both skins
+(**`ArticleHeader`**).
+
 ## MinervaChromeHeader
 
 Force mobile Minerva bar regardless of global skin. Prop-driven **`left`** / **`middle`** / **`right`** item arrays — same shape as **`AppChromeHeader`**. No slots.
@@ -100,11 +250,96 @@ import type { MinervaHeaderItem } from '@/components/chrome/MinervaChromeHeader.
 | --- | --- |
 | `left` | menu button |
 | `middle` | Wikipedia wordmark (`RouterLink` + `<img>`) when **`middle`** omitted |
-| `right` | search, notifications, user avatar buttons |
+| `right` | [search](#minerva-search), notifications, then the built-in user avatar + [user menu](#minerva-user-menu) |
 
 Adjacent icon buttons/links in **`left`** and **`right`** have **no gap** between them (flush groups).
 
 Props: **`theme?`**, **`left?`**, **`middle?`**, **`right?`**, **`wordmarkSrc?`**, **`mobileWordmarkSrc?`**
+
+<h3 id="minerva-user-menu">Minerva user menu</h3>
+
+Leave **`right`** alone and the avatar at the end of the bar opens a **`CdxMenu`**
+hanging off the bar's trailing corner — user page (the name comes from the
+**`user`** config preset, so `NewEditor` by default), Talk, Sandbox, Saved,
+Watchlist, Contributions, Log out. Rows are mocks: picking one just closes the
+menu. It closes on an outside tap or **Escape**, and the focused avatar hands
+arrow/Enter keys to the menu.
+
+Local styles only reach for what Minerva does differently from a default Codex
+menu: 44px rows, **`color-subtle`** icons _and_ labels, and
+**`font-weight-semi-bold`** labels. They live in an **unscoped** `<style>` block
+because **`CdxMenu`**'s root element never picks up the scope attribute.
+
+Passing your own **`right`** replaces the whole cluster — avatar and menu
+included — so a custom end cluster owns its own affordances.
+
+<h3 id="minerva-floating-buttons">Floating buttons</h3>
+
+Minerva floats **Home** in the bar's trailing bottom corner rather than seating
+it in the bar — and on the pages that are *about* the project, a **help** button
+joins it, nearest the corner. Both are inert affordances, like the rest of the
+chrome.
+
+The main-menu playground's **Floating buttons** section shapes the pair as one
+(`src/components/chrome/homeButtonPlayground.ts`), so they always read as a
+pair: **Action** (`?homeAction=`), **Weight** (`?homeWeight=`), **Size**
+(`?homeSize=`) and **Fully round** (`?homeRound=`) — pill when labelled, circle
+when icon-only. Every knob round-trips through the URL and writes its param
+only when it differs from the skin's own starting point, so links stay clean.
+
+What each button *says* is its own. **Show label** (`?homeIconOnly=`) labels
+Home alone; help stays icon-only, because Home is the destination under test
+and a second word beside it would read as its equal.
+
+**Show count on Home** (`?homeCount=`) is Home's alone for the same reason: it
+pins Echo's counter — the badge production puts on the alerts bell — to the Home
+icon, and help has nothing to count. The number is a mock
+(`HOME_BUTTON_COUNT`), the badge is `aria-hidden`, and the button carries the
+count in its `aria-label` instead, since a bare number tells a screen reader
+nothing. Its box lives in `src/styles/chrome-count-badge.css`, shared with the
+desktop chrome, and is drawn from tokens so it inverts in dark mode.
+
+Four more knobs (`src/components/chrome/mobileFabPlayground.ts`) set how the
+cluster behaves rather than how it looks:
+
+| Control | Param | Effect |
+| --- | --- | --- |
+| **Floating buttons → Show Home** | `?fabHome=0\|1` | Home in the corner at all. Off, the cluster is help alone, on the pages that show it. |
+| **Floating buttons → Hide on scroll down** | `?fabHideOnScroll=0\|1` | The cluster slides out below the viewport while the reader scrolls down and back in on scroll up (`src/composables/useHideOnScroll.ts`: 16px of travel from the last turning point before a direction counts, always shown at the top). A `transform` transition, so a reversal mid-slide retargets from where it is; `visibility` rides along so the parked buttons can't be tapped or tabbed to. Reduced motion swaps the slide for a fade. |
+| **Help button → Match Home's style** | `?helpMatchHome=0\|1` | Off, help drops the pair's styling for its own: progressive, normal, large, icon-only, and made round locally. |
+| **Help button → Keep Home beside it** | `?homeOnHelp=0\|1` | Off, help takes Home's place on the pages that show it, instead of joining it. |
+
+**Production mobile** floats no Home, and on help pages the corner is a lone
+round progressive help button. **Treatment 1 mobile** floats Home and hides the
+cluster on scroll; on help pages, help joins Home in its styling.
+
+The bar's end cluster has its own two knobs, under **Top bar**
+(`src/components/chrome/mobileBarPlayground.ts`):
+
+| Control | Param | Effect |
+| --- | --- | --- |
+| **Home replaces notifications** | `?barHome=0\|1` | Home takes the bell's seat between search and the avatar, and **Notifications** moves into the user menu between Talk and Sandbox. |
+| **Show notification count** | `?notifCount=0\|1` | Echo's unread count (`NOTIFICATION_COUNT`, a mock) in red — `chrome-count-badge__count--unread` — on the avatar's corner and at the end of the menu's Notifications row. Only while notifications live in the menu; the avatar carries the count in its `aria-label`. |
+
+**Treatment 2 mobile** turns both on and keeps production's floating
+behaviour: no floating Home, and a lone round help button on help pages.
+
+When help shows is not a prop: `src/components/chrome/helpButton.ts` reads the
+page subject `ArticleHeader` already registers (see
+[Sticky header](#sticky-header)) and answers the namespace of its title —
+`Wikipedia:` (or `Project:`), `User:` and `Help:` pages get the button, an
+article or an unregistered page doesn't. A prototype gets it with no wiring; the
+one thing it may need is to let those links be followed in the first place,
+which is [`wikiLinkClick`'s **`readableNamespaces`**](#desktop-floating-help-button).
+
+<h3 id="minerva-search">Minerva search</h3>
+
+Leave **`right`** alone and the bar's search icon opens
+**[`MobileSearchOverlay`](search.md#mobile-full-screen-search)** — the whole
+screen becomes a search bar plus title suggestions, the way Minerva does it.
+Where a picked result lands is the page's call, via the registered
+**`articleOpener`**; passing your own **`right`** replaces the icon along with
+the rest of the cluster.
 
 ## ChromeFooter
 

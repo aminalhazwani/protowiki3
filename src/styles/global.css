@@ -63,6 +63,41 @@ body {
   color: var(--color-base);
 }
 
+/*
+ * Desktop skin base typography — Codex sans at 14px/22px.
+ *
+ * Repeated across `body` and the prose surfaces because both set `font-family`
+ * and `font-size` explicitly above, so inheritance alone would lose.
+ *
+ * Deliberately NOT applied to `<html>` itself: `--font-size-*`, the spacing
+ * scale and `--size-icon-*` are all `rem`-based, so moving the root font size
+ * would rescale every Codex token rather than just the text.
+ */
+html[data-skin='desktop'] body,
+[data-skin='desktop'] .mw-parser-output,
+[data-skin='desktop'] .plain-wrapper,
+[data-skin='desktop'] .article-wrapper__body,
+[data-skin='desktop'] .special-page-wrapper__body {
+  font-family: var(--font-family-sans, sans-serif);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/*
+ * The semantic-typography rules further down set `font-family` on the element
+ * itself, and a direct rule always beats an inherited value — so the skin root
+ * above never reaches them. Restate the family only; their own `font-size` /
+ * `line-height` are deliberate and stay.
+ */
+[data-skin='desktop'] dt,
+[data-skin='desktop'] dd,
+[data-skin='desktop'] caption,
+[data-skin='desktop'] figcaption,
+[data-skin='desktop'] small,
+[data-skin='desktop'] cite {
+  font-family: var(--font-family-sans, sans-serif);
+}
+
 a {
   color: var(--color-progressive, #36c);
   text-decoration: none;

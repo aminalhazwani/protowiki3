@@ -238,6 +238,48 @@ Vector-like **page** chrome above the parser output (not the site **`ChromeHeade
 
 Fixed copy: desktop tagline **“From Wikipedia, the free encyclopedia”**; Article / Read tabs are visually active (not prop-driven). **`#title`** slot replaces the **`h1`** inner markup. Emits language pick / settings and tab/tool clicks.
 
+## Following links inside an article (`wikiLinkClick`)
+
+Rendered article HTML carries **relative Parsoid hrefs** (**`./Mars`**), so every on-wiki link is broken navigation inside a prototype — it resolves against the prototype route, not a wiki. **`wikiLinkClick(event)`** (**`src/components/article/shared/wikiLinkClick.ts`**) classifies a click delegated from the article container so the destination can load **in place** instead:
+
+| Result                                          | Meaning                                                                       | What the caller does                        |
+| ----------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- |
+| **`{ kind: 'article', title, fragment }`**       | Readable article on the same wiki (**`rel="mw:WikiLink"`**, **`/wiki/Title`**, absolute Wikipedia URL) | **`preventDefault()`**, then load **`title`** |
+| **`{ kind: 'wiki-other' }`**                     | On-wiki but nothing to render here — **`File:`** / **`Category:`** / **`Special:`** / red links | **`preventDefault()`** and stay put          |
+| **`null`**                                       | Not a wiki link: **`mw:ExtLink`**, interwiki, **`#fragment`**, **`mw-data:`**, no anchor | leave the default alone — the link leaves    |
+
+**`sameWikiTitle(a, b)`** compares titles across underscores, stray spaces and first-letter case — use it to spot a self-link (a citation **`./Earth#cite_note-…`** is an in-page jump, not a navigation) and to decide when a committed snapshot can serve the title.
+
+```vue
+<script setup lang="ts">
+const route = useRoute()
+const router = useRouter()
+const article = computed(() => (typeof route.query.article === 'string' ? route.query.article : 'Earth'))
+
+function onArticleClick(event: MouseEvent) {
+  if (event.defaultPrevented || event.button !== 0) return
+  const link = wikiLinkClick(event)
+  if (!link) return
+  event.preventDefault()
+  if (link.kind !== 'article') return
+  if (sameWikiTitle(link.title, article.value)) {
+    if (link.fragment) document.getElementById(link.fragment)?.scrollIntoView()
+    return
+  }
+  void router.push({ path: route.path, query: { ...route.query, article: link.title } })
+}
+</script>
+
+<template>
+  <ChromeWrapper>
+    <ArticleSnapshot v-if="sameWikiTitle(article, 'Earth')" class="article" article="Earth" @click="onArticleClick" />
+    <ArticleLive v-else class="article" :article="article" @click="onArticleClick" />
+  </ChromeWrapper>
+</template>
+```
+
+Keeping the title in **`?article=`** makes each click a real history entry, so browser back walks the reading trail. Reference: **`src/prototypes/T435429/`** — snapshot for the seed article, live **`page/html`** for everything clicked into.
+
 ## Styling notes
 
 - **`ArticleHeader`** title uses **`--font-family-serif`**; tabs/actions use base UI tokens — **`mw-first-heading`** targets **`PlainWrapper`** (and hand-authored **`h1`** in demos / editors), not **`ArticleHeader`**’s **`article-header__title`** row.
@@ -251,4 +293,5 @@ Fixed copy: desktop tagline **“From Wikipedia, the free encyclopedia”**; Art
 - Prefer **`<ArticleLive app>`** inside **`AppChromeWrapper`** for in-app live articles — same **`page/html`** path, app chrome instead of web chrome.
 - Prefer **`<ArticleSnapshot>`** for committed HTML snapshots.
 - Compose **`ArticleWrapper`** + **`ArticleRenderer`** manually when **`ArticleLive`** / **`ArticleSnapshot`** / **`ArticleCustom`** are too opinionated — including **fully hand-authored** **`#default`** (see **Hand-authored article markup** above; reference **`src/prototypes/template-article-custom/`**).
+- Use **`wikiLinkClick`** when in-article links should keep the reader inside the prototype (see **Following links inside an article** above).
 - REST / CORS: **`/api/rest_v1/`** remains **`origin=*`**-friendly.

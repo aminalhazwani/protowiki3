@@ -1,7 +1,7 @@
 import type { LocationQuery, RouteLocationNormalized, Router } from 'vue-router'
 
 /** Appearance query params carried across navigations when already present. */
-export const PRESERVED_URL_QUERY_PARAMS = ['theme', 'skin', 'os'] as const
+export const PRESERVED_URL_QUERY_PARAMS = ['theme', 'skin', 'os', 'uselang', 'user'] as const
 
 export type PreservedUrlQueryParam = (typeof PRESERVED_URL_QUERY_PARAMS)[number]
 
@@ -20,9 +20,7 @@ export function isAppPrototypeRoute(): boolean {
   return router?.currentRoute.value.meta.platform === 'app'
 }
 
-export function preservedQueryFromLocationQuery(
-  query: LocationQuery,
-): Record<string, string> {
+export function preservedQueryFromLocationQuery(query: LocationQuery): Record<string, string> {
   const preserved: Record<string, string> = {}
   for (const key of PRESERVED_URL_QUERY_PARAMS) {
     const value = query[key]
@@ -152,6 +150,31 @@ export function removeUrlQueryParam(key: string): void {
   void replaceRouteQuery(route, query)
 }
 
+/**
+ * Set and remove several params in one navigation (`null` removes). Separate
+ * `syncUrlQueryParam` / `removeUrlQueryParam` calls in the same tick each start
+ * from the same not-yet-updated URL, so all but the last would be lost.
+ */
+export function updateUrlQueryParams(
+  updates: Record<string, string | null>,
+): Promise<void | import('vue-router').NavigationFailure | undefined> {
+  if (!router) return Promise.resolve()
+
+  const route = router.currentRoute.value
+  const entries = Object.entries(updates)
+  if (entries.every(([key, value]) => (route.query[key] ?? null) === value)) {
+    return Promise.resolve()
+  }
+
+  const sets: Record<string, string> = {}
+  for (const [key, value] of entries) if (value !== null) sets[key] = value
+
+  const query = mergedLocationQuery(route.query, sets)
+  for (const [key, value] of entries) if (value === null) delete query[key]
+
+  return replaceRouteQuery(route, query)
+}
+
 export function replaceRouteQueryUpdates(
   to: RouteLocationNormalized,
   updates: Record<string, string>,
@@ -159,9 +182,14 @@ export function replaceRouteQueryUpdates(
   return replaceRouteQuery(to, mergedLocationQuery(to.query, updates))
 }
 
-/** Keep `?theme=`, `?skin=`, and `?os=` when navigating between routes. */
+/** Keep `?theme=`, `?skin=`, `?os=`, `?uselang=`, and `?user=` when navigating between routes. */
 export function preserveAppearanceQueryOnNavigation(instance: Router): void {
   instance.beforeEach((to, from) => {
+    // A deliberate sync-to-URL already carries the whole query, so carrying
+    // params over from `from` would undo a removal it just made — e.g. clearing
+    // `?uselang=` on a return to the default language, or `?os=` on auto.
+    if (syncingToUrl) return true
+
     const missing = preservedQueryMissingFromRoute(to, from)
     if (Object.keys(missing).length === 0) return true
     return {

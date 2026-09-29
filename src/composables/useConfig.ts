@@ -19,6 +19,7 @@ import {
 import {
   onAppPlatformSettingChanged,
   onThemeSettingChanged,
+  onUserSettingChanged,
   onWebSkinSettingChanged,
   protowikiConfig,
 } from '@/appearance'
@@ -51,6 +52,13 @@ watch(
   () => config.value.appPlatform,
   (platform) => {
     onAppPlatformSettingChanged(platform)
+  },
+)
+
+watch(
+  () => config.value.user,
+  (user) => {
+    onUserSettingChanged(user)
   },
 )
 
