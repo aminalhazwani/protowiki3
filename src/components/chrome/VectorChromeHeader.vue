@@ -8,6 +8,7 @@ import {
   CdxMenuButton,
   CdxPopover,
   CdxRadio,
+  CdxSelect,
   CdxToggleSwitch,
 } from '@wikimedia/codex'
 import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
@@ -46,6 +47,7 @@ import {
   useHomeButtonPlayground,
 } from './homeButtonPlayground'
 import { HELP_BUTTON_LABEL, helpButtonVisible } from './helpButton'
+import { PLAYGROUND_PRESET_ITEMS, usePlaygroundPreset } from './playgroundPresets'
 import {
   USERNAME_PLACEMENT_LABELS,
   USERNAME_PLACEMENTS,
@@ -72,9 +74,8 @@ interface Props {
    * Name behind the username affordances; trimmed, and the mock user's display
    * name stands in when empty. *Where* it shows — meta link before the tool
    * icons, label on the closing user button, or user menu only — is the
-   * playground's **Username** setting, which starts from this prop: a name here
-   * means the meta link, **`''`** means the user menu only. **`#username`**
-   * replaces the meta-link slot regardless.
+   * playground's **Username** setting, which starts from the active preset.
+   * **`#username`** replaces the meta-link slot regardless.
    */
   username?: string
   /** Stacked wordmark image URL (`#logo` replaces both lines). */
@@ -101,33 +102,50 @@ const trimmedUsername = computed(() => (props.username ?? '').trim())
 const isLoggedOut = computed(() => user.value === 'logged-out')
 
 /**
- * Where the username surfaces, and whether the two Echo inboxes share a
- * button. The starting placement follows the `username` prop: a surface that
- * passes a name wants Vector's own meta link, one that passes `''` — Home
- * leads the cluster in its place — starts with the name in the user menu only.
- * Either way the playground can move it, and the param is written only when it
- * differs from that starting point.
+ * Whether Home sits in the cluster, where the username surfaces, and whether
+ * the two Echo inboxes share a button — each starting from the active preset.
  */
-const { usernamePlacement, mergeNotices } = useDesktopNavPlayground({
-  placement: trimmedUsername.value.length > 0 ? 'toolbar' : 'menu',
-  mergeNotices: false,
-})
+const { showHome: homeInToolbar, usernamePlacement, mergeNotices } = useDesktopNavPlayground()
 
 /** The prop names the account; the mock user's display name stands in when it doesn't. */
 const usernameText = computed(() => trimmedUsername.value || displayName.value)
 const showToolbarUsername = computed(
   () => !isLoggedOut.value && usernamePlacement.value === 'toolbar',
 )
-/** Username as the label of the cluster's closing user button. */
+/** The whole username as the label of the cluster's closing user button. */
 const showUsernameOnButton = computed(
   () => usernamePlacement.value === 'button' || usernamePlacement.value === 'button-bare',
 )
 /**
- * The labelled button keeps its avatar by default; `button-bare` drops it, so
- * the name and the disclosure chevron are all that's left. Codex sizes the
- * button from its slot either way, and the label is still the accessible name.
+ * First two letters — `Array.from` so a name opening on an astral character
+ * (emoji, some CJK) isn't split mid-surrogate.
  */
-const showUserButtonAvatar = computed(() => usernamePlacement.value !== 'button-bare')
+const usernameInitials = computed(() => Array.from(usernameText.value).slice(0, 2).join(''))
+/** What the user button reads, if anything: the name, its initials, or just the avatar. */
+const userButtonLabel = computed(() => {
+  if (showUsernameOnButton.value) return usernameText.value
+  if (usernamePlacement.value === 'button-initials') return usernameInitials.value
+  return null
+})
+/**
+ * With the whole name on the button the visible label *is* the accessible
+ * name, so the `aria-label` steps aside. Initials alone don't name the account,
+ * so there the full name takes over — it starts with the letters shown, which
+ * keeps the visible label inside the accessible one.
+ */
+const userButtonAriaLabel = computed(() => {
+  if (showUsernameOnButton.value) return undefined
+  if (usernamePlacement.value === 'button-initials') return usernameText.value
+  return 'User menu'
+})
+/**
+ * The labelled button keeps its avatar by default; `button-bare` drops it, so
+ * the name and the disclosure chevron are all that's left, and the initials
+ * stand in its place. Codex sizes the button from its slot either way.
+ */
+const showUserButtonAvatar = computed(
+  () => usernamePlacement.value !== 'button-bare' && usernamePlacement.value !== 'button-initials',
+)
 
 const desktopWordmarkSrc = computed(() => props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN)
 const desktopTaglineSrc = computed(() => props.taglineSrc ?? WIKIPEDIA_TAGLINE_EN)
@@ -156,7 +174,8 @@ const alertsLabel = computed(() =>
 /**
  * Vector's menu opens on the name, the way the real one does — it *is* the link
  * to the user page. With the name already on the button that opened the menu,
- * the row would just repeat it, so it names the destination instead.
+ * the row would just repeat it, so it names the destination instead; initials
+ * don't count as the name, so under them the row keeps it.
  */
 const userPageLabel = computed(() => (showUsernameOnButton.value ? 'User page' : displayName.value))
 
@@ -166,7 +185,11 @@ const userPageLabel = computed(() => (showUsernameOnButton.value ? 'User page' :
  * renders a persistent checkmark.
  */
 const userMenuItems = computed((): MenuButtonItemData[] => [
-  { value: 'user-page', label: userPageLabel.value, icon: cdxIconUserAvatar },
+  // With the name as the toolbar's meta link — or as Home's label — the bar
+  // already carries it, so the menu drops the row the way production Vector does.
+  ...(showToolbarUsername.value || usernameOnHome.value
+    ? []
+    : [{ value: 'user-page', label: userPageLabel.value, icon: cdxIconUserAvatar }]),
   { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
   { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
   { value: 'preferences', label: 'Preferences', icon: cdxIconSettings },
@@ -181,29 +204,39 @@ const userMenuItems = computed((): MenuButtonItemData[] => [
 const mainMenuOpen = ref(false)
 const mainMenuAnchor = ref<HTMLElement | null>(null)
 
+/** Heads the panel: picks the skin and resets every knob below it. */
+const preset = usePlaygroundPreset()
+
 /**
- * Vector renders Home inline in the end cluster, so it starts framed-free and
- * labelled; `size` is fixed by the cluster's own 32px sizing and `round` only
- * means something for Minerva's floating button, so neither gets a control.
+ * Vector renders Home inline in the end cluster; `size` is fixed by the
+ * cluster's own 32px sizing and `round` only means something for Minerva's
+ * floating button, so neither gets a control.
  */
 const {
   action: homeAction,
   weight: homeWeight,
   iconOnly: homeIconOnly,
   count: homeCount,
-} = useHomeButtonPlayground({
-  action: 'progressive',
-  weight: 'quiet',
-  size: 'medium',
-  iconOnly: false,
-  round: false,
-  count: false,
-})
+} = useHomeButtonPlayground()
 
-/** The badge is `aria-hidden`, so the count rides in the accessible name. */
-const homeAriaLabel = computed(() =>
-  homeButtonAriaLabel(homeButtonLabel.value, homeIconOnly.value, homeCount.value),
-)
+const homeVisible = computed(() => navHas('home') && homeInToolbar.value)
+
+/** The username as Home's label, in place of “Home” — only while there's a Home to carry it. */
+const usernameOnHome = computed(() => usernamePlacement.value === 'home' && homeVisible.value)
+
+/**
+ * The badge is `aria-hidden`, so the count rides in the accessible name. With
+ * the username on it, the button still has to say it's Home — the name alone
+ * reads as a link to the user page — so the name leads (it's what's visible)
+ * and Home follows.
+ */
+const homeAriaLabel = computed(() => {
+  if (!usernameOnHome.value) {
+    return homeButtonAriaLabel(homeButtonLabel.value, homeIconOnly.value, homeCount.value)
+  }
+  const label = `${usernameText.value}, ${homeButtonLabel.value}`
+  return homeCount.value ? `${label} (${HOME_BUTTON_COUNT})` : label
+})
 
 /**
  * Sticky header trigger. An article registers its heading as the sentinel, so
@@ -342,7 +375,7 @@ watch(userMenuSelection, (value) => {
             squaring off. It's the class Codex would have set itself.
           -->
           <CdxButton
-            v-if="navHas('home')"
+            v-if="homeVisible"
             class="vector-chrome-header__home"
             :class="{ 'cdx-button--icon-only': homeIconOnly }"
             :weight="homeWeight"
@@ -365,10 +398,12 @@ watch(userMenuSelection, (value) => {
               </span>
             </span>
             <!-- `mobile-frontend-home-button`, in whichever language the
-                 interlanguage menu last selected. `dir="auto"` keeps RTL
-                 translations (fa, he) from mirroring the whole button. -->
+                 interlanguage menu last selected — or the username, which has
+                 no UI language of its own. `dir="auto"` keeps RTL text (fa, he)
+                 from mirroring the whole button. -->
             <span v-if="!homeIconOnly" class="chrome-count-badge">
-              <span :lang="uiLanguageTag" dir="auto">{{ homeButtonLabel }}</span>
+              <span v-if="usernameOnHome" dir="auto">{{ usernameText }}</span>
+              <span v-else :lang="uiLanguageTag" dir="auto">{{ homeButtonLabel }}</span>
               <span v-if="homeCount" class="chrome-count-badge__count" aria-hidden="true">
                 {{ HOME_BUTTON_COUNT }}
               </span>
@@ -395,31 +430,28 @@ watch(userMenuSelection, (value) => {
           >
             <CdxIcon :icon="cdxIconWatchlist" />
           </CdxButton>
-          <!--
-            With the name on the button the visible label *is* the accessible
-            name, so the `aria-label` steps aside rather than talking over it.
-          -->
+          <!-- Accessible name per placement: see `userButtonAriaLabel`. -->
           <CdxButton
             v-if="navHas('user')"
             class="vector-chrome-header__labelled-user"
-            :class="{ 'vector-chrome-header__labelled-user--on': showUsernameOnButton }"
+            :class="{ 'vector-chrome-header__labelled-user--on': userButtonLabel }"
             weight="quiet"
-            :aria-label="showUsernameOnButton ? undefined : 'User menu'"
+            :aria-label="userButtonAriaLabel"
           >
             <CdxIcon v-if="showUserButtonAvatar" :icon="cdxIconUserAvatar" />
-            <span v-if="showUsernameOnButton">{{ usernameText }}</span>
+            <span v-if="userButtonLabel">{{ userButtonLabel }}</span>
           </CdxButton>
           <CdxMenuButton
             v-if="navHas('user-menu')"
             v-model:selected="userMenuSelection"
             class="vector-chrome-header__user-menu vector-chrome-header__labelled-user menu-content-width"
-            :class="{ 'vector-chrome-header__labelled-user--on': showUsernameOnButton }"
+            :class="{ 'vector-chrome-header__labelled-user--on': userButtonLabel }"
             weight="quiet"
-            :aria-label="showUsernameOnButton ? undefined : 'User menu'"
+            :aria-label="userButtonAriaLabel"
             :menu-items="userMenuItems"
           >
             <CdxIcon v-if="showUserButtonAvatar" :icon="cdxIconUserAvatar" />
-            <span v-if="showUsernameOnButton">{{ usernameText }}</span>
+            <span v-if="userButtonLabel">{{ userButtonLabel }}</span>
             <CdxIcon
               class="vector-chrome-header__user-menu-chevron"
               :icon="cdxIconExpand"
@@ -463,7 +495,17 @@ watch(userMenuSelection, (value) => {
     >
       <div class="vector-chrome-header__menu-panel chrome-playground-panel">
         <section class="chrome-playground-panel__section">
+          <CdxField class="chrome-playground-panel__preset">
+            <template #label>Preset</template>
+            <CdxSelect v-model:selected="preset" :menu-items="PLAYGROUND_PRESET_ITEMS" />
+          </CdxField>
+        </section>
+
+        <section class="chrome-playground-panel__section">
           <h2 class="chrome-playground-panel__section-title">Home button</h2>
+
+          <!-- The styling below still drives the sticky header's Home. -->
+          <CdxToggleSwitch v-model="homeInToolbar">Show in toolbar</CdxToggleSwitch>
 
           <CdxField :is-fieldset="true">
             <template #label>Action</template>

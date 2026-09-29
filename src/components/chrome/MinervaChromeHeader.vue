@@ -8,6 +8,7 @@ import {
   CdxMenu,
   CdxPopover,
   CdxRadio,
+  CdxSelect,
   CdxToggleSwitch,
 } from '@wikimedia/codex'
 import type { MenuItemData, MenuItemValue } from '@wikimedia/codex'
@@ -38,6 +39,7 @@ import {
   useHomeButtonPlayground,
 } from './homeButtonPlayground'
 import { HELP_BUTTON_LABEL, helpButtonVisible } from './helpButton'
+import { PLAYGROUND_PRESET_ITEMS, usePlaygroundPreset } from './playgroundPresets'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
 import { homeButtonLabel, uiLanguageTag } from '@/uiLanguage'
@@ -204,10 +206,12 @@ function isExternalHref(href: string): boolean {
 const mainMenuOpen = ref(false)
 const mainMenuAnchor = ref<HTMLElement | null>(null)
 
+/** Heads the panel: picks the skin and resets every knob below it. */
+const preset = usePlaygroundPreset()
+
 /**
- * Minerva floats Home over the article instead of seating it in a bar, so it
- * starts framed (`normal`), thumb-sized (`large`), icon-only and square-ish — a
- * labelled pill would cover more of the text it sits on.
+ * Minerva floats Home over the article instead of seating it in a bar; the
+ * active preset says how it starts (see `./playgroundPresets`).
  *
  * The floating help button sits in the same corner cluster and follows the
  * shape and colour knobs: two buttons side by side only read as a pair if they
@@ -222,14 +226,7 @@ const {
   iconOnly: homeIconOnly,
   round: homeRound,
   count: homeCount,
-} = useHomeButtonPlayground({
-  action: 'default',
-  weight: 'normal',
-  size: 'large',
-  iconOnly: true,
-  round: false,
-  count: false,
-})
+} = useHomeButtonPlayground()
 
 /** The count belongs to Home alone — help has nothing to count. */
 const homeAriaLabel = computed(() =>
@@ -496,6 +493,13 @@ const homeShowLabel = computed({
         second one.
       -->
       <div class="minerva-chrome-header__menu-panel chrome-playground-panel">
+        <section class="chrome-playground-panel__section">
+          <CdxField class="chrome-playground-panel__preset">
+            <template #label>Preset</template>
+            <CdxSelect v-model:selected="preset" :menu-items="PLAYGROUND_PRESET_ITEMS" />
+          </CdxField>
+        </section>
+
         <section class="chrome-playground-panel__section">
           <h2 class="chrome-playground-panel__section-title">Floating buttons</h2>
 

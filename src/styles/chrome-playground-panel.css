@@ -59,3 +59,13 @@
   align-self: flex-start;
   margin: 0;
 }
+
+/* The preset select heads the panel, so it spans it rather than shrink-wrapping
+   to its longest label. */
+.chrome-playground-panel__preset {
+  align-self: stretch;
+}
+
+.chrome-playground-panel__preset .cdx-select-vue {
+  width: 100%;
+}

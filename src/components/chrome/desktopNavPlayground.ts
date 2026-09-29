@@ -1,19 +1,16 @@
-import { ref, watch, type Ref } from 'vue'
+import type { Ref } from 'vue'
 
-import {
-  readEnumParam,
-  readFlagParam,
-  syncPlaygroundFlag,
-  syncPlaygroundParam,
-} from './playgroundParams'
+import { presetEnumKnob, presetFlagKnob, presetKnobs } from './playgroundPresets'
 
 /**
  * Desktop-only knobs for the Vector tool cluster, offered in the main-menu
- * playground beside the Home button and sticky header controls: where the
- * username surfaces, and whether alerts and notices share a button.
+ * playground beside the Home button and sticky header controls: whether Home
+ * sits in the cluster, where the username surfaces, and whether alerts and
+ * notices share a button.
  *
- * Both round-trip through the URL (`?usernameIn=`, `?mergeNotices=`) so a
- * configured toolbar can be shared as a link.
+ * All round-trip through the URL (`?homeInToolbar=`, `?usernameIn=`,
+ * `?mergeNotices=`) so a configured toolbar can be shared as a link, starting
+ * from the active playground preset.
  */
 
 /**
@@ -27,8 +24,23 @@ import {
  * - `button-bare` — the same label, with the avatar icon dropped: the name and
  *   the chevron alone. The name already says whose menu it is, so the avatar is
  *   the one thing in the cluster that repeats itself.
+ * - `button-initials` — the name's first two letters in the avatar's place,
+ *   with the chevron. Too short to name the account on its own, so the menu
+ *   keeps the full name as its first row, and the button's accessible name is
+ *   the full name too.
+ * - `home` — the label of the Home button, in place of “Home”: one button for
+ *   the reader's own corner of the wiki. The user button goes back to the bare
+ *   avatar, and the menu drops its user-page row as it does for `toolbar`.
+ *   Needs Home in the cluster — without it the name shows nowhere.
  */
-export const USERNAME_PLACEMENTS = ['menu', 'toolbar', 'button', 'button-bare'] as const
+export const USERNAME_PLACEMENTS = [
+  'menu',
+  'toolbar',
+  'button',
+  'button-bare',
+  'button-initials',
+  'home',
+] as const
 
 export type UsernamePlacement = (typeof USERNAME_PLACEMENTS)[number]
 
@@ -38,30 +50,35 @@ export const USERNAME_PLACEMENT_LABELS: Record<UsernamePlacement, string> = {
   toolbar: 'In the toolbar',
   button: 'As the menu button label',
   'button-bare': 'As the menu button label (w/o icon)',
+  'button-initials': 'Initials as the menu button label',
+  home: 'As the Home button label',
 }
 
-/** Per-surface starting point — what the cluster looks like with a bare URL. */
+/** A preset's starting point for the cluster. */
 export interface DesktopNavDefaults {
+  /** Home in the cluster — needs `home` in `navTools` to have a button to show. */
+  showHome: boolean
   placement: UsernamePlacement
   mergeNotices: boolean
 }
 
 export interface DesktopNavPlayground {
+  showHome: Ref<boolean>
   usernamePlacement: Ref<UsernamePlacement>
   /** Fold notices into the alerts button, leaving one bell instead of two icons. */
   mergeNotices: Ref<boolean>
 }
 
-export function useDesktopNavPlayground(defaults: DesktopNavDefaults): DesktopNavPlayground {
-  const usernamePlacement = ref<UsernamePlacement>(
-    readEnumParam('usernameIn', USERNAME_PLACEMENTS, defaults.placement),
-  )
-  const mergeNotices = ref(readFlagParam('mergeNotices', defaults.mergeNotices))
+export function useDesktopNavPlayground(): DesktopNavPlayground {
+  const defaults = () => presetKnobs().desktopNav
 
-  watch(usernamePlacement, (value) =>
-    syncPlaygroundParam('usernameIn', value, value === defaults.placement),
-  )
-  watch(mergeNotices, (value) => syncPlaygroundFlag('mergeNotices', value, defaults.mergeNotices))
-
-  return { usernamePlacement, mergeNotices }
+  return {
+    showHome: presetFlagKnob('homeInToolbar', () => defaults().showHome),
+    usernamePlacement: presetEnumKnob(
+      'usernameIn',
+      USERNAME_PLACEMENTS,
+      () => defaults().placement,
+    ),
+    mergeNotices: presetFlagKnob('mergeNotices', () => defaults().mergeNotices),
+  }
 }

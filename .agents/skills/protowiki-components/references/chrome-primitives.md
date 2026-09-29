@@ -37,7 +37,7 @@ Public skin-aware delegator — import directly or use via **`ChromeWrapper`'s**
 | --- | --- | --- | --- |
 | `skin` | `'desktop' \| 'mobile'` | `undefined` | Local skin override; falls back to global `useSkin()` |
 | `theme` | `'light' \| 'dark'` | `undefined` | Local theme override; falls back to global `useTheme()` |
-| `username` | `string` | mock user display name | **Desktop:** the name behind the username affordances; trimmed, display name substituted when empty. **`''`** starts it in the user menu only, a name starts it as the meta link — the [playground](#desktop-nav-playground) moves it either way. **`#username`** replaces the meta-link slot |
+| `username` | `string` | mock user display name | **Desktop:** the name behind the username affordances; trimmed, display name substituted when empty. Where it shows is the [playground](#desktop-nav-playground)'s call, starting from the active preset. **`#username`** replaces the meta-link slot |
 | `wordmarkSrc` | `string` | EN CDN SVG | Desktop wordmark **`#logo`** (+ Minerva fallback when **`mobileWordmarkSrc`** omitted) |
 | `taglineSrc` | `string` | EN CDN SVG | Desktop tagline **`#logo`** stack |
 | `mobileWordmarkSrc` | `string` | **`wordmarkSrc`** then EN CDN | Minerva bar wordmark when **`middle`** is omitted |
@@ -94,11 +94,40 @@ The main-menu popover groups its knobs by what each changes in the bar —
 the Home controls, each round-trips through the URL, and writes its param only
 when it differs from the surface's own starting point, so links stay clean.
 
+Both panels (Vector and Minerva) open with a **Preset** select
+(`src/components/chrome/playgroundPresets.ts`, `?preset=`): production and
+treatments 1 and 2, each for desktop and mobile. A preset is a whole
+configuration — a skin plus a value for every knob — kept in one table,
+`PRESET_KNOBS`:
+
+- **The skin follows the preset.** A mobile preset on a desktop viewport
+  switches the page to Minerva and pins it; a skin change from anywhere else
+  (viewport crossing 640px, the settings panel) moves the preset to that
+  platform's production entry.
+- **Knobs are deltas on the preset.** Each starts from the preset's value and
+  writes its param only when it differs, so `?preset=` alone reproduces a
+  configuration. Picking a preset resets every knob.
+- With no `?preset=`, the page opens on production for the skin it booted on.
+
+**Production desktop** is Vector as it ships: no Home in the cluster, the name
+as the toolbar's meta link (and no user-page row in the user menu), separate
+alerts and notices, a stock sticky bar. The treatments and the mobile presets
+are placeholders until they're defined. **Treatment 1 desktop** puts a
+labelled Home in the cluster and the name's initials on the user-menu button,
+with the full name as the menu's first row (the user-page link). **Treatment 2
+desktop** puts the username on the Home button in place of “Home”, with
+production's user menu.
+
+Playground params are written in one batched navigation per tick (a preset
+switch resets a dozen knobs at once), and a new knob's param has to be added to
+`PLAYGROUND_KNOB_PARAMS` so a preset switch clears it.
+
 `src/components/chrome/desktopNavPlayground.ts` owns the two cluster settings:
 
 | Control | Param | Effect |
 | --- | --- | --- |
-| **Username → Placement** | `?usernameIn=menu\|toolbar\|button\|button-bare` | Where the logged-in name shows: **Inside the user menu** (the menu's first row only), **In the toolbar** (Vector's meta link, before the tool icons), **As the menu button label** (beside the avatar on the button that closes the cluster — which then drops its `aria-label`, so the visible name *is* the accessible name), or the same label **without the icon** (`button-bare`: the name and the disclosure chevron alone, since the name already says whose menu it is). One name, one place, so these are **radios**, not a switch per position — and with the name on the button, the menu's first row names the destination (**“User page”**) rather than repeating it. The starting value follows the **`username`** prop: a name → `toolbar`, **`''`** → `menu`. |
+| **Home button → Show in toolbar** | `?homeInToolbar=0\|1` | Home in the end cluster. Needs **`home`** in **`navTools`**. The styling knobs below it still drive the sticky header's Home when this is off. |
+| **Username → Placement** | `?usernameIn=menu\|toolbar\|button\|button-bare\|button-initials\|home` | Where the logged-in name shows: **Inside the user menu** (the menu's first row only), **In the toolbar** (Vector's meta link, before the tool icons), **As the menu button label** (beside the avatar on the button that closes the cluster — which then drops its `aria-label`, so the visible name *is* the accessible name), or the same label **without the icon** (`button-bare`: the name and the disclosure chevron alone, since the name already says whose menu it is), or **Initials as the menu button label** (`button-initials`: the name's first two letters and the chevron, no avatar — the button's accessible name is the full name, and the menu keeps it as its first row), or **As the Home button label** (`home`: the name in place of “Home”, the user button back to the bare avatar and the menu without its user-page row, as for `toolbar`; the accessible name is “*name*, Home”, and without Home in the cluster the name shows nowhere). One name, one place, so these are **radios**, not a switch per position — and with the name on the button, the menu's first row names the destination (**“User page”**) rather than repeating it. The starting value comes from the preset. |
 | **Alerts and notices → Merge into one button** | `?mergeNotices=1` | Echo's two inboxes share the alerts bell: the notices tray drops out of the cluster and the bell's label becomes **“Alerts and notices”**, so nothing is lost to a screen reader. Needs **`notifications`** / **`notices`** in **`navTools`** to have anything to merge. |
 
 The name itself comes from the **`username`** prop, or the mock user's display

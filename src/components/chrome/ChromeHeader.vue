@@ -16,7 +16,7 @@ interface Props {
   skin?: Skin
   /** Local theme override. Sets `data-theme` on the root. */
   theme?: Theme
-  /** Desktop chrome: name behind the username affordances; trim; **`''`** starts it in the user menu only (playground moves it). */
+  /** Desktop chrome: name behind the username affordances; trim; where it shows is the playground's call. */
   username?: string
   /** Desktop stacked wordmark image URL (`#logo` replaces both lines). */
   wordmarkSrc?: string

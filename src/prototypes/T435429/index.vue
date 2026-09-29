@@ -20,13 +20,12 @@ import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import type { ChromeNavTool } from '@/components/chrome/headerNavTools'
 
 /**
- * Home leads the cluster in place of the username link; reading lists sits after
- * Notices, and the user icon is a menu rather than a plain button.
- *
- * `username=""` is what starts the name in the user menu only — the desktop
- * variants that move it into the toolbar or onto the menu button, and the one
- * that folds notices into the alerts bell, live in the main-menu playground
- * (`?usernameIn=`, `?mergeNotices=`).
+ * Every tool a preset might show: reading lists sits after Notices, and the user
+ * icon is a menu rather than a plain button. Whether Home is in the cluster,
+ * where the name goes and whether notices fold into the alerts bell are the
+ * main-menu playground's call — its **Preset** select sets them all, and the
+ * knobs below it tweak from there (`?preset=`, `?homeInToolbar=`,
+ * `?usernameIn=`, `?mergeNotices=`).
  */
 const navTools: ChromeNavTool[] = [
   'home',

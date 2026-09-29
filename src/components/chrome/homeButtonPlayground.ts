@@ -1,11 +1,6 @@
-import { ref, watch, type Ref } from 'vue'
+import type { Ref } from 'vue'
 
-import {
-  readEnumParam,
-  readFlagParam,
-  syncPlaygroundFlag,
-  syncPlaygroundParam,
-} from './playgroundParams'
+import { presetEnumKnob, presetFlagKnob, presetKnobs } from './playgroundPresets'
 
 /**
  * Shared state for the Home button styling playground the chrome headers expose
@@ -13,9 +8,9 @@ import {
  *
  * Every setting round-trips through the URL (`?homeAction=`, `?homeWeight=`,
  * `?homeSize=`, `?homeIconOnly=`, `?homeRound=`, `?homeCount=`) so a configured
- * header can be shared as a link, and both skins read the same params: flipping
- * `?skin=` keeps whatever was configured. Params are written only when they
- * differ from the defaults the calling skin passes in, keeping clean URLs.
+ * header can be shared as a link, and both skins read the same params. Each
+ * starts from the active playground preset and writes its param only when it
+ * differs from it, keeping clean URLs — see `./playgroundPresets`.
  */
 export const HOME_ACTIONS = ['default', 'progressive', 'destructive'] as const
 export const HOME_WEIGHTS = ['normal', 'primary', 'quiet'] as const
@@ -34,7 +29,7 @@ export type HomeAction = (typeof HOME_ACTIONS)[number]
 export type HomeWeight = (typeof HOME_WEIGHTS)[number]
 export type HomeSize = (typeof HOME_SIZES)[number]
 
-/** Per-skin starting point — what the button looks like with a bare URL. */
+/** A preset's starting point — what the button looks like with `?preset=` alone. */
 export interface HomeButtonDefaults {
   action: HomeAction
   weight: HomeWeight
@@ -55,22 +50,17 @@ export interface HomeButtonPlayground {
   count: Ref<boolean>
 }
 
-export function useHomeButtonPlayground(defaults: HomeButtonDefaults): HomeButtonPlayground {
-  const action = ref<HomeAction>(readEnumParam('homeAction', HOME_ACTIONS, defaults.action))
-  const weight = ref<HomeWeight>(readEnumParam('homeWeight', HOME_WEIGHTS, defaults.weight))
-  const size = ref<HomeSize>(readEnumParam('homeSize', HOME_SIZES, defaults.size))
-  const iconOnly = ref(readFlagParam('homeIconOnly', defaults.iconOnly))
-  const round = ref(readFlagParam('homeRound', defaults.round))
-  const count = ref(readFlagParam('homeCount', defaults.count))
+export function useHomeButtonPlayground(): HomeButtonPlayground {
+  const defaults = () => presetKnobs().home
 
-  watch(action, (value) => syncPlaygroundParam('homeAction', value, value === defaults.action))
-  watch(weight, (value) => syncPlaygroundParam('homeWeight', value, value === defaults.weight))
-  watch(size, (value) => syncPlaygroundParam('homeSize', value, value === defaults.size))
-  watch(iconOnly, (value) => syncPlaygroundFlag('homeIconOnly', value, defaults.iconOnly))
-  watch(round, (value) => syncPlaygroundFlag('homeRound', value, defaults.round))
-  watch(count, (value) => syncPlaygroundFlag('homeCount', value, defaults.count))
-
-  return { action, weight, size, iconOnly, round, count }
+  return {
+    action: presetEnumKnob('homeAction', HOME_ACTIONS, () => defaults().action),
+    weight: presetEnumKnob('homeWeight', HOME_WEIGHTS, () => defaults().weight),
+    size: presetEnumKnob('homeSize', HOME_SIZES, () => defaults().size),
+    iconOnly: presetFlagKnob('homeIconOnly', () => defaults().iconOnly),
+    round: presetFlagKnob('homeRound', () => defaults().round),
+    count: presetFlagKnob('homeCount', () => defaults().count),
+  }
 }
 
 /**
