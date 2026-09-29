@@ -13,6 +13,7 @@ import {
 } from '@wikimedia/codex'
 import type { MenuItemData, MenuItemValue } from '@wikimedia/codex'
 import {
+  cdxIconBell,
   cdxIconBookmarkList,
   cdxIconHelp,
   cdxIconHome,
@@ -27,6 +28,7 @@ import {
 } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
+import { useHideOnScroll } from '@/composables/useHideOnScroll'
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
 import type { HeaderItem } from '@/components/header/headerItems'
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
@@ -39,6 +41,8 @@ import {
   useHomeButtonPlayground,
 } from './homeButtonPlayground'
 import { HELP_BUTTON_LABEL, helpButtonVisible } from './helpButton'
+import { NOTIFICATION_COUNT, useMobileBarPlayground } from './mobileBarPlayground'
+import { useMobileFabPlayground } from './mobileFabPlayground'
 import { PLAYGROUND_PRESET_ITEMS, usePlaygroundPreset } from './playgroundPresets'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
@@ -89,12 +93,23 @@ const wordmarkResolved = computed(
 const searchOpen = ref(false)
 
 /**
+ * Whether Home takes the bell's seat in the bar — notifications then move into
+ * the user menu — and whether the unread count shows there.
+ */
+const { homeInBar, notificationCount } = useMobileBarPlayground()
+
+/** The count only has somewhere to go once notifications live in the menu. */
+const showNotificationCount = computed(() => homeInBar.value && notificationCount.value)
+
+/**
  * The search button and the avatar that opens the user menu are both built in —
  * see `useDefaultRight`.
  */
 const defaultRight = computed((): HeaderItem[] => [
   { type: 'button', icon: 'search', label: 'Search', onClick: () => (searchOpen.value = true) },
-  { type: 'button', icon: 'bell-outline', label: 'Notifications' },
+  homeInBar.value
+    ? { type: 'button', icon: 'home', label: homeButtonLabel.value }
+    : { type: 'button', icon: 'bell-outline', label: 'Notifications' },
 ])
 
 /**
@@ -113,12 +128,21 @@ const { displayName } = useConfig()
 const userMenuItems = computed((): MenuItemData[] => [
   { value: 'user-page', label: displayName.value, icon: cdxIconUserAvatar },
   { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
+  // The bell's new home once Home has taken its seat in the bar.
+  ...(homeInBar.value
+    ? [{ value: 'notifications', label: 'Notifications', icon: cdxIconBell }]
+    : []),
   { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
   { value: 'saved', label: 'Saved', icon: cdxIconBookmarkList },
   { value: 'watchlist', label: 'Watchlist', icon: cdxIconWatchlist },
   { value: 'contributions', label: 'Contributions', icon: cdxIconUserContributions },
   { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
 ])
+
+/** The badge is `aria-hidden`, so the count rides in the avatar's accessible name. */
+const userMenuTriggerLabel = computed(() =>
+  showNotificationCount.value ? `User menu (${NOTIFICATION_COUNT})` : 'User menu',
+)
 
 /** Mock rows: clear the pick so no row keeps the selected (blue) treatment. */
 watch(userMenuSelection, (value) => {
@@ -213,11 +237,11 @@ const preset = usePlaygroundPreset()
  * Minerva floats Home over the article instead of seating it in a bar; the
  * active preset says how it starts (see `./playgroundPresets`).
  *
- * The floating help button sits in the same corner cluster and follows the
- * shape and colour knobs: two buttons side by side only read as a pair if they
- * share a treatment, so those style the cluster rather than one button. What
- * each button *says* is its own — help stays icon-only whatever **Show label**
- * does, and the count is Home's too.
+ * The floating help button sits in the same corner cluster and, by default,
+ * follows the shape and colour knobs: two buttons side by side only read as a
+ * pair if they share a treatment, so those style the cluster rather than one
+ * button. What each button *says* is its own — help stays icon-only whatever
+ * **Show label** does, and the count is Home's too.
  */
 const {
   action: homeAction,
@@ -232,6 +256,31 @@ const {
 const homeAriaLabel = computed(() =>
   homeButtonAriaLabel(homeButtonLabel.value, homeIconOnly.value, homeCount.value),
 )
+
+/**
+ * How the cluster behaves: whether it gets out of the way on scroll, and — on
+ * the pages that offer help — whether help pairs with Home or stands alone.
+ */
+const {
+  showHome: homeFab,
+  hideOnScroll,
+  helpMatchesHome,
+  homeOnHelpPages,
+} = useMobileFabPlayground()
+const fabsHidden = useHideOnScroll(hideOnScroll)
+const showHomeFab = computed(
+  () => homeFab.value && (!helpButtonVisible.value || homeOnHelpPages.value),
+)
+
+/**
+ * Help on its own terms: a progressive, normal, large icon button, made round
+ * locally (`--round`) — a blue circle reads as “help” rather than as a second
+ * Home.
+ */
+const helpAction = computed(() => (helpMatchesHome.value ? homeAction.value : 'progressive'))
+const helpWeight = computed(() => (helpMatchesHome.value ? homeWeight.value : 'normal'))
+const helpSize = computed(() => (helpMatchesHome.value ? homeSize.value : 'large'))
+const helpRound = computed(() => (helpMatchesHome.value ? homeRound.value : true))
 
 /** The control reads as “show the label”; the shared state stores its inverse. */
 const homeShowLabel = computed({
@@ -374,18 +423,33 @@ const homeShowLabel = computed({
             />
           </CdxButton>
         </template>
+        <!--
+          `cdx-button--icon-only` by hand for the same reason as the floating
+          Home: the count badge wraps the icon, which Codex's own detection
+          misses, and the button would take text padding instead of squaring off.
+        -->
         <CdxButton
           v-if="useDefaultRight"
           ref="userMenuTrigger"
+          class="cdx-button--icon-only"
           weight="quiet"
           size="large"
-          aria-label="User menu"
+          :aria-label="userMenuTriggerLabel"
           aria-haspopup="menu"
           :aria-expanded="userMenuOpen"
           @click="userMenuOpen = !userMenuOpen"
           @keydown="onUserMenuKeydown"
         >
-          <CdxIcon :icon="cdxIconUserAvatarOutline" size="medium" />
+          <span class="chrome-count-badge">
+            <CdxIcon :icon="cdxIconUserAvatarOutline" size="medium" />
+            <span
+              v-if="showNotificationCount"
+              class="chrome-count-badge__count chrome-count-badge__count--unread"
+              aria-hidden="true"
+            >
+              {{ NOTIFICATION_COUNT }}
+            </span>
+          </span>
         </CdxButton>
         <!--
           Inside the end cluster so the menu hangs 4px under the avatar rather
@@ -401,7 +465,33 @@ const homeShowLabel = computed({
           :menu-items="userMenuItems"
           role="menu"
           aria-label="User menu"
-        />
+        >
+          <!--
+            Only the Notifications row is drawn by hand, to put the count at its
+            end; for every other row this renders nothing, and Codex falls back
+            to its own content. The markup mirrors Codex's so the row's styles
+            below still apply. The count is read out here — "Notifications 1"
+            names the row well enough.
+          -->
+          <template #default="{ menuItem }">
+            <span
+              v-if="menuItem.value === 'notifications' && showNotificationCount"
+              class="cdx-menu-item__content"
+            >
+              <CdxIcon class="cdx-menu-item__icon" :icon="menuItem.icon" />
+              <span class="cdx-menu-item__text">
+                <span class="cdx-menu-item__text__label">
+                  <bdi>{{ menuItem.label }}</bdi>
+                </span>
+              </span>
+              <span
+                class="chrome-count-badge__count chrome-count-badge__count--unread chrome-count-badge__count--inline"
+              >
+                {{ NOTIFICATION_COUNT }}
+              </span>
+            </span>
+          </template>
+        </CdxMenu>
       </div>
     </nav>
 
@@ -411,7 +501,10 @@ const homeShowLabel = computed({
       Home leads and help closes it, so help is the one nearest the corner —
       the thumb's shortest reach, and it's the button that comes and goes.
     -->
-    <div class="minerva-chrome-header__fabs">
+    <div
+      class="minerva-chrome-header__fabs"
+      :class="{ 'minerva-chrome-header__fabs--hidden': fabsHidden }"
+    >
       <!--
         `cdx-button--icon-only` is set by hand because Codex reads its own off
         the slot: one child, and that child an icon. The count badge wraps the
@@ -420,6 +513,7 @@ const homeShowLabel = computed({
         FAB below carries a bare icon, so Codex still sets it there.
       -->
       <CdxButton
+        v-if="showHomeFab"
         class="minerva-chrome-header__fab"
         :class="{
           'minerva-chrome-header__fab--round': homeRound,
@@ -458,16 +552,17 @@ const homeShowLabel = computed({
 
       <!--
         Project, user and help pages only — see `./helpButton`. It takes the
-        pair's shape and colour but never a label: Home is the destination
-        under test, and a second word beside it would read as its equal.
+        pair's shape and colour (or its own, see `helpMatchesHome`) but never a
+        label: Home is the destination under test, and a second word beside it
+        would read as its equal.
       -->
       <CdxButton
         v-if="helpButtonVisible"
         class="minerva-chrome-header__fab"
-        :class="{ 'minerva-chrome-header__fab--round': homeRound }"
-        :action="homeAction"
-        :weight="homeWeight"
-        :size="homeSize"
+        :class="{ 'minerva-chrome-header__fab--round': helpRound }"
+        :action="helpAction"
+        :weight="helpWeight"
+        :size="helpSize"
         :aria-label="HELP_BUTTON_LABEL"
       >
         <CdxIcon :icon="cdxIconHelp" />
@@ -502,6 +597,9 @@ const homeShowLabel = computed({
 
         <section class="chrome-playground-panel__section">
           <h2 class="chrome-playground-panel__section-title">Floating buttons</h2>
+
+          <!-- The styling below still dresses help while it matches Home. -->
+          <CdxToggleSwitch v-model="homeFab">Show Home</CdxToggleSwitch>
 
           <CdxField :is-fieldset="true">
             <template #label>Action</template>
@@ -549,6 +647,25 @@ const homeShowLabel = computed({
           <CdxToggleSwitch v-model="homeRound">Fully round</CdxToggleSwitch>
           <!-- Home only: a count on help would have nothing behind it. -->
           <CdxToggleSwitch v-model="homeCount">Show count on Home</CdxToggleSwitch>
+          <CdxToggleSwitch v-model="hideOnScroll">Hide on scroll down</CdxToggleSwitch>
+        </section>
+
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Top bar</h2>
+
+          <!-- Notifications moves into the user menu, between Talk and Sandbox. -->
+          <CdxToggleSwitch v-model="homeInBar">Home replaces notifications</CdxToggleSwitch>
+          <CdxToggleSwitch v-model="notificationCount" :disabled="!homeInBar">
+            Show notification count
+          </CdxToggleSwitch>
+        </section>
+
+        <!-- Only shows on Wikipedia:, User: and Help: pages — see `./helpButton`. -->
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Help button</h2>
+
+          <CdxToggleSwitch v-model="helpMatchesHome">Match Home's style</CdxToggleSwitch>
+          <CdxToggleSwitch v-model="homeOnHelpPages">Keep Home beside it</CdxToggleSwitch>
         </section>
       </div>
     </CdxPopover>
@@ -690,6 +807,37 @@ const homeShowLabel = computed({
   display: flex;
   align-items: center;
   gap: var(--spacing-50, 8px);
+  /*
+   * Out the way it came in: straight down, by its own height plus the gap to
+   * the viewport edge, so it clears the screen entirely. A transition rather
+   * than keyframes, so a reader flicking back up mid-slide reverses it from
+   * where it is. `visibility` rides along to take the parked cluster out of
+   * hit testing and the tab order without a `display` swap killing the slide.
+   * Codex's easings are the built-in keywords, too soft for this; the curve is
+   * a strong ease-out.
+   */
+  transition:
+    transform var(--transition-duration-medium, 250ms) cubic-bezier(0.23, 1, 0.32, 1),
+    visibility var(--transition-duration-medium, 250ms);
+}
+
+.minerva-chrome-header__fabs--hidden {
+  visibility: hidden;
+  transform: translateY(calc(100% + var(--spacing-75, 12px)));
+}
+
+/* Reduced motion: no travel, just a fade — the cluster still goes, gently. */
+@media (prefers-reduced-motion: reduce) {
+  .minerva-chrome-header__fabs {
+    transition:
+      opacity var(--transition-duration-medium, 250ms) ease-out,
+      visibility var(--transition-duration-medium, 250ms);
+  }
+
+  .minerva-chrome-header__fabs--hidden {
+    transform: none;
+    opacity: 0;
+  }
 }
 
 /*

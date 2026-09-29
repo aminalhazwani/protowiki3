@@ -4,6 +4,8 @@ import type { MenuItemData } from '@wikimedia/codex'
 import { applyWebSkinPreference, globalSkin, type Skin } from '@/theme'
 import type { DesktopNavDefaults } from './desktopNavPlayground'
 import type { HomeButtonDefaults } from './homeButtonPlayground'
+import type { MobileBarDefaults } from './mobileBarPlayground'
+import type { MobileFabDefaults } from './mobileFabPlayground'
 import { readEnumParam, readFlagParam, syncPlaygroundParam } from './playgroundParams'
 import type { StickyHeaderDefaults } from './stickyHeaderPlayground'
 
@@ -63,15 +65,23 @@ export const PLAYGROUND_KNOB_PARAMS = [
   'mergeNotices',
   'stickyHome',
   'stickyLangCountOnly',
+  'fabHome',
+  'fabHideOnScroll',
+  'helpMatchHome',
+  'homeOnHelp',
+  'barHome',
+  'notifCount',
 ] as const
 
 export type PlaygroundKnobParam = (typeof PLAYGROUND_KNOB_PARAMS)[number]
 
-/** Every knob's value under a preset. Desktop-only groups are ignored by Minerva. */
+/** Every knob's value under a preset. Each skin ignores the other's groups. */
 export interface PresetKnobs {
   home: HomeButtonDefaults
   desktopNav: DesktopNavDefaults
   sticky: StickyHeaderDefaults
+  mobileFabs: MobileFabDefaults
+  mobileBar: MobileBarDefaults
 }
 
 /**
@@ -91,6 +101,13 @@ const PRODUCTION_DESKTOP: PresetKnobs = {
   },
   desktopNav: { showHome: false, placement: 'toolbar', mergeNotices: false },
   sticky: { showHome: false, languagesCountOnly: false },
+  mobileFabs: {
+    showHome: true,
+    hideOnScroll: false,
+    helpMatchesHome: true,
+    homeOnHelpPages: true,
+  },
+  mobileBar: { homeInBar: false, notificationCount: false },
 }
 
 /**
@@ -117,8 +134,8 @@ const TREATMENT_2_DESKTOP: PresetKnobs = {
 /**
  * Minerva floats Home over the article instead of seating it in a bar: framed
  * (`normal`), thumb-sized (`large`), icon-only and square-ish — a labelled pill
- * would cover more of the text it sits on. All three mobile presets share it
- * until they're defined.
+ * would cover more of the text it sits on. The base the mobile presets build
+ * on: the cluster stays put, and help pairs with Home.
  */
 const MOBILE: PresetKnobs = {
   ...PRODUCTION_DESKTOP,
@@ -132,13 +149,55 @@ const MOBILE: PresetKnobs = {
   },
 }
 
+/**
+ * Production mobile floats no Home — Minerva has none — so the corner is
+ * help's alone, on the pages that offer it: its own progressive, round button
+ * rather than half of a pair. Home's styling keeps its values for when it's
+ * switched back on.
+ */
+const PRODUCTION_MOBILE: PresetKnobs = {
+  ...MOBILE,
+  mobileFabs: {
+    showHome: false,
+    hideOnScroll: false,
+    helpMatchesHome: false,
+    homeOnHelpPages: true,
+  },
+}
+
+/**
+ * Treatment 1 floats Home but gets it out of the way: the cluster slides out on
+ * scroll down and back on scroll up. On the pages that offer help, help joins
+ * Home as its twin — same square, same styling.
+ */
+const TREATMENT_1_MOBILE: PresetKnobs = {
+  ...MOBILE,
+  mobileFabs: {
+    showHome: true,
+    hideOnScroll: true,
+    helpMatchesHome: true,
+    homeOnHelpPages: true,
+  },
+}
+
+/**
+ * Treatment 2 seats Home in the bar instead of floating it: Home takes the
+ * bell's place, notifications move into the user menu between Talk and Sandbox,
+ * and the unread count shows on the avatar and on that row. Scrolling and help
+ * are production's — no floating Home, and a lone round help button.
+ */
+const TREATMENT_2_MOBILE: PresetKnobs = {
+  ...PRODUCTION_MOBILE,
+  mobileBar: { homeInBar: true, notificationCount: true },
+}
+
 export const PRESET_KNOBS: Record<PlaygroundPreset, PresetKnobs> = {
   'production-desktop': PRODUCTION_DESKTOP,
   'treatment-1-desktop': TREATMENT_1_DESKTOP,
   'treatment-2-desktop': TREATMENT_2_DESKTOP,
-  'production-mobile': MOBILE,
-  'treatment-1-mobile': MOBILE,
-  'treatment-2-mobile': MOBILE,
+  'production-mobile': PRODUCTION_MOBILE,
+  'treatment-1-mobile': TREATMENT_1_MOBILE,
+  'treatment-2-mobile': TREATMENT_2_MOBILE,
 }
 
 export function presetSkin(preset: PlaygroundPreset): Skin {

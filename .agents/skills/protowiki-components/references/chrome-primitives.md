@@ -298,6 +298,31 @@ count in its `aria-label` instead, since a bare number tells a screen reader
 nothing. Its box lives in `src/styles/chrome-count-badge.css`, shared with the
 desktop chrome, and is drawn from tokens so it inverts in dark mode.
 
+Four more knobs (`src/components/chrome/mobileFabPlayground.ts`) set how the
+cluster behaves rather than how it looks:
+
+| Control | Param | Effect |
+| --- | --- | --- |
+| **Floating buttons → Show Home** | `?fabHome=0\|1` | Home in the corner at all. Off, the cluster is help alone, on the pages that show it. |
+| **Floating buttons → Hide on scroll down** | `?fabHideOnScroll=0\|1` | The cluster slides out below the viewport while the reader scrolls down and back in on scroll up (`src/composables/useHideOnScroll.ts`: 16px of travel from the last turning point before a direction counts, always shown at the top). A `transform` transition, so a reversal mid-slide retargets from where it is; `visibility` rides along so the parked buttons can't be tapped or tabbed to. Reduced motion swaps the slide for a fade. |
+| **Help button → Match Home's style** | `?helpMatchHome=0\|1` | Off, help drops the pair's styling for its own: progressive, normal, large, icon-only, and made round locally. |
+| **Help button → Keep Home beside it** | `?homeOnHelp=0\|1` | Off, help takes Home's place on the pages that show it, instead of joining it. |
+
+**Production mobile** floats no Home, and on help pages the corner is a lone
+round progressive help button. **Treatment 1 mobile** floats Home and hides the
+cluster on scroll; on help pages, help joins Home in its styling.
+
+The bar's end cluster has its own two knobs, under **Top bar**
+(`src/components/chrome/mobileBarPlayground.ts`):
+
+| Control | Param | Effect |
+| --- | --- | --- |
+| **Home replaces notifications** | `?barHome=0\|1` | Home takes the bell's seat between search and the avatar, and **Notifications** moves into the user menu between Talk and Sandbox. |
+| **Show notification count** | `?notifCount=0\|1` | Echo's unread count (`NOTIFICATION_COUNT`, a mock) in red — `chrome-count-badge__count--unread` — on the avatar's corner and at the end of the menu's Notifications row. Only while notifications live in the menu; the avatar carries the count in its `aria-label`. |
+
+**Treatment 2 mobile** turns both on and keeps production's floating
+behaviour: no floating Home, and a lone round help button on help pages.
+
 When help shows is not a prop: `src/components/chrome/helpButton.ts` reads the
 page subject `ArticleHeader` already registers (see
 [Sticky header](#sticky-header)) and answers the namespace of its title —

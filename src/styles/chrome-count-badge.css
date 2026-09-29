@@ -74,3 +74,23 @@
   text-align: center;
   text-indent: 0;
 }
+
+/*
+ * Unread: Echo turns the badge red while there's something new to see — the
+ * grey above is its “seen” state. The destructive background token is the red
+ * that also inverts for dark mode.
+ */
+.chrome-count-badge__count--unread {
+  background-color: var(--background-color-destructive, #bf3c2c);
+}
+
+/*
+ * In a row rather than on a corner — the user menu's Notifications item — the
+ * badge sits in flow at the row's end instead of hanging off an anchor. No
+ * border: that only separates the badge from the icon it overlaps.
+ */
+.chrome-count-badge__count--inline {
+  position: static;
+  margin-inline-start: auto;
+  border-color: transparent;
+}
