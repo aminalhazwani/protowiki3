@@ -63,6 +63,7 @@ export const PLAYGROUND_KNOB_PARAMS = [
   'homeInToolbar',
   'usernameIn',
   'mergeNotices',
+  'helpProgressive',
   'stickyHome',
   'stickyLangCountOnly',
   'fabHome',
@@ -99,7 +100,12 @@ const PRODUCTION_DESKTOP: PresetKnobs = {
     round: false,
     count: false,
   },
-  desktopNav: { showHome: false, placement: 'toolbar', mergeNotices: false },
+  desktopNav: {
+    showHome: false,
+    placement: 'toolbar',
+    mergeNotices: false,
+    helpProgressive: true,
+  },
   sticky: { showHome: false, languagesCountOnly: false },
   mobileFabs: {
     showHome: true,
@@ -118,7 +124,12 @@ const PRODUCTION_DESKTOP: PresetKnobs = {
  */
 const TREATMENT_1_DESKTOP: PresetKnobs = {
   ...PRODUCTION_DESKTOP,
-  desktopNav: { showHome: true, placement: 'button-initials', mergeNotices: false },
+  desktopNav: {
+    showHome: true,
+    placement: 'button-initials',
+    mergeNotices: false,
+    helpProgressive: true,
+  },
 }
 
 /**
@@ -128,7 +139,12 @@ const TREATMENT_1_DESKTOP: PresetKnobs = {
  */
 const TREATMENT_2_DESKTOP: PresetKnobs = {
   ...PRODUCTION_DESKTOP,
-  desktopNav: { showHome: true, placement: 'home', mergeNotices: false },
+  desktopNav: {
+    showHome: true,
+    placement: 'home',
+    mergeNotices: false,
+    helpProgressive: true,
+  },
 }
 
 /**

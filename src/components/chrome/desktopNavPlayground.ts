@@ -5,12 +5,12 @@ import { presetEnumKnob, presetFlagKnob, presetKnobs } from './playgroundPresets
 /**
  * Desktop-only knobs for the Vector tool cluster, offered in the main-menu
  * playground beside the Home button and sticky header controls: whether Home
- * sits in the cluster, where the username surfaces, and whether alerts and
- * notices share a button.
+ * sits in the cluster, where the username surfaces, whether alerts and notices
+ * share a button, and how the floating help button is coloured.
  *
  * All round-trip through the URL (`?homeInToolbar=`, `?usernameIn=`,
- * `?mergeNotices=`) so a configured toolbar can be shared as a link, starting
- * from the active playground preset.
+ * `?mergeNotices=`, `?helpProgressive=`) so a configured toolbar can be shared
+ * as a link, starting from the active playground preset.
  */
 
 /**
@@ -60,6 +60,12 @@ export interface DesktopNavDefaults {
   showHome: boolean
   placement: UsernamePlacement
   mergeNotices: boolean
+  /**
+   * The floating help button in progressive blue rather than the default grey —
+   * the same button Minerva's production preset floats: progressive, normal,
+   * large, round.
+   */
+  helpProgressive: boolean
 }
 
 export interface DesktopNavPlayground {
@@ -67,6 +73,7 @@ export interface DesktopNavPlayground {
   usernamePlacement: Ref<UsernamePlacement>
   /** Fold notices into the alerts button, leaving one bell instead of two icons. */
   mergeNotices: Ref<boolean>
+  helpProgressive: Ref<boolean>
 }
 
 export function useDesktopNavPlayground(): DesktopNavPlayground {
@@ -80,5 +87,6 @@ export function useDesktopNavPlayground(): DesktopNavPlayground {
       () => defaults().placement,
     ),
     mergeNotices: presetFlagKnob('mergeNotices', () => defaults().mergeNotices),
+    helpProgressive: presetFlagKnob('helpProgressive', () => defaults().helpProgressive),
   }
 }

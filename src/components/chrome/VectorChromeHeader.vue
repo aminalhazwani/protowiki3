@@ -105,7 +105,12 @@ const isLoggedOut = computed(() => user.value === 'logged-out')
  * Whether Home sits in the cluster, where the username surfaces, and whether
  * the two Echo inboxes share a button — each starting from the active preset.
  */
-const { showHome: homeInToolbar, usernamePlacement, mergeNotices } = useDesktopNavPlayground()
+const {
+  showHome: homeInToolbar,
+  usernamePlacement,
+  mergeNotices,
+  helpProgressive,
+} = useDesktopNavPlayground()
 
 /** The prop names the account; the mock user's display name stands in when it doesn't. */
 const usernameText = computed(() => trimmedUsername.value || displayName.value)
@@ -471,11 +476,12 @@ watch(userMenuSelection, (value) => {
       Desktop has no floating Home to pair with — Home is seated in the end
       cluster — so this one is a fixed round icon button rather than something
       the Home playground styles: a `quiet` FAB would float with no background
-      of its own over the article text beneath it.
+      of its own over the article text beneath it. Its one knob is colour.
     -->
     <CdxButton
       v-if="helpButtonVisible"
       class="vector-chrome-header__help-fab"
+      :action="helpProgressive ? 'progressive' : 'default'"
       size="large"
       :aria-label="HELP_BUTTON_LABEL"
     >
@@ -573,6 +579,13 @@ watch(userMenuSelection, (value) => {
 
           <CdxToggleSwitch v-model="stickyShowHome">Home button</CdxToggleSwitch>
           <CdxToggleSwitch v-model="stickyLanguagesCountOnly">Languages count only</CdxToggleSwitch>
+        </section>
+
+        <!-- Only shows on Wikipedia:, User: and Help: pages — see `./helpButton`. -->
+        <section class="chrome-playground-panel__section">
+          <h2 class="chrome-playground-panel__section-title">Help button</h2>
+
+          <CdxToggleSwitch v-model="helpProgressive">Progressive</CdxToggleSwitch>
         </section>
       </div>
     </CdxPopover>
