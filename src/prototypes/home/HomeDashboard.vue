@@ -1,16 +1,51 @@
 <script setup lang="ts">
 /**
- * The signed-in Home: a special-page shell with the greeting as its title.
- * Modules land here in later steps.
+ * The signed-in Home: a special-page shell with the greeting as its title, then
+ * every registry module in order.
  */
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
+
+import HomeSection from './HomeSection.vue'
+import { HOME_MODULES } from './modules'
 
 const { pageTitle } = useConfig()
 </script>
 
 <template>
   <SpecialPageWrapper :title="pageTitle" class="home-dashboard">
-    <slot />
+    <div class="home-dashboard__modules">
+      <HomeSection v-for="spec in HOME_MODULES" :key="spec.id" :spec="spec" />
+    </div>
   </SpecialPageWrapper>
 </template>
+
+<style scoped>
+.home-dashboard {
+  padding-bottom: var(--spacing-300);
+}
+
+.home-dashboard[data-skin='mobile'] {
+  padding-inline: var(--spacing-100);
+}
+
+/*
+ * Vector: the column `Special:CreateAccount` uses — 984px of content inside the
+ * wrapper's own padding — rather than the special page's ~1596px clamp.
+ */
+.home-dashboard[data-skin='desktop'] {
+  max-width: calc(984px + 2 * var(--spacing-150));
+}
+
+.home-dashboard__modules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-150);
+}
+
+/* Each desktop module is a block of cards, so it needs a wider break between. */
+.home-dashboard[data-skin='desktop'] .home-dashboard__modules {
+  gap: var(--spacing-300);
+  margin-top: var(--spacing-100);
+}
+</style>
