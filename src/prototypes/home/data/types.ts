@@ -5,6 +5,8 @@ export interface HomeCardData {
   /** Stable per-source id (e.g. `tfa:Dam`) — list key and, later, the saved-item id. */
   key: string
   title: string
+  /** Part of `title` to show bold (a Did you know hook's article). */
+  titleEmphasis?: string
   description?: string
   thumbnailUrl?: string
   /** Where the card leads inside the prototype. */

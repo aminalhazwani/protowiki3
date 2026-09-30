@@ -22,6 +22,7 @@ export function scrollToFragment(fragment: string): void {
  * Attach it to an element that wraps the article; clicks outside
  * `.mw-parser-output` are left alone.
  */
+// PROTOWIKI+ ArticleRenderer: Parsoid `./Title` links resolve to dead app routes; nothing routes them.
 export function useHomeArticleLinks(currentTitle: () => string) {
   const router = useRouter()
   const { requestLeave } = useHomeLeavePrototype()

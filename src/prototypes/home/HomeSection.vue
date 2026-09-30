@@ -1,11 +1,13 @@
 <script setup lang="ts">
 /**
  * One Home module, rendered generically from its registry spec: heading, then
- * its cards (skeletons while loading), or an error with a retry. A module that
- * loads with nothing to show drops out of the Home.
+ * its cards (skeletons while loading or revealing), or an error with a retry. A
+ * module that loads with nothing to show drops out of the Home.
  */
 import { computed } from 'vue'
 import { CdxButton } from '@wikimedia/codex'
+
+import { useSkin } from '@/composables/useSkin'
 
 import HomeCard from './HomeCard.vue'
 import type { HomeModuleSpec } from './modules'
@@ -13,10 +15,28 @@ import { useHomeModule } from './useHomeModule'
 
 const props = defineProps<{ spec: HomeModuleSpec }>()
 
-const { items, loading, error, reload } = useHomeModule(props.spec)
+const { items, loading, error, reserved, ready, hasMore, reload, revealMore } = useHomeModule(
+  props.spec,
+)
 
-const cards = computed(() => items.value.slice(0, props.spec.slots))
-const isEmpty = computed(() => !loading.value && !error.value && cards.value.length === 0)
+const skin = useSkin()
+
+/** Every reserved slot: its card once ready, a skeleton until then. */
+const slots = computed(() =>
+  Array.from({ length: reserved.value }, (_, index) => ({
+    card: index < ready.value ? items.value[index] : undefined,
+    key: items.value[index]?.key ?? `slot-${index}`,
+  })),
+)
+
+const isEmpty = computed(() => !loading.value && !error.value && items.value.length === 0)
+
+/*
+ * Vector reveals the next cards in place. Minerva will send the reader to the
+ * module's own page instead (a phone column grows unreadably long), once
+ * module pages exist — until then, it shows the preview only.
+ */
+const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.value === 'desktop')
 </script>
 
 <template>
@@ -28,20 +48,27 @@ const isEmpty = computed(() => !loading.value && !error.value && cards.value.len
       <CdxButton weight="quiet" @click="reload">Try again</CdxButton>
     </div>
 
-    <div v-else class="home-section__cards" :aria-busy="loading">
-      <template v-if="loading">
-        <HomeCard v-for="n in spec.slots" :key="n" :variant="spec.variant" loading />
-      </template>
-      <template v-else>
+    <template v-else>
+      <div class="home-section__cards" :aria-busy="ready < reserved">
         <HomeCard
-          v-for="card in cards"
-          :key="card.key"
+          v-for="slot in slots"
+          :key="slot.key"
           :variant="spec.variant"
-          :card="card"
+          :card="slot.card"
+          :loading="!slot.card"
           :supporting-icon="spec.supportingIcon"
         />
-      </template>
-    </div>
+      </div>
+
+      <CdxButton
+        v-if="showMore"
+        class="home-section__more"
+        :disabled="ready < reserved"
+        @click="revealMore"
+      >
+        Show more
+      </CdxButton>
+    </template>
   </section>
 </template>
 
@@ -86,5 +113,11 @@ const isEmpty = computed(() => !loading.value && !error.value && cards.value.len
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: var(--spacing-100);
+}
+
+/* Under a grid a full-width bar would read as another cell: hug the label instead. */
+.home-section__more {
+  align-self: flex-start;
+  margin-top: var(--spacing-25);
 }
 </style>

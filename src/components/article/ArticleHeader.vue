@@ -39,6 +39,7 @@ interface Props {
    */
   skin?: Skin
   /**
+   * PROTOWIKI+ (Home) Main Page header.
    * Main Page layout, as on production Wikipedia: the heading is visually hidden,
    * with no languages button or tagline, and the tabs read **Main Page** / Talk ·
    * Read / View source / View history. Mobile shows no header chrome.
@@ -71,7 +72,7 @@ const emit = defineEmits<{
   editClick: []
   historyClick: []
   bookmarkClick: []
-  /** Bookmark (save) button — logged-in only (desktop and mobile). */
+  /** PROTOWIKI+ (Home) Bookmark (save) button — logged-in only (desktop and mobile). */
   saveClick: []
   downloadClick: []
   moreClick: []
@@ -168,7 +169,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
         <a href="#" class="article-header__action" @click.prevent="$emit('historyClick')">
           View history
         </a>
-        <!-- Vector 2022: logged out gets the Tools menu; logged in gets Watch + bookmark. -->
+        <!-- PROTOWIKI+ (Home) Vector 2022: logged out gets Tools ⋮; logged in gets Watch + bookmark. -->
         <CdxButton
           v-if="isLoggedOut"
           class="article-header__icon-btn"
@@ -239,6 +240,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
           <CdxIcon :icon="cdxIconEdit" />
         </button>
       </div>
+      <!-- PROTOWIKI+ (Home) Minerva logged in: bookmark (not star) and a vertical ⋮. -->
       <template v-else>
         <button
           type="button"
@@ -340,7 +342,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
   white-space: nowrap;
 }
 
-/* Vector 2022 title bar: heading and languages over a full-width rule. */
+/* PROTOWIKI+ (Home) Vector 2022 title bar: heading and languages over a full-width rule. */
 .article-header[data-skin='desktop'] .article-header__title-row {
   align-items: center;
   padding-bottom: 0;
@@ -367,7 +369,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
   flex: 1;
   min-width: 0;
   font-family: var(--font-family-serif);
-  /* Vector 2022 `#firstHeading`: 1.8em serif at 1.375. */
+  /* PROTOWIKI+ (Home) Vector 2022 `#firstHeading`: 1.8em serif at 1.375. */
   font-size: 1.8rem;
   font-weight: var(--font-weight-normal);
   line-height: 1.375;
@@ -390,6 +392,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
   font: inherit;
   font-family: var(--font-family-base);
   font-size: var(--font-size-small, 14px);
+  /* PROTOWIKI+ (Home) Vector 2022 languages button is bold. */
   font-weight: var(--font-weight-bold);
   color: var(--color-progressive);
   cursor: pointer;
@@ -600,7 +603,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header[data-skin='mobile'] .article-header__tab {
   margin-bottom: -1px;
   color: var(--color-subtle);
-  /* Minerva tabs are all bold; the active one adds the underline. */
+  /* PROTOWIKI+ (Home) Minerva tabs are all bold; the active one adds the underline. */
   font-weight: var(--font-weight-bold);
 }
 

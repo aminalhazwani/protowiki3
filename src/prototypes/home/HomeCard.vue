@@ -26,6 +26,34 @@ const thumbnail = computed(() =>
   props.card?.thumbnailUrl ? { url: props.card.thumbnailUrl } : null,
 )
 
+interface CardLayout {
+  thumbnailPosition?: 'inline-start' | 'inline-end' | 'block-start'
+  thumbnailSize?: 'small' | 'large'
+  forceThumbnail?: boolean
+}
+
+/** Codex card layout per variant (see `HomeCardVariant`). */
+const LAYOUTS: Record<HomeCardVariant, CardLayout> = {
+  hero: { thumbnailPosition: 'block-start' },
+  article: { thumbnailSize: 'large', forceThumbnail: true },
+  hook: { thumbnailPosition: 'inline-end', thumbnailSize: 'large' },
+}
+
+const layout = computed(() => LAYOUTS[props.variant])
+
+/** Title split around `titleEmphasis`, which renders bold (Did you know hooks). */
+const titleParts = computed(() => {
+  const title = props.card?.title ?? ''
+  const emphasis = props.card?.titleEmphasis
+  const index = emphasis ? title.indexOf(emphasis) : -1
+  if (!emphasis || index < 0) return null
+  return {
+    before: title.slice(0, index),
+    bold: emphasis,
+    after: title.slice(index + emphasis.length),
+  }
+})
+
 /** Cards lead inside the prototype; modified clicks still open a new tab. */
 function onClick(event: MouseEvent): void {
   if (!props.card || event.defaultPrevented || event.button !== 0) return
@@ -49,11 +77,21 @@ function onClick(event: MouseEvent): void {
     v-else
     class="home-card"
     :url="href"
+    :class="`home-card--${variant}`"
     :thumbnail="thumbnail"
-    :thumbnail-position="variant === 'hero' ? 'block-start' : undefined"
+    :thumbnail-position="layout.thumbnailPosition"
+    :thumbnail-size="layout.thumbnailSize"
+    :force-thumbnail="layout.forceThumbnail"
     @click="onClick"
   >
-    <template #title>{{ card.title }}</template>
+    <template #title>
+      <span v-if="titleParts">
+        <span>{{ titleParts.before }}</span>
+        <strong>{{ titleParts.bold }}</strong>
+        <span>{{ titleParts.after }}</span>
+      </span>
+      <template v-else>{{ card.title }}</template>
+    </template>
     <template v-if="card.description" #description>{{ card.description }}</template>
     <template v-if="card.supportingText" #supporting-text>
       <span class="home-card__supporting">
@@ -65,6 +103,24 @@ function onClick(event: MouseEvent): void {
 </template>
 
 <style scoped>
+/*
+ * CODEX+ CdxCard: no option to top-align a title-only card.
+ * Codex centres title-only cards vertically; a hook reads from the top, so its
+ * text (and thumbnail) start at the top edge, even in a row stretched taller.
+ */
+.home-card--hook.cdx-card--title-only {
+  align-items: flex-start;
+}
+
+/* CODEX+ CdxCard: no regular-weight title. A hook is a sentence: only its subject is bold. */
+.home-card--hook :deep(.cdx-card__text__title) {
+  font-weight: var(--font-weight-normal);
+}
+
+.home-card--hook :deep(.cdx-card__text__title strong) {
+  font-weight: var(--font-weight-bold);
+}
+
 .home-card__supporting {
   display: inline-flex;
   align-items: center;
@@ -72,6 +128,7 @@ function onClick(event: MouseEvent): void {
 }
 
 /*
+ * CODEX+ No skeleton / loading-placeholder component in Codex.
  * Flat, borderless block at the card's shape. A band of the next neutral step
  * sweeps across it in reading direction, like Codex's indeterminate progress bar
  * (transform only, so it stays on the compositor); the sweep takes 60% of the
@@ -105,9 +162,26 @@ function onClick(event: MouseEvent): void {
   animation-direction: reverse;
 }
 
-/* Hero: the 16:9 image Codex draws for `block-start`, then the text block. */
+/*
+ * Heights match each variant's typical card, so the swap doesn't move the page.
+ * Hero: the 16:9 image Codex draws for `block-start`, then the text block.
+ */
 .home-card-skeleton--hero {
   padding-bottom: 104px;
+}
+
+.home-card-skeleton--article,
+.home-card-skeleton--hook {
+  height: 122px;
+}
+
+/* Minerva's narrower column wraps descriptions and hooks onto more lines. */
+[data-skin='mobile'] .home-card-skeleton--article {
+  height: 129px;
+}
+
+[data-skin='mobile'] .home-card-skeleton--hook {
+  height: 136px;
 }
 
 .home-card-skeleton__image {

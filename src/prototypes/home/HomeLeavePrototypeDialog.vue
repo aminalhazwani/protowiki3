@@ -62,7 +62,7 @@ function onOpenChange(open: boolean): void {
 </template>
 
 <style>
-/* CdxDialog teleports out of this component, so this can't be scoped. */
+/* CODEX+ CdxDialog: no size prop. It teleports out of this component, so this can't be scoped. */
 .home-leave-prototype-dialog {
   max-width: 32rem;
 }

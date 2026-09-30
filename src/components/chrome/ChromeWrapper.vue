@@ -45,7 +45,7 @@ interface Props {
   mobileWordmarkSrc?: string
   /** Forwarded to **`ChromeHeader`** (desktop tools only). */
   navTools?: ChromeNavTool[]
-  /** Where the Wikipedia wordmark links to (default **`'/'`**, the prototype gallery). */
+  /** PROTOWIKI+ (Home) Where the Wikipedia wordmark links to (default **`'/'`**, the gallery). */
   brandTo?: RouteLocationRaw
 }
 

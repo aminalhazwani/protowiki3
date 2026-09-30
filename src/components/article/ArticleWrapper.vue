@@ -30,7 +30,7 @@ interface Props {
   description?: string
   /** Lead image — app shell only; the frame stays as a placeholder without one. */
   leadImageUrl?: string
-  /** Forwarded to **`ArticleHeader`** — production Main Page header (hidden heading, trimmed chrome). */
+  /** PROTOWIKI+ (Home) Forwarded to **`ArticleHeader`** — production Main Page header. */
   mainPage?: boolean
 }
 

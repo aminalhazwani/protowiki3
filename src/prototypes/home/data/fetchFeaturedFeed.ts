@@ -18,6 +18,8 @@ export interface FeedPageSummary {
 
 export interface FeaturedFeedResponse {
   tfa?: FeedPageSummary
+  dyk?: { html?: string; text?: string }[]
+  mostread?: { date?: string; articles?: (FeedPageSummary & { views?: number; rank?: number })[] }
 }
 
 /** In-flight or settled request per day. Dropped on failure so the next call retries. */

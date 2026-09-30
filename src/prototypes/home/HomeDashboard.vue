@@ -25,11 +25,13 @@ const { pageTitle } = useConfig()
   padding-bottom: var(--spacing-300);
 }
 
+/* PROTOWIKI+ SpecialPageWrapper: mobile gutter is the desktop one. */
 .home-dashboard[data-skin='mobile'] {
   padding-inline: var(--spacing-100);
 }
 
 /*
+ * PROTOWIKI+ SpecialPageWrapper: no content-width option (it clamps at ~1596px).
  * Vector: the column `Special:CreateAccount` uses — 984px of content inside the
  * wrapper's own padding — rather than the special page's ~1596px clamp.
  */

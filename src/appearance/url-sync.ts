@@ -179,6 +179,7 @@ function syncAppOsOnRoute(to: RouteLocationNormalized): void {
 }
 
 // --- Mock user (`?user=` + `?realUser=`) — optional params -----------------
+// PROTOWIKI+ (Home) New: test links can pin the Mock user preset.
 // `?user=` takes the **Mock user settings** preset ids: `logged-out`, `new`,
 // `experienced`, `real`. `?realUser=` is the username for the `real` preset.
 

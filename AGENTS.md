@@ -113,6 +113,12 @@ mirrors [FakeMediaWiki `wiki-signals`](https://github.com/TodePond/FakeMediaWiki
 - Plain CSS. No preprocessor. Per-component styles in scoped blocks.
   Skin/theme overrides via `[data-skin]` / `[data-theme]` selectors.
 - Codex first. If a Codex component / token / icon exists, use it.
+- **Tag every override with a searchable flag** so it can become an upstream PR later:
+  `CODEX+ <component>: <what Codex lacks>` where prototype code works around Codex
+  (custom CSS on Codex internals, a missing component or prop), and
+  `PROTOWIKI+ (<prototype>) <what>` where code works around, or changes, a shared
+  ProtoWiki component / composable / config. One short comment per site. Find them
+  with `git grep -nE 'CODEX\+|PROTOWIKI\+'`.
 - Data fetching uses native `fetch` with `AbortController` for debouncing.
 - Prototype gallery **title** and **description** must not be AI-generated;
   agents ask the author or omit — see

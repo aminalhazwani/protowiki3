@@ -16,6 +16,7 @@ function toggle(): void {
     <span ref="anchor" class="settings-popover__trigger">
       <slot :open="open" :toggle="toggle" />
     </span>
+    <!-- PROTOWIKI+ (Codex 2.7) `use-bottom-sheet` takes 'never' | 'responsive' | 'always'; booleans are deprecated. -->
     <CdxPopover
       v-model:open="open"
       :anchor="anchor"

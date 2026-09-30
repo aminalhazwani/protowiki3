@@ -1,3 +1,4 @@
+// PROTOWIKI+ (Home) Shared request helpers, ported from `lu/wikitab` (not on ProtoWiki main yet).
 import { fetchWithTimeout, type FetchWithTimeoutInit } from './fetchWithTimeout'
 
 const MAX_CONCURRENT_PER_HOST = 2

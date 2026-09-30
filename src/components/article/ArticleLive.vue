@@ -104,12 +104,13 @@ interface Props {
   /** Forwarded **`ArticleWrapper`** → **`ArticleHeader`** (**`languagesCount` languages**). */
   languagesCount?: number
   /**
+   * PROTOWIKI+ (Home) Opt out of the persistent cache.
    * Keep the fetched body in localStorage across visits (default **`true`**).
    * Set **`false`** for pages that change daily, like **`Main_Page`**, so every
    * page load shows the live version.
    */
   persistCache?: boolean
-  /** Render the production Main Page header (see **`ArticleHeader`** **`mainPage`**). */
+  /** PROTOWIKI+ (Home) Render the production Main Page header (see **`ArticleHeader`** **`mainPage`**). */
   mainPage?: boolean
 }
 

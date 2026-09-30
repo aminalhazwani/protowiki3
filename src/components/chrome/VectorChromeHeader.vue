@@ -42,7 +42,7 @@ interface Props {
    * **`#nav`** replaces the whole cluster regardless.
    */
   navTools?: ChromeNavTool[]
-  /** Where the Wikipedia wordmark links to (default **`'/'`**, the prototype gallery). */
+  /** PROTOWIKI+ (Home) Where the Wikipedia wordmark links to (default **`'/'`**, the gallery). */
   brandTo?: RouteLocationRaw
 }
 

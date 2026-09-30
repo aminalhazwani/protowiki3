@@ -84,6 +84,7 @@ export function extractParserOutput(raw: string): string {
 export interface FetchArticleBodyOptions {
   signal?: AbortSignal
   /**
+   * PROTOWIKI+ (Home) The localStorage cache never expired, so daily pages went stale.
    * Read and write the localStorage cache (default `true`). Pass `false` for
    * pages that change often (e.g. `Main_Page`) so each page load gets the live
    * body; the in-memory cache and in-flight coalescing still apply.

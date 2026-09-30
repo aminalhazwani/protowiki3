@@ -39,7 +39,7 @@ interface Props {
   wordmarkSrc?: string
   /** Minerva wordmark; defaults to **`wordmarkSrc`** then EN constant. */
   mobileWordmarkSrc?: string
-  /** Where the Wikipedia wordmark links to (default **`'/'`**, the prototype gallery). */
+  /** PROTOWIKI+ (Home) Where the Wikipedia wordmark links to (default **`'/'`**, the gallery). */
   brandTo?: RouteLocationRaw
 }
 
@@ -56,7 +56,7 @@ const props = withDefaults(defineProps<Props>(), {
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
 
 const { user } = useConfig()
-/** Minerva: notifications only exist for logged-in readers. */
+/** PROTOWIKI+ (Home) Minerva: notifications only exist for logged-in readers. */
 const defaultRight = computed<HeaderItem[]>(() =>
   user.value === 'logged-out'
     ? [SEARCH_ITEM, USER_MENU_ITEM]

@@ -19,6 +19,7 @@ const title = computed(() =>
 
 const { onArticleClick } = useHomeArticleLinks(() => title.value)
 
+// PROTOWIKI+ Router: no `scrollBehavior`, so new pages keep the old scroll position and ignore `#hash`.
 watch(title, () => window.scrollTo(0, 0), { immediate: true })
 
 function onParserReady(): void {

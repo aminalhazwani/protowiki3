@@ -37,7 +37,7 @@ import {
 
 const config = protowikiConfig
 
-/** How a prototype adjusts who appears signed in — see {@link useUserOverride}. */
+/** PROTOWIKI+ (Home) How a prototype adjusts who appears signed in — see {@link useUserOverride}. */
 export interface UserOverride {
   /** Preset to show instead of the saved one; omit to keep the saved preset. */
   user?: ConfigUser
@@ -105,6 +105,7 @@ watch(
   },
 )
 
+// PROTOWIKI+ (Home) Keep `?user=` / `?realUser=` in step with the Mock user settings.
 watch(
   () => config.value.user,
   (user) => {

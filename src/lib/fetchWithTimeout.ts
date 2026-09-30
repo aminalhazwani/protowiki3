@@ -1,3 +1,4 @@
+// PROTOWIKI+ (Home) Shared request helpers, ported from `lu/wikitab` (not on ProtoWiki main yet).
 const DEFAULT_TIMEOUT_MS = 7000
 
 export interface FetchWithTimeoutInit extends RequestInit {

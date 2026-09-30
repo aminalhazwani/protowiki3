@@ -32,7 +32,7 @@ interface Props {
   middle?: HeaderItem[]
   /** Minerva bar only — override default **`right`** item array. */
   right?: HeaderItem[]
-  /** Where the Wikipedia wordmark links to (default **`'/'`**, the prototype gallery). */
+  /** PROTOWIKI+ (Home) Where the Wikipedia wordmark links to (default **`'/'`**, the gallery). */
   brandTo?: RouteLocationRaw
 }
 

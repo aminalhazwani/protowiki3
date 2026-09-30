@@ -1,6 +1,7 @@
 import type { LocationQuery, RouteLocationNormalized, Router } from 'vue-router'
 
 /** Appearance + mock-user query params carried across navigations when already present. */
+// PROTOWIKI+ (Home) Added `user` and `realUser`.
 export const PRESERVED_URL_QUERY_PARAMS = ['theme', 'skin', 'os', 'user', 'realUser'] as const
 
 export type PreservedUrlQueryParam = (typeof PRESERVED_URL_QUERY_PARAMS)[number]
