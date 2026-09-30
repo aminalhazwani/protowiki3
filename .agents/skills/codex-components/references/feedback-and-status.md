@@ -2,7 +2,7 @@
 
 ## CdxMessage
 
-Banner message (notice / warning / error / success).
+Banner message (subtle / notice / progressive / warning / error / success).
 
 ```vue
 <CdxMessage type="notice">
@@ -12,12 +12,12 @@ Banner message (notice / warning / error / success).
 
 | Prop | Values | Default |
 | --- | --- | --- |
-| `type` | `notice` / `warning` / `error` / `success` | `notice` |
+| `type` | `subtle` / `notice` / `progressive` / `warning` / `error` / `success` | `notice` |
 | `inline` | true for compact inline use | `false` |
 | `dismissButtonLabel` | `aria-label` for ✕ | `'Close'` |
 | `allowUserDismiss` | boolean | `false` |
 | `fadeIn` | boolean | `false` |
-| `icon` | custom icon descriptor | (status default) |
+| `icon` | custom icon descriptor (`subtle`, `notice`, `progressive` only) | (status default) |
 
 Emits `user-dismissed`.
 

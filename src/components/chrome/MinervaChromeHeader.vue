@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
@@ -32,6 +32,8 @@ interface Props {
   wordmarkSrc?: string
   /** Minerva wordmark; defaults to **`wordmarkSrc`** then EN constant. */
   mobileWordmarkSrc?: string
+  /** Where the Wikipedia wordmark links to (default **`'/'`**, the prototype gallery). */
+  brandTo?: RouteLocationRaw
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -41,6 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
   right: undefined,
   wordmarkSrc: undefined,
   mobileWordmarkSrc: undefined,
+  brandTo: '/',
 })
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
@@ -133,7 +136,7 @@ function isExternalHref(href: string): boolean {
         <RouterLink
           v-if="useDefaultWordmark"
           class="minerva-chrome-header__brand"
-          to="/"
+          :to="props.brandTo"
           aria-label="Visit the main page"
         >
           <img

@@ -8,12 +8,18 @@ definePage({
   },
 })
 import ArticleLive from '@/components/article/ArticleLive.vue'
-import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
+
+import HomeChrome from './HomeChrome.vue'
+import { useHomeArticleLinks } from './useHomeArticleLinks'
+
+const { onArticleClick } = useHomeArticleLinks(() => 'Main Page')
 </script>
 
 <template>
-  <ChromeWrapper>
-    <!-- The Main Page changes daily, so skip the persistent article cache. -->
-    <ArticleLive article="Main_Page" :persist-cache="false" />
-  </ChromeWrapper>
+  <HomeChrome>
+    <div @click="onArticleClick">
+      <!-- The Main Page changes daily, so skip the persistent article cache. -->
+      <ArticleLive article="Main_Page" :persist-cache="false" />
+    </div>
+  </HomeChrome>
 </template>

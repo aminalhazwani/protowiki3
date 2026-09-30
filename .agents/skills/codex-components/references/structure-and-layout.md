@@ -22,6 +22,17 @@ The home gallery (`src/prototypes/index.vue`) uses one `CdxCard` per prototype (
 | `thumbnail` | `{ url, width, height }` for a thumbnail image |
 | `icon` | icon descriptor (alternative to thumbnail) |
 | `forceThumbnail` | render thumbnail container even without an image |
+| `thumbnailPosition` | `inline-start` (default, before the text) / `inline-end` (after the text) / `block-start` (full-width image above the text, 16/9 aspect ratio) |
+| `thumbnailSize` | `small` (default, 48px) / `large` (96px); ignored for `block-start` |
+| `separation` | `outline` (default, bordered card) / `divider` (border between stacked cards) / `none` (space only) |
+
+Image guidance: put the image first (`inline-start`) when recognizing it
+matters most (article cards), at the end (`inline-end`) when it is
+supplementary ("Did you know?"); use `small` when space is tight and
+`large` when recognizing the image at a glance matters. Don't mix sizes or
+positions within one collection of cards. Use `divider` only for vertical
+groups of cards. For horizontal layouts, text aligns to the top of the
+media unless there is only a title (then centred).
 
 ## CdxTable
 

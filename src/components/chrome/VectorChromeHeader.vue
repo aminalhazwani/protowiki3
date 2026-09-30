@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import {
   cdxIconAppearance,
@@ -42,6 +42,8 @@ interface Props {
    * **`#nav`** replaces the whole cluster regardless.
    */
   navTools?: ChromeNavTool[]
+  /** Where the Wikipedia wordmark links to (default **`'/'`**, the prototype gallery). */
+  brandTo?: RouteLocationRaw
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -50,6 +52,7 @@ const props = withDefaults(defineProps<Props>(), {
   wordmarkSrc: undefined,
   taglineSrc: undefined,
   navTools: undefined,
+  brandTo: '/',
 })
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
@@ -80,7 +83,11 @@ function navHas(tool: ChromeNavTool): boolean {
           </span>
         </slot>
 
-        <RouterLink class="vector-chrome-header__brand-link" to="/" aria-label="Visit the main page">
+        <RouterLink
+          class="vector-chrome-header__brand-link"
+          :to="props.brandTo"
+          aria-label="Visit the main page"
+        >
           <slot name="logo">
             <span class="vector-chrome-header__wordmarks">
               <img

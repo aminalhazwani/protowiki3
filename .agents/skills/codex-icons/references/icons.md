@@ -1,7 +1,7 @@
 # All Codex icons
 
 The complete catalogue of importable icon constants from
-`@wikimedia/codex-icons` (291 icons). Import any of these and
+`@wikimedia/codex-icons` (293 icons). Import any of these and
 render through `CdxIcon` — see [`../SKILL.md`](../SKILL.md) for usage,
 accessibility, and direction/lang handling.
 
@@ -191,6 +191,7 @@ after a Codex upgrade) see the
 | Level Three | `cdxIconLevelThree` | flips in RTL |
 | Level Two | `cdxIconLevelTwo` | flips in RTL |
 | Lightbulb | `cdxIconLightbulb` |  |
+| Lightbulb Dashed | `cdxIconLightbulbDashed` |  |
 | Lightbulb Outline | `cdxIconLightbulbOutline` |  |
 | Link | `cdxIconLink` |  |
 | Link External | `cdxIconLinkExternal` | flips in RTL |
@@ -337,6 +338,7 @@ after a Codex upgrade) see the
 | Subtitle | `cdxIconSubtitle` |  |
 | Subtract | `cdxIconSubtract` |  |
 | Success | `cdxIconSuccess` |  |
+| Suggested Investigations | `cdxIconSuggestedInvestigations` |  |
 | Superscript | `cdxIconSuperscript` | flips in RTL |
 
 ## T
