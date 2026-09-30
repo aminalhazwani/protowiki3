@@ -83,17 +83,25 @@ export function extractParserOutput(raw: string): string {
 
 export interface FetchArticleBodyOptions {
   signal?: AbortSignal
+  /**
+   * Read and write the localStorage cache (default `true`). Pass `false` for
+   * pages that change often (e.g. `Main_Page`) so each page load gets the live
+   * body; the in-memory cache and in-flight coalescing still apply.
+   */
+  persist?: boolean
 }
 
 /**
  * Fetches parsed article HTML via REST `page/html` — shared by `ArticleLive`.
- * Uses memory + localStorage cache and coalesces in-flight requests per host + title.
+ * Uses memory + localStorage cache (see `persist`) and coalesces in-flight
+ * requests per host + title.
  */
 export async function fetchArticleBody(
   title: string,
   host: string,
   options: FetchArticleBodyOptions = {},
 ): Promise<ArticleBody> {
+  const { persist = true } = options
   const trimmed = title.trim()
   if (!trimmed.length) {
     throw new Error('No article title given.')
@@ -102,7 +110,7 @@ export async function fetchArticleBody(
   const key = articleCacheKey(host, trimmed)
   let cached = articleBodyCache.get(key)
   let cacheSource: 'memory' | 'localStorage' | null = cached ? 'memory' : null
-  if (!cached) {
+  if (!cached && persist) {
     const stored = loadFromStorage(STORAGE_PREFIX, key)
     if (stored) {
       articleBodyCache.set(key, stored)
@@ -143,8 +151,8 @@ export async function fetchArticleBody(
       const liveTitleResolved = trimmed.replace(/_/g, ' ')
       const body: ArticleBody = { html, liveTitle: liveTitleResolved }
       articleBodyCache.set(key, body)
-      saveToStorage(STORAGE_PREFIX, key, body)
-      console.info(`${LOG_PREFIX} fetch OK (cached)`, {
+      if (persist) saveToStorage(STORAGE_PREFIX, key, body)
+      console.info(`${LOG_PREFIX} fetch OK (cached${persist ? '' : ' in memory only'})`, {
         host,
         title: trimmed,
         htmlChars: html.length,

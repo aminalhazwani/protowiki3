@@ -10,6 +10,7 @@ interface ArticleLiveCommonProps {
   skin?: Skin
   theme?: Theme
   languagesCount?: number
+  persistCache?: boolean
 }
 
 /** Fixed article: `article` set; the random-only props are forbidden. */
@@ -101,6 +102,12 @@ interface Props {
   theme?: Theme
   /** Forwarded **`ArticleWrapper`** → **`ArticleHeader`** (**`languagesCount` languages**). */
   languagesCount?: number
+  /**
+   * Keep the fetched body in localStorage across visits (default **`true`**).
+   * Set **`false`** for pages that change daily, like **`Main_Page`**, so every
+   * page load shows the live version.
+   */
+  persistCache?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -116,6 +123,7 @@ const props = withDefaults(defineProps<Props>(), {
   skin: undefined,
   theme: undefined,
   languagesCount: undefined,
+  persistCache: true,
 })
 
 const emit = defineEmits<{
@@ -146,7 +154,7 @@ async function fetchArticle(title: string, host: string, lang: string, signal: A
   view.value = null
 
   const [body, articleView] = await Promise.all([
-    fetchArticleBody(title, host, { signal }),
+    fetchArticleBody(title, host, { signal, persist: props.persistCache }),
     // The lead block is the only consumer — web chrome takes its title from the body.
     props.app ? fetchArticleView(title, { signal, lang }) : Promise.resolve(null),
   ])
