@@ -19,7 +19,7 @@ const { onArticleClick } = useHomeArticleLinks(() => 'Main Page')
   <HomeChrome>
     <div @click="onArticleClick">
       <!-- The Main Page changes daily, so skip the persistent article cache. -->
-      <ArticleLive article="Main_Page" :persist-cache="false" />
+      <ArticleLive article="Main_Page" main-page :persist-cache="false" />
     </div>
   </HomeChrome>
 </template>

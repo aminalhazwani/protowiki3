@@ -11,6 +11,7 @@ interface ArticleLiveCommonProps {
   theme?: Theme
   languagesCount?: number
   persistCache?: boolean
+  mainPage?: boolean
 }
 
 /** Fixed article: `article` set; the random-only props are forbidden. */
@@ -108,6 +109,8 @@ interface Props {
    * page load shows the live version.
    */
   persistCache?: boolean
+  /** Render the production Main Page header (see **`ArticleHeader`** **`mainPage`**). */
+  mainPage?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -124,6 +127,7 @@ const props = withDefaults(defineProps<Props>(), {
   theme: undefined,
   languagesCount: undefined,
   persistCache: true,
+  mainPage: false,
 })
 
 const emit = defineEmits<{
@@ -247,6 +251,7 @@ watch(liveHtml, async (html) => {
     :app="props.app"
     :description="view?.description"
     :lead-image-url="view?.thumbnailUrl ?? undefined"
+    :main-page="props.mainPage"
   >
     <CdxProgressBar v-if="loading" inline aria-label="Loading article" />
 

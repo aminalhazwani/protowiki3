@@ -30,6 +30,8 @@ interface Props {
   description?: string
   /** Lead image — app shell only; the frame stays as a placeholder without one. */
   leadImageUrl?: string
+  /** Forwarded to **`ArticleHeader`** — production Main Page header (hidden heading, trimmed chrome). */
+  mainPage?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -43,6 +45,7 @@ const props = withDefaults(defineProps<Props>(), {
   app: false,
   description: undefined,
   leadImageUrl: undefined,
+  mainPage: false,
 })
 
 const inheritedSkin = inject(PROTOWIKI_CHROME_SKIN)
@@ -94,6 +97,7 @@ const chromeHeaderLabel = computed(() => leadTitle.value || 'Article')
       :title="chromeHeaderLabel"
       :languages-count="props.languagesCount"
       :skin="props.skin"
+      :main-page="props.mainPage"
     />
 
     <slot />

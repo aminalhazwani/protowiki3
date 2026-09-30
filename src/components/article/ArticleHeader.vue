@@ -2,16 +2,16 @@
 import { computed, inject, ref, watch } from 'vue'
 import { CdxButton, CdxIcon, CdxPopover, CdxTextInput } from '@wikimedia/codex'
 import {
-  cdxIconDownTriangle,
+  cdxIconBookmarkOutline,
   cdxIconDownload,
   cdxIconEdit,
-  cdxIconEllipsis,
+  cdxIconExpand,
   cdxIconHistory,
   cdxIconLanguage,
   cdxIconSearch,
   cdxIconSettings,
   cdxIconStar,
-  cdxIconUnStar,
+  cdxIconVerticalEllipsis,
 } from '@wikimedia/codex-icons'
 
 import {
@@ -38,17 +38,26 @@ interface Props {
    * Drives the structural mobile vs desktop layout (icon toolbar vs text actions).
    */
   skin?: Skin
+  /**
+   * Main Page layout, as on production Wikipedia: the heading is visually hidden,
+   * with no languages button or tagline, and the tabs read **Main Page** / Talk ·
+   * Read / View source / View history. Mobile shows no header chrome.
+   */
+  mainPage?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   languagesCount: 18,
   skin: undefined,
+  mainPage: false,
 })
 
 const inheritedSkin = inject(PROTOWIKI_CHROME_SKIN)
 const effectiveSkin = computed<Skin>(() => props.skin ?? inheritedSkin?.value ?? globalSkin.value)
 const { user } = useConfig()
 const isLoggedOut = computed(() => user.value === 'logged-out')
+/** Main Page on mobile: nothing but the (visually hidden) heading. */
+const bareMainPage = computed(() => props.mainPage && effectiveSkin.value === 'mobile')
 
 const languagesButtonLabel = computed(() => {
   const n = props.languagesCount ?? 18
@@ -62,6 +71,8 @@ const emit = defineEmits<{
   editClick: []
   historyClick: []
   bookmarkClick: []
+  /** Bookmark (save) button — logged-in only (desktop and mobile). */
+  saveClick: []
   downloadClick: []
   moreClick: []
   languageSelect: [link: ArticleLanguageLink]
@@ -93,12 +104,22 @@ function onLanguagePick(row: ArticleLanguageLink) {
 </script>
 
 <template>
-  <header class="article-header" :data-skin="effectiveSkin">
+  <header
+    class="article-header"
+    :class="{ 'article-header--main-page': props.mainPage }"
+    :data-skin="effectiveSkin"
+  >
     <div class="article-header__title-row">
-      <h1 class="article-header__title">
+      <h1
+        class="article-header__title"
+        :class="{ 'article-header__title--hidden': props.mainPage }"
+      >
         <slot name="title">{{ title }}</slot>
       </h1>
-      <div v-if="effectiveSkin === 'desktop'" class="article-header__lang-anchor">
+      <div
+        v-if="effectiveSkin === 'desktop' && !props.mainPage"
+        class="article-header__lang-anchor"
+      >
         <button
           ref="langAnchor"
           type="button"
@@ -110,12 +131,12 @@ function onLanguagePick(row: ArticleLanguageLink) {
         >
           <CdxIcon class="article-header__lang-icon" :icon="cdxIconLanguage" size="small" />
           <span>{{ languagesButtonLabel }}</span>
-          <CdxIcon class="article-header__caret" :icon="cdxIconDownTriangle" size="small" />
+          <CdxIcon class="article-header__caret" :icon="cdxIconExpand" size="small" />
         </button>
       </div>
     </div>
 
-    <div class="article-header__toolbar">
+    <div v-if="!bareMainPage" class="article-header__toolbar">
       <nav class="article-header__tabs" aria-label="Page tabs">
         <a
           href="#"
@@ -123,7 +144,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
           aria-current="page"
           @click.prevent="$emit('articleClick')"
         >
-          Article
+          {{ props.mainPage ? 'Main Page' : 'Article' }}
         </a>
         <a href="#" class="article-header__tab" @click.prevent="$emit('talkClick')"> Talk </a>
       </nav>
@@ -141,23 +162,41 @@ function onLanguagePick(row: ArticleLanguageLink) {
         >
           Read
         </a>
-        <a href="#" class="article-header__action" @click.prevent="$emit('editClick')"> Edit </a>
+        <a href="#" class="article-header__action" @click.prevent="$emit('editClick')">
+          {{ props.mainPage ? 'View source' : 'Edit' }}
+        </a>
         <a href="#" class="article-header__action" @click.prevent="$emit('historyClick')">
           View history
         </a>
+        <!-- Vector 2022: logged out gets the Tools menu; logged in gets Watch + bookmark. -->
         <CdxButton
+          v-if="isLoggedOut"
           class="article-header__icon-btn"
           weight="quiet"
-          aria-label="Watch"
-          @click="$emit('bookmarkClick')"
+          aria-label="Tools"
+          @click="$emit('moreClick')"
         >
-          <CdxIcon :icon="cdxIconUnStar" />
+          <CdxIcon :icon="cdxIconVerticalEllipsis" />
         </CdxButton>
+        <template v-else>
+          <a href="#" class="article-header__action" @click.prevent="$emit('bookmarkClick')">
+            <CdxIcon class="article-header__action-icon" :icon="cdxIconStar" size="small" />
+            Watch
+          </a>
+          <CdxButton
+            class="article-header__icon-btn"
+            weight="quiet"
+            aria-label="Save"
+            @click="$emit('saveClick')"
+          >
+            <CdxIcon :icon="cdxIconBookmarkOutline" />
+          </CdxButton>
+        </template>
       </nav>
     </div>
 
     <div
-      v-if="effectiveSkin === 'mobile'"
+      v-if="effectiveSkin === 'mobile' && !bareMainPage"
       class="article-header__icon-toolbar"
       :class="{ 'article-header__icon-toolbar--logged-out': isLoggedOut }"
       aria-label="Page actions"
@@ -204,10 +243,10 @@ function onLanguagePick(row: ArticleLanguageLink) {
         <button
           type="button"
           class="article-header__icon-tool"
-          aria-label="Watch"
-          @click="$emit('bookmarkClick')"
+          aria-label="Save"
+          @click="$emit('saveClick')"
         >
-          <CdxIcon :icon="cdxIconUnStar" />
+          <CdxIcon :icon="cdxIconBookmarkOutline" />
         </button>
         <button
           type="button"
@@ -227,11 +266,11 @@ function onLanguagePick(row: ArticleLanguageLink) {
         </button>
         <button
           type="button"
-          class="article-header__icon-tool article-header__icon-tool--more"
+          class="article-header__icon-tool"
           aria-label="More options"
           @click="$emit('moreClick')"
         >
-          <CdxIcon :icon="cdxIconEllipsis" />
+          <CdxIcon :icon="cdxIconVerticalEllipsis" />
         </button>
       </template>
     </div>
@@ -280,7 +319,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
       </div>
     </CdxPopover>
 
-    <p v-if="effectiveSkin === 'desktop'" class="article-header__tagline">
+    <p v-if="effectiveSkin === 'desktop' && !props.mainPage" class="article-header__tagline">
       {{ DEFAULT_TAGLINE }}
     </p>
   </header>
@@ -289,6 +328,30 @@ function onLanguagePick(row: ArticleLanguageLink) {
 <style scoped>
 .article-header {
   background-color: var(--background-color-base);
+}
+
+/* Visually hidden but still the page's `h1` for assistive tech (Main Page). */
+.article-header__title--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Vector 2022 title bar: heading and languages over a full-width rule. */
+.article-header[data-skin='desktop'] .article-header__title-row {
+  align-items: center;
+  padding-bottom: 0;
+  border-bottom: 1px solid var(--border-color-base, #a2a9b1);
+}
+
+/* Main Page: the title row holds only the hidden heading. */
+.article-header--main-page .article-header__title-row,
+.article-header--main-page[data-skin='desktop'] .article-header__title-row {
+  padding: 0;
+  border-bottom: 0;
 }
 
 .article-header__title-row {
@@ -304,9 +367,10 @@ function onLanguagePick(row: ArticleLanguageLink) {
   flex: 1;
   min-width: 0;
   font-family: var(--font-family-serif);
-  font-size: 2rem;
+  /* Vector 2022 `#firstHeading`: 1.8em serif at 1.375. */
+  font-size: 1.8rem;
   font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-xxx-small, 1.375);
+  line-height: 1.375;
   color: var(--color-base);
 }
 
@@ -326,6 +390,7 @@ function onLanguagePick(row: ArticleLanguageLink) {
   font: inherit;
   font-family: var(--font-family-base);
   font-size: var(--font-size-small, 14px);
+  font-weight: var(--font-weight-bold);
   color: var(--color-progressive);
   cursor: pointer;
 }
@@ -431,6 +496,11 @@ function onLanguagePick(row: ArticleLanguageLink) {
   text-decoration: underline;
 }
 
+.article-header__action-icon {
+  margin-inline-end: var(--spacing-25, 4px);
+  color: inherit;
+}
+
 .article-header__tab--active,
 .article-header__action--active {
   color: var(--color-base);
@@ -502,14 +572,9 @@ function onLanguagePick(row: ArticleLanguageLink) {
   outline-offset: -2px;
 }
 
-/* Vertical kebab — Codex ships only a horizontal ellipsis, so we rotate it
-   to match Wikipedia's mobile-web overflow affordance. */
-.article-header__icon-tool--more :deep(.cdx-icon) {
-  transform: rotate(90deg);
-}
-
 .article-header[data-skin='mobile'] .article-header__title {
   font-size: 1.625rem;
+  line-height: var(--line-height-xxx-small, 1.375);
 }
 
 .article-header[data-skin='mobile'] .article-header__title-row {
@@ -535,6 +600,8 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header[data-skin='mobile'] .article-header__tab {
   margin-bottom: -1px;
   color: var(--color-subtle);
+  /* Minerva tabs are all bold; the active one adds the underline. */
+  font-weight: var(--font-weight-bold);
 }
 
 .article-header[data-skin='mobile'] .article-header__tab:hover {

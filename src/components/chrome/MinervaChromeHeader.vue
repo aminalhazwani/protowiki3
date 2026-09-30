@@ -4,6 +4,7 @@ import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
+import { useConfig } from '@/composables/useConfig'
 import type { HeaderItem } from '@/components/header/headerItems'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
@@ -17,11 +18,17 @@ const MAX_FLANK_ITEMS = 4
 
 const DEFAULT_LEFT: HeaderItem[] = [{ type: 'button', icon: 'menu', label: 'Main menu' }]
 
-const DEFAULT_RIGHT: HeaderItem[] = [
-  { type: 'button', icon: 'search', label: 'Search' },
-  { type: 'button', icon: 'bell-outline', label: 'Notifications' },
-  { type: 'button', icon: 'user-avatar-outline', label: 'User menu' },
-]
+const SEARCH_ITEM: HeaderItem = { type: 'button', icon: 'search', label: 'Search' }
+const NOTIFICATIONS_ITEM: HeaderItem = {
+  type: 'button',
+  icon: 'bell-outline',
+  label: 'Notifications',
+}
+const USER_MENU_ITEM: HeaderItem = {
+  type: 'button',
+  icon: 'user-avatar-outline',
+  label: 'User menu',
+}
 
 interface Props {
   theme?: Theme
@@ -48,6 +55,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
 
+const { user } = useConfig()
+/** Minerva: notifications only exist for logged-in readers. */
+const defaultRight = computed<HeaderItem[]>(() =>
+  user.value === 'logged-out'
+    ? [SEARCH_ITEM, USER_MENU_ITEM]
+    : [SEARCH_ITEM, NOTIFICATIONS_ITEM, USER_MENU_ITEM],
+)
+
 const wordmarkResolved = computed(
   () => props.mobileWordmarkSrc ?? props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN,
 )
@@ -61,7 +76,7 @@ function clampFlank(items: HeaderItem[], side: 'left' | 'right'): HeaderItem[] {
 }
 
 const effectiveLeft = computed(() => clampFlank(props.left ?? DEFAULT_LEFT, 'left'))
-const effectiveRight = computed(() => clampFlank(props.right ?? DEFAULT_RIGHT, 'right'))
+const effectiveRight = computed(() => clampFlank(props.right ?? defaultRight.value, 'right'))
 const effectiveMiddle = computed(() => props.middle ?? [])
 
 const useDefaultWordmark = computed(() => props.middle === undefined)

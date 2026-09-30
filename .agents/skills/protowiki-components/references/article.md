@@ -142,6 +142,14 @@ Selection only resolves a **title** (a lightweight, title-only request for the r
 
 **`host`** (**wiki hostname** for **`page/html`** and cache keys; default derived from **`lang`** via **`wikiHostFromLang()`**, so **`en.wikipedia.org`** unless you set **`lang`** — random mode derives it from the chosen `langs` instead), **`article`** (REST page title → **`ArticleWrapper`** **`title`**; **omit for random mode**), **`app?`** (in-app reading screen — see [In-app articles](#in-app-articles-app)), **`source?`** (**`'random'`** | **`'vital'`**, random mode only), **`langs?`** (**`string[]`**, random mode only), **`vitalLevel?`** (**`number`**, default **`2`**, `source="vital"` only), **`header`**, **`languagesCount?`**, **`lang`**, **`dir`**, **`skin`**, **`theme`**.
 
+**`persistCache?`** (default **`true`**) keeps fetched bodies in localStorage across visits; pass **`false`** for pages that change daily (e.g. **`Main_Page`**) so each load is live — the in-memory cache still dedupes within a session. **`mainPage?`** renders the production Main Page header (forwarded **`ArticleWrapper`** → **`ArticleHeader`**): the **`h1`** is visually hidden, with no languages button or tagline, and the tabs read **Main Page** / Talk · Read / View source / View history; mobile shows no header chrome.
+
+On desktop, **`ArticleHeader`** follows Vector 2022 for every page: the title and languages button sit over a full-width rule, and the page actions end with a Tools **⋮** button when logged out (emits **`moreClick`**), or **☆ Watch** (emits **`bookmarkClick`**) plus a bookmark button (emits **`saveClick`**) when logged in. On mobile, the Minerva icon toolbar is language · download · star · edit when logged out, and language · bookmark (**`saveClick`**) · history · edit · **⋮** (**`moreClick`**) when logged in; all tabs are bold.
+
+```vue
+<ArticleLive article="Main_Page" main-page :persist-cache="false" />
+```
+
 Emits **`parserReady`** with the rendered article root once the body is in the DOM (see [Putting your own components in the article](#putting-your-own-components-in-the-article)).
 
 ### Slots
