@@ -75,6 +75,11 @@ class HostQueue {
   private lastStartMs = 0
 
   enqueue<T>(task: () => Promise<T>): Promise<T> {
+    let markStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve
+    })
+
     const run = async (): Promise<T> => {
       while (this.active >= MAX_CONCURRENT_PER_HOST) {
         await sleep(MIN_SPACING_MS)
@@ -85,6 +90,7 @@ class HostQueue {
 
       this.active++
       this.lastStartMs = Date.now()
+      markStarted()
       try {
         return await task()
       } finally {
@@ -93,10 +99,10 @@ class HostQueue {
     }
 
     const result = this.chain.then(run, run)
-    this.chain = result.then(
-      () => undefined,
-      () => undefined,
-    )
+    // PROTOWIKI+ (Home) The chain used to wait for each task to *finish*, so requests ran one
+    // at a time and one slow call stalled the host. It now waits only for the task to *start*:
+    // starts stay in order and spaced, and up to MAX_CONCURRENT_PER_HOST run at once.
+    this.chain = started
     return result
   }
 }

@@ -8,6 +8,7 @@
 import {
   cdxIconBookmark,
   cdxIconChart,
+  cdxIconLightbulb,
   cdxIconLink,
   cdxIconStar,
   type Icon,
@@ -17,11 +18,19 @@ import { loadDailyReads } from './data/loadDailyReads'
 import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
 import { loadSaved } from './data/loadSaved'
+import { loadSuggestedEdits, RANDOM_SUGGESTION_COUNT } from './data/loadSuggestedEdits'
 import { loadTrending } from './data/loadTrending'
 import type { HomeCardData } from './data/types'
 import { useHomeSaved } from './useHomeSaved'
+import { useHomeSeeds } from './useHomeSeeds'
 
-export type HomeModuleId = 'featured' | 'trending' | 'daily-reads' | 'did-you-know' | 'saved'
+export type HomeModuleId =
+  | 'featured'
+  | 'trending'
+  | 'daily-reads'
+  | 'suggested-edits'
+  | 'did-you-know'
+  | 'saved'
 
 /**
  * Card layout for a module (see `HomeCard.vue`):
@@ -35,8 +44,11 @@ export interface HomeModuleSpec {
   id: HomeModuleId
   title: string
   variant: HomeCardVariant
-  /** Cards shown on the Home — also the number of skeletons held while loading. */
-  slots: number
+  /**
+   * Cards shown on the Home — also the number of skeletons held while loading.
+   * A function when it depends on the reader (read as each load starts).
+   */
+  slots: number | (() => number)
   /** Cards each desktop "Show more" reveals in place; omit for no "Show more". */
   pageSize?: number
   /** "Show more" label, when it should name the module. */
@@ -83,6 +95,17 @@ export const HOME_MODULES: readonly HomeModuleSpec[] = [
     load: loadDailyReads,
   },
   {
+    id: 'suggested-edits',
+    title: 'Suggested edits',
+    variant: 'article',
+    // Personal suggestions fill the grid; a stranger gets a single random one (home2).
+    slots: () => (useHomeSeeds().seeds.value.length ? 4 : RANDOM_SUGGESTION_COUNT),
+    pageSize: 4,
+    moreLabel: 'Show more suggestions',
+    supportingIcon: cdxIconLightbulb,
+    load: loadSuggestedEdits,
+  },
+  {
     id: 'did-you-know',
     title: 'Did you know',
     variant: 'hook',
@@ -102,3 +125,8 @@ export const HOME_MODULES: readonly HomeModuleSpec[] = [
     reloadOn: () => useHomeSaved().savedTitles.value.join('|'),
   },
 ]
+
+/** A module's current slot count (see `HomeModuleSpec.slots`). */
+export function moduleSlots(spec: HomeModuleSpec): number {
+  return typeof spec.slots === 'function' ? spec.slots() : spec.slots
+}

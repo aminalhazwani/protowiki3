@@ -1,12 +1,9 @@
-import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
-
 import { homeArticleLocation } from '../routes'
 import { useHomeSaved } from '../useHomeSaved'
-import { fetchPageSummary } from './fetchPageSummary'
+import { fetchPageCards } from './fetchPageCards'
 import type { HomeCardData } from './types'
 
 const MAX_SAVED = 24
-const SUMMARY_CONCURRENCY = 2
 
 function formatSavedLabel(savedAt: number | undefined): string | undefined {
   if (!savedAt) return undefined
@@ -23,20 +20,15 @@ export async function loadSaved(signal: AbortSignal): Promise<HomeCardData[]> {
   const { savedTitles, savedTime } = useHomeSaved()
   const titles = savedTitles.value.slice(0, MAX_SAVED)
 
-  // A missing or failed summary still leaves a titled card.
-  const summaries = await mapWithConcurrency(
-    titles,
-    SUMMARY_CONCURRENCY,
-    (title) => fetchPageSummary(title, signal).catch(() => null),
-    signal,
-  )
+  // A failed lookup still leaves titled cards.
+  const info = await fetchPageCards(titles, signal).catch(() => [])
 
   return titles.map((title, index) => ({
     key: `saved:${title}`,
-    title: summaries[index]?.normalizedtitle ?? title,
+    title: info[index]?.title ?? title,
     pageTitle: title,
-    description: summaries[index]?.description,
-    thumbnailUrl: summaries[index]?.thumbnail?.source,
+    description: info[index]?.description,
+    thumbnailUrl: info[index]?.thumbnailUrl,
     to: homeArticleLocation(title),
     supportingText: formatSavedLabel(savedTime(title)),
   }))

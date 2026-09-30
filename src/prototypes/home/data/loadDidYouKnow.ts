@@ -1,14 +1,11 @@
-import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
-
 import { homeArticleLocation, normalizeTitle } from '../routes'
 import { fetchFeaturedFeed } from './fetchFeaturedFeed'
-import { fetchPageSummary } from './fetchPageSummary'
+import { fetchPageCards } from './fetchPageCards'
 import { readDayCache, utcDayKey, writeDayCache } from './homeCache'
 import type { HomeCardData } from './types'
 
 const CACHE_SLOT = 'did-you-know'
 const MAX_HOOKS = 12
-const SUMMARY_CONCURRENCY = 2
 
 interface DykHook {
   text: string
@@ -49,19 +46,17 @@ export async function loadDidYouKnow(signal: AbortSignal): Promise<HomeCardData[
     .map(parseHook)
     .filter((hook): hook is DykHook => hook !== null)
 
-  // Thumbnails are a nicety: a failed summary still leaves a usable hook.
-  const summaries = await mapWithConcurrency(
-    hooks,
-    SUMMARY_CONCURRENCY,
-    (hook) => fetchPageSummary(hook.pageTitle, signal).catch(() => null),
+  // Thumbnails are a nicety: if the lookup fails, the hooks still work.
+  const info = await fetchPageCards(
+    hooks.map((hook) => hook.pageTitle),
     signal,
-  )
+  ).catch(() => [])
 
   const cards: HomeCardData[] = hooks.map((hook, index) => ({
     key: `dyk:${hook.pageTitle}`,
     title: hook.text,
     titleEmphasis: hook.emphasis,
-    thumbnailUrl: summaries[index]?.thumbnail?.source,
+    thumbnailUrl: info[index]?.thumbnailUrl,
     to: homeArticleLocation(hook.pageTitle),
   }))
   writeDayCache(CACHE_SLOT, day, cards)

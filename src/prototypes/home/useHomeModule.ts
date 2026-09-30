@@ -1,7 +1,7 @@
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 
 import type { HomeCardData } from './data/types'
-import type { HomeModuleSpec } from './modules'
+import { moduleSlots, type HomeModuleSpec } from './modules'
 import { preloadImages } from './preloadImages'
 
 /**
@@ -16,7 +16,7 @@ export function useHomeModule(spec: HomeModuleSpec) {
   const loading = ref(true)
   const error = ref(false)
   /** Slots on screen — cards or skeletons. */
-  const reserved = ref(spec.slots)
+  const reserved = ref(moduleSlots(spec))
   /** Slots whose card is ready to show; the rest are skeletons. */
   const ready = ref(0)
 
@@ -33,20 +33,18 @@ export function useHomeModule(spec: HomeModuleSpec) {
     controller = new AbortController()
     const { signal } = controller
 
+    const slots = moduleSlots(spec)
     const refreshing = inPlace && items.value.length > 0
     loading.value = !refreshing
     error.value = false
     if (!refreshing) {
-      reserved.value = spec.slots
+      reserved.value = slots
       ready.value = 0
     }
     try {
       const cards = await spec.load(signal)
       if (signal.aborted) return
-      const shown = Math.min(
-        refreshing ? Math.max(reserved.value, spec.slots) : spec.slots,
-        cards.length,
-      )
+      const shown = Math.min(refreshing ? Math.max(reserved.value, slots) : slots, cards.length)
       await preloadImages(cards.slice(0, shown).map((card) => card.thumbnailUrl))
       if (signal.aborted) return
       items.value = cards
