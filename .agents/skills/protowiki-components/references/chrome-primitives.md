@@ -168,3 +168,22 @@ import ChromeFooter from '@/components/chrome/ChromeFooter.vue'
 `skin` / `theme` props are omitted, so article columns and special-page
 typography track embedded `<ChromeWrapper skin="mobile">` previews without
 repeating props on every child.
+
+## Pretending who is signed in (`useUserOverride`)
+
+The chrome and article header read the signed-in state from `useConfig()`
+(`user`, `displayName`, `pageTitle`). A prototype with its own pretend account
+can override that for as long as it is mounted, without touching the user's
+saved ProtoWiki setting:
+
+```ts
+import { useUserOverride } from '@/composables/useConfig'
+
+useUserOverride(() =>
+  account.value ? { user: 'new', displayName: account.value } : { user: 'logged-out' },
+)
+```
+
+`source` is reactive; return `null` for "no override". The override is in
+memory only and is removed when the calling component unmounts, so other
+prototypes see the saved setting again. See `src/prototypes/home/useHomeAccount.ts`.

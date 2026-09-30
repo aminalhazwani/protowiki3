@@ -1,20 +1,30 @@
 <script setup lang="ts">
 /**
- * Wikipedia chrome for every Home page: the wordmark leads back to `/home`, and
- * any link off the prototype (header or content) asks before leaving.
+ * Wikipedia chrome for every Home page: the wordmark leads back to `/home`, the
+ * header follows the prototype's account (see `useHomeSession`), and any link
+ * off the prototype (header or content) asks before leaving.
  */
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
 import { HOME_PATH } from './routes'
+import { useHomeSession } from './useHomeAccount'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
 
+interface Props {
+  /** Footer "last edited" notice — on for wiki pages, off for the Home dashboard. */
+  lastEditedNotice?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), { lastEditedNotice: true })
+
+useHomeSession()
 const { onLeaveCapture } = useHomeLeavePrototype()
 </script>
 
 <template>
   <div @click.capture="onLeaveCapture">
-    <ChromeWrapper :brand-to="HOME_PATH">
+    <ChromeWrapper :brand-to="HOME_PATH" :last-edited-notice="props.lastEditedNotice">
       <slot />
     </ChromeWrapper>
     <HomeLeavePrototypeDialog />
