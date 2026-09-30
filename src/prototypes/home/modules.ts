@@ -5,8 +5,15 @@
  * `variant`), not a component.
  */
 
-import { cdxIconBookmark, cdxIconChart, cdxIconStar, type Icon } from '@wikimedia/codex-icons'
+import {
+  cdxIconBookmark,
+  cdxIconChart,
+  cdxIconLink,
+  cdxIconStar,
+  type Icon,
+} from '@wikimedia/codex-icons'
 
+import { loadDailyReads } from './data/loadDailyReads'
 import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
 import { loadSaved } from './data/loadSaved'
@@ -14,7 +21,7 @@ import { loadTrending } from './data/loadTrending'
 import type { HomeCardData } from './data/types'
 import { useHomeSaved } from './useHomeSaved'
 
-export type HomeModuleId = 'featured' | 'trending' | 'did-you-know' | 'saved'
+export type HomeModuleId = 'featured' | 'trending' | 'daily-reads' | 'did-you-know' | 'saved'
 
 /**
  * Card layout for a module (see `HomeCard.vue`):
@@ -63,6 +70,17 @@ export const HOME_MODULES: readonly HomeModuleSpec[] = [
     supportingIcon: cdxIconChart,
     saveable: true,
     load: loadTrending,
+  },
+  {
+    // Hidden until the reader has saved, edited or watched a page to grow from.
+    id: 'daily-reads',
+    title: 'Daily reads',
+    variant: 'article',
+    slots: 4,
+    pageSize: 4,
+    supportingIcon: cdxIconLink,
+    saveable: true,
+    load: loadDailyReads,
   },
   {
     id: 'did-you-know',

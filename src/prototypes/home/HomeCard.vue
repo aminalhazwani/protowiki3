@@ -105,7 +105,9 @@ function onClick(event: MouseEvent): void {
       <template v-if="card.description" #description>{{ card.description }}</template>
       <template v-if="card.supportingText" #supporting-text>
         <span class="home-card__supporting">
-          <CdxIcon v-if="supportingIcon" :icon="supportingIcon" size="small" />
+          <span v-if="supportingIcon" class="home-card__supporting-icon">
+            <CdxIcon :icon="supportingIcon" size="small" />
+          </span>
           <span>{{ card.supportingText }}</span>
         </span>
       </template>
@@ -167,10 +169,19 @@ function onClick(event: MouseEvent): void {
   padding-inline-end: calc(var(--min-size-interactive-pointer, 32px) + var(--spacing-25));
 }
 
+/* When the label wraps, the icon stays with its first line. */
 .home-card__supporting {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--spacing-25);
+}
+
+/* One line box tall, so the icon centres on the first line of text. */
+.home-card__supporting-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: 1lh;
 }
 
 /*
