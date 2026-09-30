@@ -28,6 +28,7 @@ export async function loadTrending(signal: AbortSignal): Promise<HomeCardData[]>
     .map((article) => ({
       key: `trending:${article.title}`,
       title: article.normalizedtitle ?? article.title!.replace(/_/g, ' '),
+      pageTitle: article.title!,
       description: article.description,
       thumbnailUrl: article.thumbnail?.source,
       to: homeArticleLocation(article.title!),

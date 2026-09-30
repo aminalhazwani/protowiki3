@@ -57,6 +57,7 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
           :card="slot.card"
           :loading="!slot.card"
           :supporting-icon="spec.supportingIcon"
+          :saveable="spec.saveable"
         />
       </div>
 
@@ -66,7 +67,7 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
         :disabled="ready < reserved"
         @click="revealMore"
       >
-        Show more
+        {{ spec.moreLabel ?? 'Show more' }}
       </CdxButton>
     </template>
   </section>

@@ -6,20 +6,27 @@
  */
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { CdxCard, CdxIcon } from '@wikimedia/codex'
-import type { Icon } from '@wikimedia/codex-icons'
+import { CdxButton, CdxCard, CdxIcon } from '@wikimedia/codex'
+import { cdxIconBookmark, cdxIconBookmarkOutline, type Icon } from '@wikimedia/codex-icons'
 
 import type { HomeCardData } from './data/types'
 import type { HomeCardVariant } from './modules'
+import { useHomeSaved } from './useHomeSaved'
 
 const props = defineProps<{
   variant: HomeCardVariant
   card?: HomeCardData
   loading?: boolean
   supportingIcon?: Icon
+  /** Show a save (bookmark) button for the card's page. */
+  saveable?: boolean
 }>()
 
 const router = useRouter()
+const { isSaved, toggleSaved } = useHomeSaved()
+
+const pageTitle = computed(() => props.card?.pageTitle ?? props.card?.title ?? '')
+const saved = computed(() => isSaved(pageTitle.value))
 
 const href = computed(() => (props.card ? router.resolve(props.card.to).href : undefined))
 const thumbnail = computed(() =>
@@ -73,33 +80,49 @@ function onClick(event: MouseEvent): void {
     <div v-if="variant === 'hero'" class="home-card-skeleton__image" />
   </div>
 
-  <CdxCard
+  <div
     v-else
     class="home-card"
-    :url="href"
-    :class="`home-card--${variant}`"
-    :thumbnail="thumbnail"
-    :thumbnail-position="layout.thumbnailPosition"
-    :thumbnail-size="layout.thumbnailSize"
-    :force-thumbnail="layout.forceThumbnail"
-    @click="onClick"
+    :class="[`home-card--${variant}`, { 'home-card--saveable': saveable }]"
   >
-    <template #title>
-      <span v-if="titleParts">
-        <span>{{ titleParts.before }}</span>
-        <strong>{{ titleParts.bold }}</strong>
-        <span>{{ titleParts.after }}</span>
-      </span>
-      <template v-else>{{ card.title }}</template>
-    </template>
-    <template v-if="card.description" #description>{{ card.description }}</template>
-    <template v-if="card.supportingText" #supporting-text>
-      <span class="home-card__supporting">
-        <CdxIcon v-if="supportingIcon" :icon="supportingIcon" size="small" />
-        <span>{{ card.supportingText }}</span>
-      </span>
-    </template>
-  </CdxCard>
+    <CdxCard
+      class="home-card__card"
+      :url="href"
+      :thumbnail="thumbnail"
+      :thumbnail-position="layout.thumbnailPosition"
+      :thumbnail-size="layout.thumbnailSize"
+      :force-thumbnail="layout.forceThumbnail"
+      @click="onClick"
+    >
+      <template #title>
+        <span v-if="titleParts">
+          <span>{{ titleParts.before }}</span>
+          <strong>{{ titleParts.bold }}</strong>
+          <span>{{ titleParts.after }}</span>
+        </span>
+        <template v-else>{{ card.title }}</template>
+      </template>
+      <template v-if="card.description" #description>{{ card.description }}</template>
+      <template v-if="card.supportingText" #supporting-text>
+        <span class="home-card__supporting">
+          <CdxIcon v-if="supportingIcon" :icon="supportingIcon" size="small" />
+          <span>{{ card.supportingText }}</span>
+        </span>
+      </template>
+    </CdxCard>
+
+    <!-- A sibling of the card's link, not inside it: a button can't nest in an <a>. -->
+    <CdxButton
+      v-if="saveable"
+      class="home-card__save"
+      weight="quiet"
+      :aria-label="saved ? 'Saved' : 'Save'"
+      :aria-pressed="saved"
+      @click="toggleSaved(pageTitle)"
+    >
+      <CdxIcon :icon="saved ? cdxIconBookmark : cdxIconBookmarkOutline" />
+    </CdxButton>
+  </div>
 </template>
 
 <style scoped>
@@ -108,7 +131,7 @@ function onClick(event: MouseEvent): void {
  * Codex centres title-only cards vertically; a hook reads from the top, so its
  * text (and thumbnail) start at the top edge, even in a row stretched taller.
  */
-.home-card--hook.cdx-card--title-only {
+.home-card--hook .home-card__card.cdx-card--title-only {
   align-items: flex-start;
 }
 
@@ -119,6 +142,29 @@ function onClick(event: MouseEvent): void {
 
 .home-card--hook :deep(.cdx-card__text__title strong) {
   font-weight: var(--font-weight-bold);
+}
+
+.home-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.home-card__card {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* CODEX+ CdxCard: no action slot, so the save button sits over the card's corner. */
+.home-card__save {
+  position: absolute;
+  top: var(--spacing-50);
+  inset-inline-end: var(--spacing-50);
+}
+
+/* Keep the text clear of the save button. */
+.home-card--saveable :deep(.cdx-card__text) {
+  padding-inline-end: calc(var(--min-size-interactive-pointer, 32px) + var(--spacing-25));
 }
 
 .home-card__supporting {

@@ -12,6 +12,7 @@ interface ArticleLiveCommonProps {
   languagesCount?: number
   persistCache?: boolean
   mainPage?: boolean
+  saved?: boolean
 }
 
 /** Fixed article: `article` set; the random-only props are forbidden. */
@@ -112,6 +113,8 @@ interface Props {
   persistCache?: boolean
   /** PROTOWIKI+ (Home) Render the production Main Page header (see **`ArticleHeader`** **`mainPage`**). */
   mainPage?: boolean
+  /** PROTOWIKI+ (Home) Forwarded to **`ArticleHeader`** — fills the bookmark. */
+  saved?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -129,11 +132,14 @@ const props = withDefaults(defineProps<Props>(), {
   languagesCount: undefined,
   persistCache: true,
   mainPage: false,
+  saved: false,
 })
 
 const emit = defineEmits<{
   /** Parser root, once the body is in the DOM — for `<Teleport>` and in-article overlays. */
   parserReady: [root: HTMLElement]
+  /** PROTOWIKI+ (Home) The header's bookmark (save) button was clicked. */
+  saveClick: []
 }>()
 
 const liveHtml = ref<string | null>(null)
@@ -253,6 +259,8 @@ watch(liveHtml, async (html) => {
     :description="view?.description"
     :lead-image-url="view?.thumbnailUrl ?? undefined"
     :main-page="props.mainPage"
+    :saved="props.saved"
+    @save-click="emit('saveClick')"
   >
     <CdxProgressBar v-if="loading" inline aria-label="Loading article" />
 

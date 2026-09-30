@@ -17,10 +17,16 @@ export interface HomeConfig {
    * all is the ProtoWiki **Mock user** preset (`?user=`), not this.
    */
   username: string | null
+  /**
+   * When each page was saved (ms), by title. The saved list itself is the Mock
+   * user's **Saved pages** (`readingList`); this only adds the times.
+   */
+  savedAt: Record<string, number>
 }
 
 export const DEFAULT_HOME_CONFIG: HomeConfig = {
   username: null,
+  savedAt: {},
 }
 
 /** MediaWiki's limit on username length. */
@@ -34,21 +40,30 @@ export function normalizeUsername(value: unknown): string | null {
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
 
+function normalizeSavedAt(value: unknown): Record<string, number> {
+  if (typeof value !== 'object' || value === null) return {}
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    (entry): entry is [string, number] => Number.isFinite(entry[1]) && (entry[1] as number) > 0,
+  )
+  return Object.fromEntries(entries)
+}
+
 export function normalizeHomeConfig(input: unknown): HomeConfig {
   const record =
     typeof input === 'object' && input !== null ? (input as Record<string, unknown>) : {}
   return {
     username: normalizeUsername(record.username),
+    savedAt: normalizeSavedAt(record.savedAt),
   }
 }
 
 export function loadHomeConfig(): HomeConfig {
   try {
     const raw = window.localStorage.getItem(HOME_CONFIG_STORAGE_KEY)
-    return raw ? normalizeHomeConfig(JSON.parse(raw)) : { ...DEFAULT_HOME_CONFIG }
+    return normalizeHomeConfig(raw ? JSON.parse(raw) : null)
   } catch {
     // Unavailable storage or corrupt JSON — start from defaults.
-    return { ...DEFAULT_HOME_CONFIG }
+    return normalizeHomeConfig(null)
   }
 }
 
@@ -70,5 +85,5 @@ export function resetHomeConfig(): HomeConfig {
   } catch {
     // Ignore — defaults are returned either way.
   }
-  return { ...DEFAULT_HOME_CONFIG }
+  return normalizeHomeConfig(null)
 }

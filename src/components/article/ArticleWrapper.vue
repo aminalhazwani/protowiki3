@@ -32,6 +32,8 @@ interface Props {
   leadImageUrl?: string
   /** PROTOWIKI+ (Home) Forwarded to **`ArticleHeader`** — production Main Page header. */
   mainPage?: boolean
+  /** PROTOWIKI+ (Home) Forwarded to **`ArticleHeader`** — fills the bookmark. */
+  saved?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -46,7 +48,13 @@ const props = withDefaults(defineProps<Props>(), {
   description: undefined,
   leadImageUrl: undefined,
   mainPage: false,
+  saved: false,
 })
+
+const emit = defineEmits<{
+  /** PROTOWIKI+ (Home) Forwarded from **`ArticleHeader`**'s bookmark button. */
+  saveClick: []
+}>()
 
 const inheritedSkin = inject(PROTOWIKI_CHROME_SKIN)
 const inheritedTheme = inject(PROTOWIKI_CHROME_THEME)
@@ -98,6 +106,8 @@ const chromeHeaderLabel = computed(() => leadTitle.value || 'Article')
       :languages-count="props.languagesCount"
       :skin="props.skin"
       :main-page="props.mainPage"
+      :saved="props.saved"
+      @save-click="emit('saveClick')"
     />
 
     <slot />

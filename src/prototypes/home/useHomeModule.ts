@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 
 import type { HomeCardData } from './data/types'
 import type { HomeModuleSpec } from './modules'
@@ -24,19 +24,29 @@ export function useHomeModule(spec: HomeModuleSpec) {
 
   let controller: AbortController | null = null
 
-  async function load(): Promise<void> {
+  /**
+   * `inPlace` refreshes what's already shown (e.g. Saved after a save) without
+   * falling back to skeletons, keeping any extra cards "Show more" revealed.
+   */
+  async function load({ inPlace = false } = {}): Promise<void> {
     controller?.abort()
     controller = new AbortController()
     const { signal } = controller
 
-    loading.value = true
+    const refreshing = inPlace && items.value.length > 0
+    loading.value = !refreshing
     error.value = false
-    reserved.value = spec.slots
-    ready.value = 0
+    if (!refreshing) {
+      reserved.value = spec.slots
+      ready.value = 0
+    }
     try {
       const cards = await spec.load(signal)
       if (signal.aborted) return
-      const shown = Math.min(spec.slots, cards.length)
+      const shown = Math.min(
+        refreshing ? Math.max(reserved.value, spec.slots) : spec.slots,
+        cards.length,
+      )
       await preloadImages(cards.slice(0, shown).map((card) => card.thumbnailUrl))
       if (signal.aborted) return
       items.value = cards
@@ -61,8 +71,9 @@ export function useHomeModule(spec: HomeModuleSpec) {
     ready.value = to
   }
 
-  onMounted(load)
+  onMounted(() => load())
   onUnmounted(() => controller?.abort())
+  if (spec.reloadOn) watch(spec.reloadOn, () => load({ inPlace: true }))
 
-  return { items, loading, error, reserved, ready, hasMore, reload: load, revealMore }
+  return { items, loading, error, reserved, ready, hasMore, reload: () => load(), revealMore }
 }

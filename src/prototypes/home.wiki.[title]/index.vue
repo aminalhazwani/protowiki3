@@ -11,6 +11,7 @@ import ArticleLive from '@/components/article/ArticleLive.vue'
 import HomeChrome from '../home/HomeChrome.vue'
 import { titleFromRouteParam } from '../home/routes'
 import { scrollToFragment, useHomeArticleLinks } from '../home/useHomeArticleLinks'
+import { useHomeSaved } from '../home/useHomeSaved'
 
 const route = useRoute()
 const title = computed(() =>
@@ -18,6 +19,7 @@ const title = computed(() =>
 )
 
 const { onArticleClick } = useHomeArticleLinks(() => title.value)
+const { isSaved, toggleSaved } = useHomeSaved()
 
 // PROTOWIKI+ Router: no `scrollBehavior`, so new pages keep the old scroll position and ignore `#hash`.
 watch(title, () => window.scrollTo(0, 0), { immediate: true })
@@ -30,7 +32,12 @@ function onParserReady(): void {
 <template>
   <HomeChrome>
     <div @click="onArticleClick">
-      <ArticleLive :article="title" @parser-ready="onParserReady" />
+      <ArticleLive
+        :article="title"
+        :saved="isSaved(title)"
+        @save-click="toggleSaved(title)"
+        @parser-ready="onParserReady"
+      />
     </div>
   </HomeChrome>
 </template>

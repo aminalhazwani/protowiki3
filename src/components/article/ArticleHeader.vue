@@ -2,6 +2,7 @@
 import { computed, inject, ref, watch } from 'vue'
 import { CdxButton, CdxIcon, CdxPopover, CdxTextInput } from '@wikimedia/codex'
 import {
+  cdxIconBookmark,
   cdxIconBookmarkOutline,
   cdxIconDownload,
   cdxIconEdit,
@@ -45,12 +46,15 @@ interface Props {
    * Read / View source / View history. Mobile shows no header chrome.
    */
   mainPage?: boolean
+  /** PROTOWIKI+ (Home) The page is saved — fills the bookmark (logged-in toolbar). */
+  saved?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   languagesCount: 18,
   skin: undefined,
   mainPage: false,
+  saved: false,
 })
 
 const inheritedSkin = inject(PROTOWIKI_CHROME_SKIN)
@@ -187,10 +191,11 @@ function onLanguagePick(row: ArticleLanguageLink) {
           <CdxButton
             class="article-header__icon-btn"
             weight="quiet"
-            aria-label="Save"
+            :aria-label="props.saved ? 'Saved' : 'Save'"
+            :aria-pressed="props.saved"
             @click="$emit('saveClick')"
           >
-            <CdxIcon :icon="cdxIconBookmarkOutline" />
+            <CdxIcon :icon="props.saved ? cdxIconBookmark : cdxIconBookmarkOutline" />
           </CdxButton>
         </template>
       </nav>
@@ -245,10 +250,11 @@ function onLanguagePick(row: ArticleLanguageLink) {
         <button
           type="button"
           class="article-header__icon-tool"
-          aria-label="Save"
+          :aria-label="props.saved ? 'Saved' : 'Save'"
+          :aria-pressed="props.saved"
           @click="$emit('saveClick')"
         >
-          <CdxIcon :icon="cdxIconBookmarkOutline" />
+          <CdxIcon :icon="props.saved ? cdxIconBookmark : cdxIconBookmarkOutline" />
         </button>
         <button
           type="button"
