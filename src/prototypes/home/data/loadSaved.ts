@@ -1,18 +1,13 @@
 import { homeArticleLocation } from '../routes'
 import { useHomeSaved } from '../useHomeSaved'
 import { fetchPageCards } from './fetchPageCards'
+import { formatAgo } from './relativeTime'
 import type { HomeCardData } from './types'
 
 const MAX_SAVED = 24
 
 function formatSavedLabel(savedAt: number | undefined): string | undefined {
-  if (!savedAt) return undefined
-  const minutes = Math.floor((Date.now() - savedAt) / 60_000)
-  if (minutes < 1) return 'Saved just now'
-  if (minutes < 60) return `Saved ${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `Saved ${hours}h ago`
-  return `Saved ${Math.floor(hours / 24)}d ago`
+  return savedAt ? `Saved ${formatAgo(savedAt)}` : undefined
 }
 
 /** The reader's saved pages, newest first, with their summaries. Not day-cached: it's live. */

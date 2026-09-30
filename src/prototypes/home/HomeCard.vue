@@ -6,7 +6,7 @@
  */
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { CdxButton, CdxCard, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxCard, CdxIcon, CdxInfoChip } from '@wikimedia/codex'
 import { cdxIconBookmark, cdxIconBookmarkOutline, type Icon } from '@wikimedia/codex-icons'
 
 import type { HomeCardData } from './data/types'
@@ -28,7 +28,12 @@ const { isSaved, toggleSaved } = useHomeSaved()
 const pageTitle = computed(() => props.card?.pageTitle ?? props.card?.title ?? '')
 const saved = computed(() => isSaved(pageTitle.value))
 
-const href = computed(() => (props.card ? router.resolve(props.card.to).href : undefined))
+/** Off-prototype cards (`card.href`) open in a new tab, via the leave dialog `HomeChrome` shows. */
+const href = computed(() => {
+  const card = props.card
+  if (!card) return undefined
+  return card.href ?? (card.to ? router.resolve(card.to).href : undefined)
+})
 const thumbnail = computed(() =>
   props.card?.thumbnailUrl ? { url: props.card.thumbnailUrl } : null,
 )
@@ -44,6 +49,7 @@ const LAYOUTS: Record<HomeCardVariant, CardLayout> = {
   hero: { thumbnailPosition: 'block-start' },
   article: { thumbnailSize: 'large', forceThumbnail: true },
   hook: { thumbnailPosition: 'inline-end', thumbnailSize: 'large' },
+  change: {},
 }
 
 const layout = computed(() => LAYOUTS[props.variant])
@@ -63,7 +69,7 @@ const titleParts = computed(() => {
 
 /** Cards lead inside the prototype; modified clicks still open a new tab. */
 function onClick(event: MouseEvent): void {
-  if (!props.card || event.defaultPrevented || event.button !== 0) return
+  if (!props.card?.to || event.defaultPrevented || event.button !== 0) return
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
   event.preventDefault()
   void router.push(props.card.to)
@@ -92,9 +98,21 @@ function onClick(event: MouseEvent): void {
       :thumbnail-position="layout.thumbnailPosition"
       :thumbnail-size="layout.thumbnailSize"
       :force-thumbnail="layout.forceThumbnail"
+      :target="card.href ? '_blank' : undefined"
       @click="onClick"
     >
       <template #title>
+        <!-- CODEX+ CdxCard: no slot above the title, so status chips lead the title slot. -->
+        <span v-if="card.chips?.length" class="home-card__chips">
+          <CdxInfoChip
+            v-for="chip in card.chips"
+            :key="chip.label"
+            :status="chip.status"
+            :icon="chip.icon"
+          >
+            {{ chip.label }}
+          </CdxInfoChip>
+        </span>
         <span v-if="titleParts">
           <span>{{ titleParts.before }}</span>
           <strong>{{ titleParts.bold }}</strong>
@@ -169,6 +187,15 @@ function onClick(event: MouseEvent): void {
   padding-inline-end: calc(var(--min-size-interactive-pointer, 32px) + var(--spacing-25));
 }
 
+/* Chips sit on their own row above the title, in regular weight. */
+.home-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-25);
+  margin-bottom: var(--spacing-50);
+  font-weight: var(--font-weight-normal);
+}
+
 /* When the label wraps, the icon stays with its first line. */
 .home-card__supporting {
   display: inline-flex;
@@ -230,6 +257,11 @@ function onClick(event: MouseEvent): void {
 .home-card-skeleton--article,
 .home-card-skeleton--hook {
   height: 122px;
+}
+
+/* A change card: chip row, title, one-line summary, editor (measured 139 on both skins). */
+.home-card-skeleton--change {
+  height: 139px;
 }
 
 /* Minerva's narrower column wraps descriptions and hooks onto more lines. */

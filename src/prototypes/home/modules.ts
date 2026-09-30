@@ -11,12 +11,14 @@ import {
   cdxIconLightbulb,
   cdxIconLink,
   cdxIconStar,
+  cdxIconUserAvatar,
   type Icon,
 } from '@wikimedia/codex-icons'
 
 import { loadDailyReads } from './data/loadDailyReads'
 import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
+import { loadReviewChanges, RANDOM_CHANGE_COUNT } from './data/loadReviewChanges'
 import { loadSaved } from './data/loadSaved'
 import { loadSuggestedEdits, RANDOM_SUGGESTION_COUNT } from './data/loadSuggestedEdits'
 import { loadTrending } from './data/loadTrending'
@@ -29,6 +31,7 @@ export type HomeModuleId =
   | 'trending'
   | 'daily-reads'
   | 'suggested-edits'
+  | 'review-changes'
   | 'did-you-know'
   | 'saved'
 
@@ -37,8 +40,9 @@ export type HomeModuleId =
  * - `hero` — full-width image above the text.
  * - `article` — large thumbnail before the text (an article to read).
  * - `hook` — a sentence with its subject in bold, large thumbnail after it.
+ * - `change` — an edit: status chips over the page title, no thumbnail.
  */
-export type HomeCardVariant = 'hero' | 'article' | 'hook'
+export type HomeCardVariant = 'hero' | 'article' | 'hook' | 'change'
 
 export interface HomeModuleSpec {
   id: HomeModuleId
@@ -104,6 +108,17 @@ export const HOME_MODULES: readonly HomeModuleSpec[] = [
     moreLabel: 'Show more suggestions',
     supportingIcon: cdxIconLightbulb,
     load: loadSuggestedEdits,
+  },
+  {
+    // The latest edit to each of the reader's pages; one live edit for a stranger (home2).
+    id: 'review-changes',
+    title: 'Review changes',
+    variant: 'change',
+    slots: () => (useHomeSeeds().seeds.value.length ? 4 : RANDOM_CHANGE_COUNT),
+    pageSize: 4,
+    moreLabel: 'Review more changes',
+    supportingIcon: cdxIconUserAvatar,
+    load: loadReviewChanges,
   },
   {
     id: 'did-you-know',
