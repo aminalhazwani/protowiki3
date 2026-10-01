@@ -11,6 +11,7 @@ import { useSkin } from '@/composables/useSkin'
 
 import HomeCard from './HomeCard.vue'
 import HomeFilterChips from './HomeFilterChips.vue'
+import HomeSectionFrame from './HomeSectionFrame.vue'
 import type { HomeModuleSpec } from './modules'
 import { useHomeModule } from './useHomeModule'
 
@@ -61,9 +62,7 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
 </script>
 
 <template>
-  <section v-if="!hidden" class="home-section" :data-module-id="spec.id">
-    <h2 class="home-section__heading">{{ spec.title }}</h2>
-
+  <HomeSectionFrame v-if="!hidden" :id="spec.id" :title="spec.title">
     <div v-if="error" class="home-section__error">
       <p>Couldn't load this section.</p>
       <CdxButton weight="quiet" @click="reload">Try again</CdxButton>
@@ -108,26 +107,10 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
         {{ spec.moreLabel ?? 'Show more' }}
       </CdxButton>
     </template>
-  </section>
+  </HomeSectionFrame>
 </template>
 
 <style scoped>
-.home-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-50);
-}
-
-/* Codex Heading 4 — the page title above is the h1. */
-.home-section__heading {
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-large);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-large);
-  color: var(--color-base);
-}
-
 .home-section__error {
   display: flex;
   flex-direction: column;

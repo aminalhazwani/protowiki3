@@ -5,6 +5,7 @@
  * `variant`), not a component.
  */
 
+import type { Component } from 'vue'
 import {
   cdxIconBookmark,
   cdxIconChart,
@@ -26,6 +27,9 @@ import { loadSaved } from './data/loadSaved'
 import { loadSuggestedEdits, RANDOM_SUGGESTION_COUNT } from './data/loadSuggestedEdits'
 import { loadTrending } from './data/loadTrending'
 import type { HomeCardData } from './data/types'
+import HomeMentor from './HomeMentor.vue'
+import { MENTOR_CONTENT } from './data/mentorContent'
+import { useHomeMentor } from './useHomeMentor'
 import { useHomeSaved } from './useHomeSaved'
 import { useHomeSeeds } from './useHomeSeeds'
 
@@ -39,6 +43,7 @@ export type HomeModuleId =
   | 'active-discussions'
   | 'did-you-know'
   | 'saved'
+  | 'mentor'
 
 /**
  * Card layout for a module (see `HomeCard.vue`):
@@ -87,8 +92,25 @@ export interface HomeModuleSpec {
   reloadOn?: () => unknown
 }
 
+/**
+ * A module whose layout is its own (Mentor: a notice, a profile and actions),
+ * not a list of cards. `HomeSectionFrame` gives it the shared heading.
+ */
+export interface HomeCustomModuleSpec {
+  id: HomeModuleId
+  /** A function when it depends on the module's state (read as it renders). */
+  title: string | (() => string)
+  body: Component
+}
+
+export type HomeAnyModuleSpec = HomeModuleSpec | HomeCustomModuleSpec
+
+export function isCustomModule(spec: HomeAnyModuleSpec): spec is HomeCustomModuleSpec {
+  return 'body' in spec
+}
+
 /** In Home order. */
-export const HOME_MODULES: readonly HomeModuleSpec[] = [
+export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
   {
     id: 'featured',
     title: 'Featured',
@@ -144,6 +166,14 @@ export const HOME_MODULES: readonly HomeModuleSpec[] = [
         'Start with a few suggested edits, then see how many people are viewing your contributions here.',
       ],
     },
+  },
+  {
+    id: 'mentor',
+    title: () =>
+      useHomeMentor().isAssigned.value
+        ? MENTOR_CONTENT.assigned.title
+        : MENTOR_CONTENT.unassigned.title,
+    body: HomeMentor,
   },
   {
     // The latest edit to each of the reader's pages; one live edit for a stranger (home2).

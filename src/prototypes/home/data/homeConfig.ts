@@ -22,11 +22,17 @@ export interface HomeConfig {
    * user's **Saved pages** (`readingList`); this only adds the times.
    */
   savedAt: Record<string, number>
+  /** Whether the reader has a mentor; `null` follows the default (assigned, as on home2). */
+  mentorAssigned: boolean | null
+  /** The "We've assigned you…" notice was dismissed. */
+  mentorNoticeDismissed: boolean
 }
 
 export const DEFAULT_HOME_CONFIG: HomeConfig = {
   username: null,
   savedAt: {},
+  mentorAssigned: null,
+  mentorNoticeDismissed: false,
 }
 
 /** MediaWiki's limit on username length. */
@@ -54,6 +60,8 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
   return {
     username: normalizeUsername(record.username),
     savedAt: normalizeSavedAt(record.savedAt),
+    mentorAssigned: typeof record.mentorAssigned === 'boolean' ? record.mentorAssigned : null,
+    mentorNoticeDismissed: record.mentorNoticeDismissed === true,
   }
 }
 

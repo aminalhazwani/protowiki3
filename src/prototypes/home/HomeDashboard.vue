@@ -7,15 +7,25 @@ import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
 
 import HomeSection from './HomeSection.vue'
-import { HOME_MODULES } from './modules'
+import HomeSectionFrame from './HomeSectionFrame.vue'
+import { HOME_MODULES, isCustomModule } from './modules'
 
 const { pageTitle } = useConfig()
+
+function titleOf(title: string | (() => string)): string {
+  return typeof title === 'function' ? title() : title
+}
 </script>
 
 <template>
   <SpecialPageWrapper :title="pageTitle" class="home-dashboard">
     <div class="home-dashboard__modules">
-      <HomeSection v-for="spec in HOME_MODULES" :key="spec.id" :spec="spec" />
+      <template v-for="spec in HOME_MODULES" :key="spec.id">
+        <HomeSectionFrame v-if="isCustomModule(spec)" :id="spec.id" :title="titleOf(spec.title)">
+          <component :is="spec.body" />
+        </HomeSectionFrame>
+        <HomeSection v-else :spec="spec" />
+      </template>
     </div>
   </SpecialPageWrapper>
 </template>
