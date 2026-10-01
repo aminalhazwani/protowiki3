@@ -11,14 +11,18 @@ import { useConfig } from '@/composables/useConfig'
 
 import HomeLayoutDialog from './HomeLayoutDialog.vue'
 import HomePage from './HomePage.vue'
+import HomePersonalizationDialog from './HomePersonalizationDialog.vue'
 import HomeSection from './HomeSection.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
 import { isCustomModule } from './modules'
 import { useHomeLayout } from './useHomeLayout'
+import { useHomePersonalization } from './useHomePersonalization'
 
 const { pageTitle } = useConfig()
 const { visibleModules } = useHomeLayout()
 const layoutOpen = ref(false)
+// Opened from a personal module's "Configure" (`HomeConfigureMenu`).
+const { open: personalizationOpen } = useHomePersonalization()
 
 function titleOf(title: string | (() => string)): string {
   return typeof title === 'function' ? title() : title
@@ -41,6 +45,7 @@ function titleOf(title: string | (() => string)): string {
       </template>
     </div>
     <HomeLayoutDialog v-model:open="layoutOpen" />
+    <HomePersonalizationDialog v-model:open="personalizationOpen" />
   </HomePage>
 </template>
 

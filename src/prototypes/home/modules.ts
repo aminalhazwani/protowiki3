@@ -92,6 +92,11 @@ export interface HomeModuleSpec {
   empty?: { title: string; text: readonly string[] }
   /** Reloads (in place, without skeletons) whenever this value changes. */
   reloadOn?: () => unknown
+  /**
+   * Shaped by Personalization (it grows from `useHomeSeeds`): its heading gets
+   * a "Configure" menu, and it reloads in place when Personalization changes.
+   */
+  personalized?: boolean
 }
 
 /**
@@ -143,6 +148,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     supportingIcon: cdxIconLink,
     saveable: true,
     load: loadDailyReads,
+    personalized: true,
   },
   {
     id: 'suggested-edits',
@@ -154,6 +160,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     moreLabel: 'Show more suggestions',
     supportingIcon: cdxIconLightbulb,
     load: loadSuggestedEdits,
+    personalized: true,
   },
   {
     // Views across the row, then a 2 × 2 grid of stats (home2).
@@ -190,6 +197,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     moreLabel: 'Review more changes',
     supportingIcon: cdxIconUserAvatar,
     load: loadReviewChanges,
+    personalized: true,
   },
   {
     id: 'active-discussions',

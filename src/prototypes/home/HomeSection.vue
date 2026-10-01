@@ -14,6 +14,7 @@ import { CdxButton } from '@wikimedia/codex'
 import { useSkin } from '@/composables/useSkin'
 
 import HomeCard from './HomeCard.vue'
+import HomeConfigureMenu from './HomeConfigureMenu.vue'
 import HomeFilterChips from './HomeFilterChips.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
 import { hasModulePage, type HomeModuleSpec } from './modules'
@@ -76,6 +77,9 @@ if (props.standalone) {
 
 <template>
   <HomeSectionFrame v-if="!hidden" :id="spec.id" :title="standalone ? undefined : spec.title">
+    <template v-if="spec.personalized" #actions>
+      <HomeConfigureMenu />
+    </template>
     <div v-if="error" class="home-section__error">
       <p>Couldn't load this section.</p>
       <CdxButton weight="quiet" @click="reload">Try again</CdxButton>

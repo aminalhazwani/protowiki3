@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import type { HomeCardData } from './data/types'
 import { moduleSlots, type HomeModuleSpec } from './modules'
 import { preloadImages } from './preloadImages'
+import { useHomePersonalization } from './useHomePersonalization'
 
 /**
  * Loads one module's cards: abortable, with loading / error state and a retry.
@@ -99,6 +100,10 @@ export function useHomeModule(spec: HomeModuleSpec) {
   onMounted(() => load())
   onUnmounted(() => controller?.abort())
   if (spec.reloadOn) watch(spec.reloadOn, () => load({ inPlace: true }))
+  if (spec.personalized) {
+    const { version } = useHomePersonalization()
+    watch(version, () => load({ inPlace: true }))
+  }
 
   return {
     items,

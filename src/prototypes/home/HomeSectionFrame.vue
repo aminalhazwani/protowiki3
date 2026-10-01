@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** A Home module's frame: its heading over whatever the module shows. */
+/** A Home module's frame: its heading (and any heading actions) over whatever the module shows. */
 defineProps<{
   id: string
   /** Omitted on a module's own page, whose bar carries the title. */
@@ -9,7 +9,12 @@ defineProps<{
 
 <template>
   <section class="home-section-frame" :data-module-id="id">
-    <h2 v-if="title" class="home-section-frame__heading">{{ title }}</h2>
+    <div v-if="title" class="home-section-frame__header">
+      <h2 class="home-section-frame__heading">{{ title }}</h2>
+      <span v-if="$slots.actions" class="home-section-frame__actions">
+        <slot name="actions" />
+      </span>
+    </div>
     <slot />
   </section>
 </template>
@@ -19,6 +24,22 @@ defineProps<{
   display: flex;
   flex-direction: column;
   gap: var(--spacing-50);
+}
+
+/* Actions sit at the heading's end. */
+.home-section-frame__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-50);
+}
+
+/* A 32px button overhangs the 28px heading line instead of growing the row, so
+   every module's heading (with actions or without) keeps the same height. */
+.home-section-frame__actions {
+  display: flex;
+  flex-shrink: 0;
+  margin-block: calc(-1 * var(--spacing-25));
 }
 
 /* Codex Heading 4 — the page title above is the h1. */

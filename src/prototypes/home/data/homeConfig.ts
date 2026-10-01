@@ -32,7 +32,20 @@ export interface HomeConfig {
    * (`resolveHomeLayout`), so modules added later still show up.
    */
   layout: { order: string[]; on: string[] } | null
+  /** Articles the reader picked in Personalization, at most `MAX_INTERESTS`. */
+  interests: string[]
+  /** Which of the reader's activity shapes the personal modules (Personalization). */
+  sources: HomeSources
 }
+
+export interface HomeSources {
+  interests: boolean
+  saved: boolean
+  watchlist: boolean
+  contributions: boolean
+}
+
+export const MAX_INTERESTS = 10
 
 export const DEFAULT_HOME_CONFIG: HomeConfig = {
   username: null,
@@ -40,6 +53,8 @@ export const DEFAULT_HOME_CONFIG: HomeConfig = {
   mentorAssigned: null,
   mentorNoticeDismissed: false,
   layout: null,
+  interests: [],
+  sources: { interests: true, saved: true, watchlist: true, contributions: true },
 }
 
 /** MediaWiki's limit on username length. */
@@ -74,6 +89,25 @@ function normalizeLayout(value: unknown): HomeConfig['layout'] {
   return order && on ? { order, on } : null
 }
 
+function normalizeInterests(value: unknown): string[] {
+  const titles = (normalizeIdList(value) ?? []).map((title) => title.trim()).filter(Boolean)
+  return [...new Set(titles)].slice(0, MAX_INTERESTS)
+}
+
+/** Each switch falls back to its default (on) unless stored as a boolean. */
+function normalizeSources(value: unknown): HomeSources {
+  const record =
+    typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
+  const pick = (key: keyof HomeSources) =>
+    typeof record[key] === 'boolean' ? (record[key] as boolean) : DEFAULT_HOME_CONFIG.sources[key]
+  return {
+    interests: pick('interests'),
+    saved: pick('saved'),
+    watchlist: pick('watchlist'),
+    contributions: pick('contributions'),
+  }
+}
+
 export function normalizeHomeConfig(input: unknown): HomeConfig {
   const record =
     typeof input === 'object' && input !== null ? (input as Record<string, unknown>) : {}
@@ -83,6 +117,8 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
     mentorAssigned: typeof record.mentorAssigned === 'boolean' ? record.mentorAssigned : null,
     mentorNoticeDismissed: record.mentorNoticeDismissed === true,
     layout: normalizeLayout(record.layout),
+    interests: normalizeInterests(record.interests),
+    sources: normalizeSources(record.sources),
   }
 }
 
