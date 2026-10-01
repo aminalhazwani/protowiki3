@@ -23,6 +23,8 @@ export interface HomeCardData {
   to?: RouteLocationRaw
   /** Where the card leads off the prototype (a new tab, after the leave dialog). */
   href?: string
+  /** A glyph in place of a thumbnail (a stat card's). */
+  icon?: Icon
   /** Short line under the text, e.g. "Article of the day". */
   supportingText?: string
   chips?: HomeCardChip[]

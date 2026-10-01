@@ -51,6 +51,7 @@ const LAYOUTS: Record<HomeCardVariant, CardLayout> = {
   hook: { thumbnailPosition: 'inline-end', thumbnailSize: 'large' },
   change: {},
   text: {},
+  stat: {},
 }
 
 const layout = computed(() => LAYOUTS[props.variant])
@@ -96,6 +97,7 @@ function onClick(event: MouseEvent): void {
       class="home-card__card"
       :url="href"
       :thumbnail="thumbnail"
+      :icon="card.icon"
       :thumbnail-position="layout.thumbnailPosition"
       :thumbnail-size="layout.thumbnailSize"
       :force-thumbnail="layout.forceThumbnail"
@@ -268,6 +270,16 @@ function onClick(event: MouseEvent): void {
 /* A text card: title, one-line description, supporting line. */
 .home-card-skeleton--text {
   height: 107px;
+}
+
+/* A stat card: number and label beside an icon. */
+.home-card-skeleton--stat {
+  height: 74px;
+}
+
+/* Minerva's half-width stats wrap their labels; the full-width first one doesn't. */
+[data-skin='mobile'] .home-card-skeleton--stat:not(:first-child) {
+  height: 96px;
 }
 
 /* Minerva's narrower column wraps descriptions and hooks onto more lines. */

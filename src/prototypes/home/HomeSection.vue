@@ -49,6 +49,9 @@ const filters = computed(() => {
 
 const isEmpty = computed(() => !loading.value && !error.value && items.value.length === 0)
 
+/** Nothing to show and no empty state: the module drops out. */
+const hidden = computed(() => isEmpty.value && !props.spec.empty)
+
 /*
  * Vector reveals the next cards in place. Minerva will send the reader to the
  * module's own page instead (a phone column grows unreadably long), once
@@ -58,12 +61,17 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
 </script>
 
 <template>
-  <section v-if="!isEmpty" class="home-section" :data-module-id="spec.id">
+  <section v-if="!hidden" class="home-section" :data-module-id="spec.id">
     <h2 class="home-section__heading">{{ spec.title }}</h2>
 
     <div v-if="error" class="home-section__error">
       <p>Couldn't load this section.</p>
       <CdxButton weight="quiet" @click="reload">Try again</CdxButton>
+    </div>
+
+    <div v-else-if="isEmpty && spec.empty" class="home-section__empty">
+      <p class="home-section__empty-title">{{ spec.empty.title }}</p>
+      <p v-for="line in spec.empty.text" :key="line">{{ line }}</p>
     </div>
 
     <template v-else>
@@ -75,7 +83,11 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
         @update:model-value="setFilter"
       />
 
-      <div class="home-section__cards" :aria-busy="ready < reserved">
+      <div
+        class="home-section__cards"
+        :class="`home-section__cards--${spec.variant}`"
+        :aria-busy="ready < reserved"
+      >
         <HomeCard
           v-for="slot in slots"
           :key="slot.key"
@@ -140,6 +152,31 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: var(--spacing-100);
+}
+
+/* Stats pair up on every skin, under a first stat that spans the row (Impact's views). */
+.home-section__cards--stat {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-section__cards--stat > :first-child {
+  grid-column: 1 / -1;
+}
+
+.home-section__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-25);
+  color: var(--color-subtle);
+}
+
+.home-section__empty p {
+  margin: 0;
+}
+
+.home-section__empty-title {
+  font-weight: var(--font-weight-bold);
 }
 
 /* Under a grid a full-width bar would read as another cell: hug the label instead. */

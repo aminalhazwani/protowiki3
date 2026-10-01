@@ -20,6 +20,7 @@ import { DISCUSSION_FILTERS, loadActiveDiscussions } from './data/loadActiveDisc
 import { loadDailyReads } from './data/loadDailyReads'
 import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
+import { hasImpact, loadImpact } from './data/loadImpact'
 import { loadReviewChanges, RANDOM_CHANGE_COUNT } from './data/loadReviewChanges'
 import { loadSaved } from './data/loadSaved'
 import { loadSuggestedEdits, RANDOM_SUGGESTION_COUNT } from './data/loadSuggestedEdits'
@@ -33,6 +34,7 @@ export type HomeModuleId =
   | 'trending'
   | 'daily-reads'
   | 'suggested-edits'
+  | 'impact'
   | 'review-changes'
   | 'active-discussions'
   | 'did-you-know'
@@ -45,8 +47,9 @@ export type HomeModuleId =
  * - `hook` — a sentence with its subject in bold, large thumbnail after it.
  * - `change` — an edit: status chips over the page title, no thumbnail.
  * - `text` — title, description and supporting line only (a discussion).
+ * - `stat` — a number with its label and an icon, two to a row on every skin.
  */
-export type HomeCardVariant = 'hero' | 'article' | 'hook' | 'change' | 'text'
+export type HomeCardVariant = 'hero' | 'article' | 'hook' | 'change' | 'text' | 'stat'
 
 /** One option in a module's filter strip; cards opt in with `HomeCardData.filterId`. */
 export interface HomeModuleFilter {
@@ -78,6 +81,8 @@ export interface HomeModuleSpec {
   supportingIcon?: Icon
   /** Fetches the module's cards. Throws on failure; must respect `signal`. */
   load: (signal: AbortSignal) => Promise<HomeCardData[]>
+  /** Shown instead of dropping the module when it loads no cards. */
+  empty?: { title: string; text: readonly string[] }
   /** Reloads (in place, without skeletons) whenever this value changes. */
   reloadOn?: () => unknown
 }
@@ -123,6 +128,22 @@ export const HOME_MODULES: readonly HomeModuleSpec[] = [
     moreLabel: 'Show more suggestions',
     supportingIcon: cdxIconLightbulb,
     load: loadSuggestedEdits,
+  },
+  {
+    // Views across the row, then a 2 × 2 grid of stats (home2).
+    id: 'impact',
+    title: 'Your impact',
+    variant: 'stat',
+    // No skeletons when there's nothing to load: the empty state shows straight away.
+    slots: () => (hasImpact() ? 5 : 0),
+    load: loadImpact,
+    empty: {
+      title: '0 edits to articles so far.',
+      text: [
+        'Help extend free knowledge to the world by editing topics that matter most to you.',
+        'Start with a few suggested edits, then see how many people are viewing your contributions here.',
+      ],
+    },
   },
   {
     // The latest edit to each of the reader's pages; one live edit for a stranger (home2).
