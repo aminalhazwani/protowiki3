@@ -10,11 +10,13 @@ import {
   cdxIconChart,
   cdxIconLightbulb,
   cdxIconLink,
+  cdxIconSpeechBubbles,
   cdxIconStar,
   cdxIconUserAvatar,
   type Icon,
 } from '@wikimedia/codex-icons'
 
+import { DISCUSSION_FILTERS, loadActiveDiscussions } from './data/loadActiveDiscussions'
 import { loadDailyReads } from './data/loadDailyReads'
 import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
@@ -32,6 +34,7 @@ export type HomeModuleId =
   | 'daily-reads'
   | 'suggested-edits'
   | 'review-changes'
+  | 'active-discussions'
   | 'did-you-know'
   | 'saved'
 
@@ -41,8 +44,15 @@ export type HomeModuleId =
  * - `article` — large thumbnail before the text (an article to read).
  * - `hook` — a sentence with its subject in bold, large thumbnail after it.
  * - `change` — an edit: status chips over the page title, no thumbnail.
+ * - `text` — title, description and supporting line only (a discussion).
  */
-export type HomeCardVariant = 'hero' | 'article' | 'hook' | 'change'
+export type HomeCardVariant = 'hero' | 'article' | 'hook' | 'change' | 'text'
+
+/** One option in a module's filter strip; cards opt in with `HomeCardData.filterId`. */
+export interface HomeModuleFilter {
+  id: string
+  label: string
+}
 
 export interface HomeModuleSpec {
   id: HomeModuleId
@@ -59,6 +69,11 @@ export interface HomeModuleSpec {
   moreLabel?: string
   /** Cards get a save (bookmark) button. */
   saveable?: boolean
+  /**
+   * Filters shown above the cards, after "All", in this order. Only those some
+   * card belongs to appear, and the strip only when at least two do.
+   */
+  filters?: readonly HomeModuleFilter[]
   /** Glyph beside each card's supporting text. */
   supportingIcon?: Icon
   /** Fetches the module's cards. Throws on failure; must respect `signal`. */
@@ -119,6 +134,17 @@ export const HOME_MODULES: readonly HomeModuleSpec[] = [
     moreLabel: 'Review more changes',
     supportingIcon: cdxIconUserAvatar,
     load: loadReviewChanges,
+  },
+  {
+    id: 'active-discussions',
+    title: 'Active discussions',
+    variant: 'text',
+    slots: 4,
+    pageSize: 4,
+    moreLabel: 'Show more active discussions',
+    filters: DISCUSSION_FILTERS,
+    supportingIcon: cdxIconSpeechBubbles,
+    load: loadActiveDiscussions,
   },
   {
     id: 'did-you-know',

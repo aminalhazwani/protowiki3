@@ -10,24 +10,42 @@ import { CdxButton } from '@wikimedia/codex'
 import { useSkin } from '@/composables/useSkin'
 
 import HomeCard from './HomeCard.vue'
+import HomeFilterChips from './HomeFilterChips.vue'
 import type { HomeModuleSpec } from './modules'
 import { useHomeModule } from './useHomeModule'
 
 const props = defineProps<{ spec: HomeModuleSpec }>()
 
-const { items, loading, error, reserved, ready, hasMore, reload, revealMore } = useHomeModule(
-  props.spec,
-)
+const {
+  items,
+  visible,
+  filter,
+  loading,
+  error,
+  reserved,
+  ready,
+  hasMore,
+  reload,
+  revealMore,
+  setFilter,
+} = useHomeModule(props.spec)
 
 const skin = useSkin()
 
 /** Every reserved slot: its card once ready, a skeleton until then. */
 const slots = computed(() =>
   Array.from({ length: reserved.value }, (_, index) => ({
-    card: index < ready.value ? items.value[index] : undefined,
-    key: items.value[index]?.key ?? `slot-${index}`,
+    card: index < ready.value ? visible.value[index] : undefined,
+    key: visible.value[index]?.key ?? `slot-${index}`,
   })),
 )
+
+/** The spec's filters some card belongs to; a strip needs at least two besides "All". */
+const filters = computed(() => {
+  const present = new Set(items.value.map((card) => card.filterId))
+  const shown = props.spec.filters?.filter((option) => present.has(option.id)) ?? []
+  return shown.length >= 2 ? shown : []
+})
 
 const isEmpty = computed(() => !loading.value && !error.value && items.value.length === 0)
 
@@ -49,6 +67,14 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
     </div>
 
     <template v-else>
+      <HomeFilterChips
+        v-if="filters.length"
+        :model-value="filter"
+        :filters="filters"
+        :label="`${spec.title} filters`"
+        @update:model-value="setFilter"
+      />
+
       <div class="home-section__cards" :aria-busy="ready < reserved">
         <HomeCard
           v-for="slot in slots"

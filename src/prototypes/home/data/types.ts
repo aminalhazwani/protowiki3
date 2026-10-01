@@ -26,4 +26,6 @@ export interface HomeCardData {
   /** Short line under the text, e.g. "Article of the day". */
   supportingText?: string
   chips?: HomeCardChip[]
+  /** Which of the module's filters the card belongs to (see `HomeModuleSpec.filters`). */
+  filterId?: string
 }

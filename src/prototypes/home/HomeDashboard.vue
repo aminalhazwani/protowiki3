@@ -25,9 +25,13 @@ const { pageTitle } = useConfig()
   padding-bottom: var(--spacing-300);
 }
 
-/* PROTOWIKI+ SpecialPageWrapper: mobile gutter is the desktop one. */
+/*
+ * PROTOWIKI+ SpecialPageWrapper: mobile gutter is the desktop one.
+ * `--home-gutter` lets full-bleed rows (filter strips) reach the screen edge.
+ */
 .home-dashboard[data-skin='mobile'] {
-  padding-inline: var(--spacing-100);
+  --home-gutter: var(--spacing-100);
+  padding-inline: var(--home-gutter);
 }
 
 /*

@@ -50,6 +50,7 @@ const LAYOUTS: Record<HomeCardVariant, CardLayout> = {
   article: { thumbnailSize: 'large', forceThumbnail: true },
   hook: { thumbnailPosition: 'inline-end', thumbnailSize: 'large' },
   change: {},
+  text: {},
 }
 
 const layout = computed(() => LAYOUTS[props.variant])
@@ -262,6 +263,11 @@ function onClick(event: MouseEvent): void {
 /* A change card: chip row, title, one-line summary, editor (measured 139 on both skins). */
 .home-card-skeleton--change {
   height: 139px;
+}
+
+/* A text card: title, one-line description, supporting line. */
+.home-card-skeleton--text {
+  height: 107px;
 }
 
 /* Minerva's narrower column wraps descriptions and hooks onto more lines. */
