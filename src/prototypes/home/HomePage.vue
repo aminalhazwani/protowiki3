@@ -11,6 +11,9 @@ defineProps<{ title: string | null }>()
 
 <template>
   <SpecialPageWrapper :title="title" class="home-page">
+    <template v-if="$slots.actions" #actions>
+      <slot name="actions" />
+    </template>
     <slot />
   </SpecialPageWrapper>
 </template>

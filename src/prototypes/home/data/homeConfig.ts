@@ -26,6 +26,12 @@ export interface HomeConfig {
   mentorAssigned: boolean | null
   /** The "We've assigned you…" notice was dismissed. */
   mentorNoticeDismissed: boolean
+  /**
+   * The reader's Home layout (module order + the ones switched on); `null`
+   * follows the default. Ids are checked against the registry when it's read
+   * (`resolveHomeLayout`), so modules added later still show up.
+   */
+  layout: { order: string[]; on: string[] } | null
 }
 
 export const DEFAULT_HOME_CONFIG: HomeConfig = {
@@ -33,6 +39,7 @@ export const DEFAULT_HOME_CONFIG: HomeConfig = {
   savedAt: {},
   mentorAssigned: null,
   mentorNoticeDismissed: false,
+  layout: null,
 }
 
 /** MediaWiki's limit on username length. */
@@ -54,6 +61,19 @@ function normalizeSavedAt(value: unknown): Record<string, number> {
   return Object.fromEntries(entries)
 }
 
+function normalizeIdList(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null
+  return value.filter((id): id is string => typeof id === 'string')
+}
+
+function normalizeLayout(value: unknown): HomeConfig['layout'] {
+  if (typeof value !== 'object' || value === null) return null
+  const record = value as Record<string, unknown>
+  const order = normalizeIdList(record.order)
+  const on = normalizeIdList(record.on)
+  return order && on ? { order, on } : null
+}
+
 export function normalizeHomeConfig(input: unknown): HomeConfig {
   const record =
     typeof input === 'object' && input !== null ? (input as Record<string, unknown>) : {}
@@ -62,6 +82,7 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
     savedAt: normalizeSavedAt(record.savedAt),
     mentorAssigned: typeof record.mentorAssigned === 'boolean' ? record.mentorAssigned : null,
     mentorNoticeDismissed: record.mentorNoticeDismissed === true,
+    layout: normalizeLayout(record.layout),
   }
 }
 

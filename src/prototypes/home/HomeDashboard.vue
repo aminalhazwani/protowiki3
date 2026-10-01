@@ -1,16 +1,24 @@
 <script setup lang="ts">
 /**
- * The signed-in Home: a special-page shell with the greeting as its title, then
- * every registry module in order.
+ * The signed-in Home: a special-page shell with the greeting as its title (and
+ * the "Home layout" button beside it), then the layout's modules in order.
  */
+import { ref } from 'vue'
+import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { cdxIconConfigure } from '@wikimedia/codex-icons'
+
 import { useConfig } from '@/composables/useConfig'
 
+import HomeLayoutDialog from './HomeLayoutDialog.vue'
 import HomePage from './HomePage.vue'
 import HomeSection from './HomeSection.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
-import { HOME_MODULES, isCustomModule } from './modules'
+import { isCustomModule } from './modules'
+import { useHomeLayout } from './useHomeLayout'
 
 const { pageTitle } = useConfig()
+const { visibleModules } = useHomeLayout()
+const layoutOpen = ref(false)
 
 function titleOf(title: string | (() => string)): string {
   return typeof title === 'function' ? title() : title
@@ -19,14 +27,20 @@ function titleOf(title: string | (() => string)): string {
 
 <template>
   <HomePage :title="pageTitle" class="home-dashboard">
+    <template #actions>
+      <CdxButton weight="quiet" aria-label="Home layout" @click="layoutOpen = true">
+        <CdxIcon :icon="cdxIconConfigure" />
+      </CdxButton>
+    </template>
     <div class="home-dashboard__modules">
-      <template v-for="spec in HOME_MODULES" :key="spec.id">
+      <template v-for="spec in visibleModules" :key="spec.id">
         <HomeSectionFrame v-if="isCustomModule(spec)" :id="spec.id" :title="titleOf(spec.title)">
           <component :is="spec.body" />
         </HomeSectionFrame>
         <HomeSection v-else :spec="spec" />
       </template>
     </div>
+    <HomeLayoutDialog v-model:open="layoutOpen" />
   </HomePage>
 </template>
 

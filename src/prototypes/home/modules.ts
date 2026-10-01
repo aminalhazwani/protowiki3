@@ -65,6 +65,8 @@ export interface HomeModuleFilter {
 export interface HomeModuleSpec {
   id: HomeModuleId
   title: string
+  /** Its name in the "Home layout" list, when that isn't `title`. */
+  layoutLabel?: string
   variant: HomeCardVariant
   /**
    * Cards shown on the Home — also the number of skeletons held while loading.
@@ -100,6 +102,8 @@ export interface HomeCustomModuleSpec {
   id: HomeModuleId
   /** A function when it depends on the module's state (read as it renders). */
   title: string | (() => string)
+  /** Its name in the "Home layout" list, when that isn't `title` (or `title` varies). */
+  layoutLabel?: string
   body: Component
 }
 
@@ -109,7 +113,7 @@ export function isCustomModule(spec: HomeAnyModuleSpec): spec is HomeCustomModul
   return 'body' in spec
 }
 
-/** In Home order. */
+/** Every module. Which ones the Home shows, and in what order, is its layout (`data/homeLayout.ts`). */
 export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
   {
     id: 'featured',
@@ -169,6 +173,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
   },
   {
     id: 'mentor',
+    layoutLabel: 'Your mentor',
     title: () =>
       useHomeMentor().isAssigned.value
         ? MENTOR_CONTENT.assigned.title
@@ -208,6 +213,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
   {
     id: 'saved',
     title: 'Saved',
+    layoutLabel: 'Saved pages',
     variant: 'article',
     slots: 4,
     pageSize: 4,
