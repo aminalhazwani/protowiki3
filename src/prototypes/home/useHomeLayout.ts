@@ -28,16 +28,28 @@ export function useHomeLayout() {
     return layout.value.on.includes(id)
   }
 
-  /** Switch a module on or off. The first change saves the whole layout. */
-  function setOn(id: HomeModuleId, on: boolean): void {
-    const { order } = layout.value
-    const next = on ? [...layout.value.on, id] : layout.value.on.filter((other) => other !== id)
+  /** Save a layout. The first change saves the whole of it, so later defaults don't shift it. */
+  function save(order: HomeModuleId[], on: HomeModuleId[]): void {
     stored.value = patchHomeConfig({
-      layout: { order, on: order.filter((m) => next.includes(m)) },
+      layout: { order, on: order.filter((id) => on.includes(id)) },
     }).layout
   }
 
-  return { modules, visibleModules, isOn, setOn }
+  /** Switch a module on or off. */
+  function setOn(id: HomeModuleId, on: boolean): void {
+    const current = layout.value.on
+    save(layout.value.order, on ? [...current, id] : current.filter((other) => other !== id))
+  }
+
+  /** Move the module at `from` to `to` (indexes into `modules`). */
+  function move(from: number, to: number): void {
+    if (from === to) return
+    const order = [...layout.value.order]
+    order.splice(to, 0, ...order.splice(from, 1))
+    save(order, layout.value.on)
+  }
+
+  return { modules, visibleModules, isOn, setOn, move }
 }
 
 /** A module's name in the "Home layout" list. */

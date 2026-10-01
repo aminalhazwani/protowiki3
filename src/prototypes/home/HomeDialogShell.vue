@@ -32,12 +32,27 @@ const isMobile = computed(() => globalSkin.value === 'mobile')
     use-close-button
     :fixed-height="isMobile"
   >
+    <!--
+      Focus holder (home2). On open, Codex's focus trap focuses the body's first
+      focusable node, which would be a control the reader never picked (a drag
+      handle, a switch). This takes it instead, so nothing looks selected and
+      Tab starts from the top. An `<a>`, because the trap only looks for
+      focusable tags and non-negative `tabindex`; `tabindex="-1"` keeps it out
+      of the tab order.
+    -->
+    <a class="home-dialog-shell__focus-holder" tabindex="-1" />
     <slot />
   </CdxDialog>
 </template>
 
 <!-- CdxDialog teleports out of this component, so these rules can't be scoped. -->
 <style>
+.home-dialog-shell__focus-holder {
+  display: block;
+  height: 0;
+  outline: none;
+}
+
 /* CODEX+ CdxDialog: no size prop. Codex's own clamp, as on the leave dialog. */
 .home-dialog-shell {
   max-width: 32rem;
