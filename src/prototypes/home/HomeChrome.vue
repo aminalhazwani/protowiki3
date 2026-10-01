@@ -37,7 +37,7 @@ const NAV_TOOLS: ChromeNavTool[] = [
   'user-menu',
 ]
 
-const { logOut } = useHomeSession()
+const { logIn, logOut } = useHomeSession()
 const { onLeaveCapture } = useHomeLeavePrototype()
 
 const router = useRouter()
@@ -47,19 +47,27 @@ registerArticleOpener({
 })
 
 /*
- * Logging out lands on the logged-out Main Page, wherever the reader was. It
- * happens as the route commits, not before: the setting change rewrites
+ * Go to `/home` and switch the account there, wherever the reader was. The
+ * switch happens as the route commits, not before: the setting change rewrites
  * `?user=` on the current route, and that replace would cancel the navigation.
- * Not after either, or the signed-in Home would mount (and fetch) first.
+ * Not after either, or the wrong Home would mount (and fetch) first.
  * `afterEach` runs before the new page renders, and also on a duplicate push.
  */
+function goHomeAs(switchAccount: () => void): void {
+  const stop = router.afterEach(() => {
+    stop()
+    switchAccount()
+  })
+  void router.push(HOME_PATH)
+}
+
 registerAccountActions({
-  logOut: () => {
-    const stop = router.afterEach(() => {
-      stop()
-      logOut()
-    })
-    void router.push(HOME_PATH)
+  // Logging out lands on the logged-out Main Page.
+  logOut: () => goHomeAs(logOut),
+  // Placeholder until onboarding (Phase F): sign straight in as a new account.
+  createAccount: {
+    href: () => router.resolve({ path: HOME_PATH, query: { user: 'new' } }).href,
+    open: () => goHomeAs(() => logIn()),
   },
 })
 </script>

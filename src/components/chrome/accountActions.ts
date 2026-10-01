@@ -15,6 +15,17 @@ import { onScopeDispose, shallowRef, type ShallowRef } from 'vue'
 export interface AccountActions {
   /** The user menu's "Log out" row. */
   logOut?(): void
+  /** The logged-out "Create account" link: the prototype's own account flow. */
+  createAccount?: {
+    /**
+     * The in-ProtoWiki URL for that flow. The link stays a real `<a>`, so it
+     * needs a real `href`: it's what a ⌘- or middle-click opens in a new tab.
+     * Plain clicks never follow it; they go through `open`.
+     */
+    href(): string
+    /** Start the flow in place, without a page load. */
+    open(): void
+  }
 }
 
 /** The actions the current page registered, or `null` — see {@link AccountActions}. */

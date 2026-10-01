@@ -128,6 +128,23 @@ const USER_MENU_ITEMS: MenuButtonItemData[] = [
   { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
 ]
 
+/*
+ * PROTOWIKI+ (Home) "Create account" opens the prototype's own flow when the
+ * page registered one (`accountActions.createAccount`), else the real wiki's.
+ */
+const CREATE_ACCOUNT_URL = 'https://en.wikipedia.org/w/index.php?title=Special:CreateAccount'
+const createAccountHref = computed(
+  () => accountActions.value?.createAccount?.href() ?? CREATE_ACCOUNT_URL,
+)
+
+function onCreateAccountClick(event: MouseEvent): void {
+  const createAccount = accountActions.value?.createAccount
+  // Modified clicks are the browser's: that's what the href is for.
+  if (!createAccount || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  event.preventDefault()
+  createAccount.open()
+}
+
 const userMenuSelection = ref<MenuItemValue | null>(null)
 watch(userMenuSelection, (value) => {
   if (value === null) return
@@ -222,8 +239,9 @@ watch(userMenuSelection, (value) => {
             </a>
             <a
               class="vector-chrome-header__text-link"
-              href="https://en.wikipedia.org/w/index.php?title=Special:CreateAccount"
+              :href="createAccountHref"
               rel="noopener noreferrer"
+              @click="onCreateAccountClick"
             >
               Create account
             </a>
