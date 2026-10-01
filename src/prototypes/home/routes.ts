@@ -16,6 +16,11 @@ export function normalizeTitle(raw: string): string {
   return title.replace(/_/g, ' ').trim()
 }
 
+/** A module's own page (`home.[module]`), e.g. `/home/trending`. */
+export function homeModuleLocation(id: string): RouteLocationRaw {
+  return { path: `${HOME_PATH}/${id}` }
+}
+
 /** Title from the `home.wiki.[title]` route param. */
 export function titleFromRouteParam(param: string | string[] | undefined): string {
   const value = Array.isArray(param) ? param[0] : param

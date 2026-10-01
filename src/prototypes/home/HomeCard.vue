@@ -20,6 +20,8 @@ const props = defineProps<{
   supportingIcon?: Icon
   /** Show a save (bookmark) button for the card's page. */
   saveable?: boolean
+  /** A row of a divider list (a module page) rather than an outlined card. */
+  divider?: boolean
 }>()
 
 const router = useRouter()
@@ -91,7 +93,10 @@ function onClick(event: MouseEvent): void {
   <div
     v-else
     class="home-card"
-    :class="[`home-card--${variant}`, { 'home-card--saveable': saveable }]"
+    :class="[
+      `home-card--${variant}`,
+      { 'home-card--saveable': saveable, 'home-card--timed': card.supportingTime },
+    ]"
   >
     <CdxCard
       class="home-card__card"
@@ -102,6 +107,7 @@ function onClick(event: MouseEvent): void {
       :thumbnail-size="layout.thumbnailSize"
       :force-thumbnail="layout.forceThumbnail"
       :target="card.href ? '_blank' : undefined"
+      :separation="divider ? 'divider' : undefined"
       @click="onClick"
     >
       <template #title>
@@ -124,12 +130,13 @@ function onClick(event: MouseEvent): void {
         <template v-else>{{ card.title }}</template>
       </template>
       <template v-if="card.description" #description>{{ card.description }}</template>
-      <template v-if="card.supportingText" #supporting-text>
+      <template v-if="card.supportingText || card.supportingTime" #supporting-text>
         <span class="home-card__supporting">
           <span v-if="supportingIcon" class="home-card__supporting-icon">
             <CdxIcon :icon="supportingIcon" size="small" />
           </span>
           <span>{{ card.supportingText }}</span>
+          <span v-if="card.supportingTime" class="home-card__time">{{ card.supportingTime }}</span>
         </span>
       </template>
     </CdxCard>
@@ -197,6 +204,35 @@ function onClick(event: MouseEvent): void {
   gap: var(--spacing-25);
   margin-bottom: var(--spacing-50);
   font-weight: var(--font-weight-normal);
+}
+
+/*
+ * CODEX+ CdxCard: no slot for a timestamp. A timed card's supporting line runs
+ * the full width with the time at its far end, and sits on the card's bottom
+ * edge, so beside a taller neighbour every time lands in the bottom corner (home2).
+ */
+.home-card--timed :deep(.cdx-card__text) {
+  flex-grow: 1;
+  align-self: stretch;
+}
+
+.home-card--timed :deep(.cdx-card__text__supporting-text) {
+  margin-top: auto;
+  padding-top: var(--spacing-50);
+}
+
+.home-card--timed .home-card__supporting {
+  display: flex;
+}
+
+/* On the label's last line when the label wraps (the icon stays with its first). */
+.home-card__time {
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-inline-start: auto;
+  /* With the row's 4px gap: 12px clear of the label, as on home2. */
+  padding-inline-start: var(--spacing-50);
+  white-space: nowrap;
 }
 
 /* When the label wraps, the icon stays with its first line. */

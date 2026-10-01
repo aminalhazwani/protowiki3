@@ -1,11 +1,15 @@
 <script setup lang="ts">
 /** A Home module's frame: its heading over whatever the module shows. */
-defineProps<{ id: string; title: string }>()
+defineProps<{
+  id: string
+  /** Omitted on a module's own page, whose bar carries the title. */
+  title?: string
+}>()
 </script>
 
 <template>
   <section class="home-section-frame" :data-module-id="id">
-    <h2 class="home-section-frame__heading">{{ title }}</h2>
+    <h2 v-if="title" class="home-section-frame__heading">{{ title }}</h2>
     <slot />
   </section>
 </template>

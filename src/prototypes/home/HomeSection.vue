@@ -3,8 +3,12 @@
  * One Home module, rendered generically from its registry spec: heading, then
  * its cards (skeletons while loading or revealing), or an error with a retry. A
  * module that loads with nothing to show drops out of the Home.
+ *
+ * `standalone` is the module's own page: no heading (the page bar has it), and
+ * cards reveal as the reader scrolls instead of through "Show more".
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { CdxButton } from '@wikimedia/codex'
 
 import { useSkin } from '@/composables/useSkin'
@@ -12,10 +16,12 @@ import { useSkin } from '@/composables/useSkin'
 import HomeCard from './HomeCard.vue'
 import HomeFilterChips from './HomeFilterChips.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
-import type { HomeModuleSpec } from './modules'
+import { hasModulePage, type HomeModuleSpec } from './modules'
+import { homeModuleLocation } from './routes'
 import { useHomeModule } from './useHomeModule'
+import { useRevealOnScroll } from './useRevealOnScroll'
 
-const props = defineProps<{ spec: HomeModuleSpec }>()
+const props = defineProps<{ spec: HomeModuleSpec; standalone?: boolean }>()
 
 const {
   items,
@@ -50,19 +56,26 @@ const filters = computed(() => {
 
 const isEmpty = computed(() => !loading.value && !error.value && items.value.length === 0)
 
-/** Nothing to show and no empty state: the module drops out. */
-const hidden = computed(() => isEmpty.value && !props.spec.empty)
+/** Nothing to show and no empty state: the module drops out of the Home (its own page says so). */
+const hidden = computed(() => isEmpty.value && !props.spec.empty && !props.standalone)
 
 /*
- * Vector reveals the next cards in place. Minerva will send the reader to the
- * module's own page instead (a phone column grows unreadably long), once
- * module pages exist — until then, it shows the preview only.
+ * "Show more": Vector reveals the next cards in place; Minerva links to the
+ * module's own page, since a phone column would grow unreadably long (home2).
  */
-const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.value === 'desktop')
+const more = computed(() => {
+  if (props.standalone || !hasModulePage(props.spec) || !hasMore.value) return null
+  return skin.value === 'desktop' ? 'reveal' : 'page'
+})
+
+const sentinel = ref<HTMLElement | null>(null)
+if (props.standalone) {
+  useRevealOnScroll(sentinel, () => hasMore.value && ready.value === reserved.value, revealMore)
+}
 </script>
 
 <template>
-  <HomeSectionFrame v-if="!hidden" :id="spec.id" :title="spec.title">
+  <HomeSectionFrame v-if="!hidden" :id="spec.id" :title="standalone ? undefined : spec.title">
     <div v-if="error" class="home-section__error">
       <p>Couldn't load this section.</p>
       <CdxButton weight="quiet" @click="reload">Try again</CdxButton>
@@ -73,9 +86,12 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
       <p v-for="line in spec.empty.text" :key="line">{{ line }}</p>
     </div>
 
+    <p v-else-if="isEmpty" class="home-section__empty">Nothing here right now.</p>
+
     <template v-else>
       <HomeFilterChips
         v-if="filters.length"
+        :class="{ 'home-section__filters--page': standalone }"
         :model-value="filter"
         :filters="filters"
         :label="`${spec.title} filters`"
@@ -84,7 +100,10 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
 
       <div
         class="home-section__cards"
-        :class="`home-section__cards--${spec.variant}`"
+        :class="[
+          `home-section__cards--${spec.variant}`,
+          { 'home-section__cards--list': standalone },
+        ]"
         :aria-busy="ready < reserved"
       >
         <HomeCard
@@ -95,17 +114,29 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
           :loading="!slot.card"
           :supporting-icon="spec.supportingIcon"
           :saveable="spec.saveable"
+          :divider="standalone"
         />
       </div>
 
       <CdxButton
-        v-if="showMore"
+        v-if="more === 'reveal'"
         class="home-section__more"
         :disabled="ready < reserved"
         @click="revealMore"
       >
         {{ spec.moreLabel ?? 'Show more' }}
       </CdxButton>
+
+      <!-- A link that looks like a button: it goes somewhere (Codex's CSS-only button). -->
+      <RouterLink
+        v-else-if="more === 'page'"
+        class="home-section__more home-section__more--page cdx-button cdx-button--fake-button cdx-button--fake-button--enabled"
+        :to="homeModuleLocation(spec.id)"
+      >
+        {{ spec.moreLabel ?? 'Show more' }}
+      </RouterLink>
+
+      <div v-if="standalone" ref="sentinel" aria-hidden="true" />
     </template>
   </HomeSectionFrame>
 </template>
@@ -137,6 +168,44 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
   gap: var(--spacing-100);
 }
 
+/*
+ * On a module page the strip sticks under the bar (home2): 4px from it, 8px
+ * above its own hairline, full width over the scrolling list. `top` is the
+ * bar's height (see HomeSubpageHeader).
+ */
+.home-section__filters--page {
+  position: sticky;
+  top: calc(var(--spacing-300) + env(safe-area-inset-top, 0px));
+  z-index: 1;
+  padding-block: var(--spacing-25) var(--spacing-50);
+  background-color: var(--background-color-base);
+  box-shadow: 0 1px 0 var(--border-color-base);
+}
+
+/*
+ * A module page is one long list on every skin (home2): cards become Codex
+ * divider rows — no outline, a rule between them.
+ */
+.home-section__cards--list,
+[data-skin='desktop'] .home-section__cards--list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/*
+ * CODEX+ CdxCard: `separation="divider"` rules only between adjacent cards, and
+ * ours sit in a wrapper (for the save button), so the rule goes between those.
+ */
+.home-section__cards--list > * + * {
+  border-top: var(--border-width-base) var(--border-style-base) var(--border-color-base);
+}
+
+/* Skeletons keep the rows' rhythm: a divider row is its card's padding either side. */
+.home-section__cards--list > .home-card-skeleton {
+  margin-block: var(--spacing-75);
+}
+
 /* Stats pair up on every skin, under a first stat that spans the row (Impact's views). */
 .home-section__cards--stat {
   display: grid;
@@ -166,5 +235,11 @@ const showMore = computed(() => !!props.spec.pageSize && hasMore.value && skin.v
 .home-section__more {
   align-self: flex-start;
   margin-top: var(--spacing-25);
+}
+
+/* Minerva: a full-width bar under the stacked cards (home2). */
+.home-section__more--page {
+  align-self: stretch;
+  max-width: none;
 }
 </style>

@@ -27,6 +27,8 @@ export interface HomeCardData {
   icon?: Icon
   /** Short line under the text, e.g. "Article of the day". */
   supportingText?: string
+  /** When, e.g. "3h ago": set apart at the far end of the supporting line (home2). */
+  supportingTime?: string
   chips?: HomeCardChip[]
   /** Which of the module's filters the card belongs to (see `HomeModuleSpec.filters`). */
   filterId?: string

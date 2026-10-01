@@ -110,7 +110,8 @@ function toCard(thread: Thread): HomeCardData {
     title: thread.title,
     description: thread.board.replace(/^Wikipedia:/, ''),
     href: `${url}#${encodeURIComponent(thread.id)}`,
-    supportingText: `${comments} · ${formatAgo(Date.parse(thread.latestReply))}`,
+    supportingText: comments,
+    supportingTime: formatAgo(Date.parse(thread.latestReply)),
     filterId: thread.board,
   }
 }

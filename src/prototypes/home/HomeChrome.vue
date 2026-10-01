@@ -14,9 +14,11 @@ import { useHomeLeavePrototype } from './useHomeLeavePrototype'
 interface Props {
   /** Footer "last edited" notice — on for wiki pages, off for the Home dashboard. */
   lastEditedNotice?: boolean
+  /** Module pages take over the screen: no footer, and their own bar for a header. */
+  showFooter?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), { lastEditedNotice: true })
+const props = withDefaults(defineProps<Props>(), { lastEditedNotice: true, showFooter: true })
 
 useHomeSession()
 const { onLeaveCapture } = useHomeLeavePrototype()
@@ -24,7 +26,15 @@ const { onLeaveCapture } = useHomeLeavePrototype()
 
 <template>
   <div @click.capture="onLeaveCapture">
-    <ChromeWrapper :brand-to="HOME_PATH" :last-edited-notice="props.lastEditedNotice">
+    <ChromeWrapper
+      :brand-to="HOME_PATH"
+      :last-edited-notice="props.lastEditedNotice"
+      :show-footer="props.showFooter"
+    >
+      <!-- A page's own header (a module page's back bar) replaces the wiki header. -->
+      <template v-if="$slots.header" #header>
+        <slot name="header" />
+      </template>
       <slot />
     </ChromeWrapper>
     <HomeLeavePrototypeDialog />

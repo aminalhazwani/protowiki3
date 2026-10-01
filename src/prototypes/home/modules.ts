@@ -218,6 +218,16 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
   },
 ]
 
+/** The module with this id, if any. */
+export function findModule(id: string): HomeAnyModuleSpec | undefined {
+  return HOME_MODULES.find((spec) => spec.id === id)
+}
+
+/** Modules that page through more cards (`pageSize`) get their own page, `/home/<id>`. */
+export function hasModulePage(spec: HomeAnyModuleSpec): spec is HomeModuleSpec {
+  return !isCustomModule(spec) && !!spec.pageSize
+}
+
 /** A module's current slot count (see `HomeModuleSpec.slots`). */
 export function moduleSlots(spec: HomeModuleSpec): number {
   return typeof spec.slots === 'function' ? spec.slots() : spec.slots

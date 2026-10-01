@@ -156,7 +156,8 @@ function toCard(revision: Revision, signals: ReviewSignals): HomeCardData {
     pageTitle: revision.title,
     description: formatEditSummary(revision.parsedComment, revision.comment),
     href: diffUrl(revision),
-    supportingText: `${revision.user || 'Anonymous'} · ${formatAgo(Date.parse(revision.timestamp))}`,
+    supportingText: revision.user || 'Anonymous',
+    supportingTime: formatAgo(Date.parse(revision.timestamp)),
     chips: chipsFor(revision, signals),
   }
 }
