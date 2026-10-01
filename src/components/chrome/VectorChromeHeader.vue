@@ -113,10 +113,15 @@ function navHas(tool: ChromeNavTool): boolean {
         <div class="vector-chrome-header__search">
           <Search />
         </div>
+        <!--
+          PROTOWIKI+ (Home) Submits the search form (its id is Search's `protowiki-search`)
+          rather than linking to an empty Special:Search: the query goes with it, and a
+          page with an article opener opens the best match in place.
+        -->
         <CdxButton
           class="vector-chrome-header__search-submit"
-          tag="a"
-          href="https://en.wikipedia.org/wiki/Special:Search"
+          type="submit"
+          form="protowiki-search"
         >
           Search
         </CdxButton>

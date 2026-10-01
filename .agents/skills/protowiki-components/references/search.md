@@ -35,7 +35,7 @@ function onSubmit(query: string) {
 
 | Event | Payload | Fired when |
 | --- | --- | --- |
-| `select` | `string` (title) | User clicks / picks a suggestion |
+| `select` | `string` (title) | User clicks / picks a suggestion (also opens it in place when an `articleOpener` is registered) |
 | `submit` | `string` (query) | User presses Enter or clicks the search icon |
 
 ## Behaviour
@@ -49,9 +49,34 @@ function onSubmit(query: string) {
   fall back to a real Wikipedia search by hitting Enter when offline-
   rendering this prototype.
 
+## Opening articles inside the prototype (`articleOpener`)
+
+By default every suggestion links to the real wiki. A prototype that can render
+any article (e.g. the Home's `/home/wiki/<Title>`) registers an opener, for the
+lifetime of the component that calls it:
+
+```ts
+import { registerArticleOpener } from '@/components/article/shared/articleOpener'
+
+registerArticleOpener({
+  href: (title) => router.resolve(`/my-proto/wiki/${encodeURIComponent(title)}`).href,
+  open: (title) => router.push(`/my-proto/wiki/${encodeURIComponent(title)}`),
+})
+```
+
+While one is registered, `Search`:
+
+- links each suggestion to `opener.href(title)` (so ⌘/middle-click opens a new
+  tab) and opens it with `opener.open(title)` on a plain click, without a page load;
+- drops the "pages containing …" footer (there's no in-prototype results page);
+- on Enter (or Vector's **Search** button), opens the best match for the field — an
+  exact title, else the first suggestion — instead of submitting to `Special:Search`.
+
+The last registration wins, and it's withdrawn when its component unmounts.
+
 ## Inside `VectorChromeHeader`
 
-Desktop Vector chrome always mounts **`<Search />`** in the inline search cluster (no `#search` slot). Most prototypes never import **`Search`** — they use **`ChromeWrapper`**, which renders the default **`ChromeHeader`**.
+Desktop Vector chrome always mounts **`<Search />`** in the inline search cluster (no `#search` slot). Its **Search** button submits that form (`form="protowiki-search"`), so it carries the query; below 1120px the header shows a search icon that links to the real `Special:Search`. Most prototypes never import **`Search`** — they use **`ChromeWrapper`**, which renders the default **`ChromeHeader`**.
 
 The chrome user link is **`ChromeHeader`'s **`username`** prop (**`ChromeWrapper`** forwards the same prop when you use the default header). **`username=""`** hides that link.
 
