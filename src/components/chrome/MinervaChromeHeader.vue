@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, markRaw, ref, watch } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 
@@ -7,6 +7,7 @@ import { resolveHeaderIcon } from '@/components/header/headerIcons'
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import { useConfig } from '@/composables/useConfig'
 import type { HeaderItem } from '@/components/header/headerItems'
+import MinervaUserMenu from './MinervaUserMenu.vue'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
 
@@ -24,11 +25,8 @@ const NOTIFICATIONS_ITEM: HeaderItem = {
   icon: 'bell-outline',
   label: 'Notifications',
 }
-const USER_MENU_ITEM: HeaderItem = {
-  type: 'button',
-  icon: 'user-avatar-outline',
-  label: 'User menu',
-}
+/** PROTOWIKI+ (Home) The avatar opens Minerva's user menu (logged in or out). */
+const USER_MENU_ITEM: HeaderItem = { type: 'component', component: markRaw(MinervaUserMenu) }
 
 interface Props {
   theme?: Theme

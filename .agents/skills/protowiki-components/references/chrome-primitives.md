@@ -100,9 +100,11 @@ import type { MinervaHeaderItem } from '@/components/chrome/MinervaChromeHeader.
 | --- | --- |
 | `left` | menu button |
 | `middle` | Wikipedia wordmark (`RouterLink` + `<img>`) when **`middle`** omitted |
-| `right` | search, notifications (hidden when `user` is `logged-out`), user avatar buttons |
+| `right` | search (opens `MobileSearchOverlay`), notifications (hidden when `user` is `logged-out`), and the user avatar, which opens **`MinervaUserMenu`** |
 
 Adjacent icon buttons/links in **`left`** and **`right`** have **no gap** between them (flush groups).
+
+**`MinervaUserMenu`** (`src/components/chrome/MinervaUserMenu.vue`) is the default avatar: a `CdxMenu` hanging 4px under it, flush with its end edge, with thumb-sized 46px rows in `color-subtle` and semi-bold labels. Logged in, its rows are the display name · Talk · Sandbox · Saved · Watchlist · Contributions · Log out. Logged out, they're Create account · Log in. Rows are inert mocks, except **Log out** and **Create account**, which call `accountActions` when the page registered them (see `wrappers.md`). It closes on a pick, an outside tap or Escape; arrow keys work from the avatar. A prototype passing its own `right` drops it, the same as the default search.
 
 Props: **`theme?`**, **`left?`**, **`middle?`**, **`right?`**, **`wordmarkSrc?`**, **`mobileWordmarkSrc?`**
 

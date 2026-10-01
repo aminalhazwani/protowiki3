@@ -5,12 +5,16 @@
  * articles inside the prototype, and any link off the prototype (header or
  * content) asks before leaving.
  */
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { CdxIcon } from '@wikimedia/codex'
+import { cdxIconHome } from '@wikimedia/codex-icons'
 
 import { registerArticleOpener } from '@/components/article/shared/articleOpener'
 import { registerAccountActions } from '@/components/chrome/accountActions'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import type { ChromeNavTool } from '@/components/chrome/headerNavTools'
+import { globalSkin } from '@/theme'
 
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
 import { HOME_PATH, homeArticleLocation } from './routes'
@@ -22,9 +26,15 @@ interface Props {
   lastEditedNotice?: boolean
   /** Module pages take over the screen: no footer, and their own bar for a header. */
   showFooter?: boolean
+  /** Minerva, signed in: a Home button floats in the corner (Vector has one in its tools). */
+  floatingHome?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), { lastEditedNotice: true, showFooter: true })
+const props = withDefaults(defineProps<Props>(), {
+  lastEditedNotice: true,
+  showFooter: true,
+  floatingHome: false,
+})
 
 /** Signed-in Vector tools: Home leads, and the account's name labels the user menu. */
 const NAV_TOOLS: ChromeNavTool[] = [
@@ -37,7 +47,11 @@ const NAV_TOOLS: ChromeNavTool[] = [
   'user-menu',
 ]
 
-const { logIn, logOut } = useHomeSession()
+const { isLoggedIn, logIn, logOut } = useHomeSession()
+
+const showFloatingHome = computed(
+  () => props.floatingHome && isLoggedIn.value && globalSkin.value === 'mobile',
+)
 const { onLeaveCapture } = useHomeLeavePrototype()
 
 const router = useRouter()
@@ -85,7 +99,26 @@ registerAccountActions({
         <slot name="header" />
       </template>
       <slot />
+      <!-- Framed, thumb-sized and icon-only: a labelled pill would cover more of the article. -->
+      <RouterLink
+        v-if="showFloatingHome"
+        class="home-chrome__home cdx-button cdx-button--fake-button cdx-button--fake-button--enabled cdx-button--size-large cdx-button--icon-only"
+        :to="HOME_PATH"
+        aria-label="Home"
+      >
+        <CdxIcon :icon="cdxIconHome" />
+      </RouterLink>
     </ChromeWrapper>
     <HomeLeavePrototypeDialog />
   </div>
 </template>
+
+<style scoped>
+/* Pinned to the viewport's end corner (left in RTL), clear of the home indicator. */
+.home-chrome__home {
+  position: fixed;
+  bottom: calc(var(--spacing-75, 12px) + env(safe-area-inset-bottom, 0px));
+  inset-inline-end: var(--spacing-75, 12px);
+  z-index: var(--z-index-fixed, 200);
+}
+</style>

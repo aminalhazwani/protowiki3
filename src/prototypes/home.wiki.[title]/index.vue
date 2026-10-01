@@ -30,7 +30,7 @@ function onParserReady(): void {
 </script>
 
 <template>
-  <HomeChrome>
+  <HomeChrome floating-home>
     <div @click="onArticleClick">
       <ArticleLive
         :article="title"
