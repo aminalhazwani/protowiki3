@@ -10,6 +10,7 @@ import { cdxIconConfigure } from '@wikimedia/codex-icons'
 import { useConfig } from '@/composables/useConfig'
 
 import HomeLayoutDialog from './HomeLayoutDialog.vue'
+import HomeOnboarding from './HomeOnboarding.vue'
 import HomePage from './HomePage.vue'
 import HomePersonalizationDialog from './HomePersonalizationDialog.vue'
 import HomeSection from './HomeSection.vue'
@@ -46,6 +47,8 @@ function titleOf(title: string | (() => string)): string {
     </div>
     <HomeLayoutDialog v-model:open="layoutOpen" />
     <HomePersonalizationDialog v-model:open="personalizationOpen" />
+    <!-- After account creation: the onboarding wizard, over the reader's new Home. -->
+    <HomeOnboarding />
   </HomePage>
 </template>
 

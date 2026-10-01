@@ -2,18 +2,25 @@
 /**
  * The prototype's own `Special:CreateAccount` — `/home/create-account`, opened
  * by "Create account" in either skin's chrome (`accountActions`). Creating the
- * account signs the reader in as the **New user** preset, named as typed.
+ * account signs the reader in as the **New user** preset, named as typed, and
+ * starts onboarding.
  */
 import HomeChrome from '../home/HomeChrome.vue'
 import HomeCreateAccountForm from '../home/HomeCreateAccountForm.vue'
 import HomePage from '../home/HomePage.vue'
 import { useHomeAccount } from '../home/useHomeAccount'
+import { useHomeOnboarding } from '../home/useHomeOnboarding'
 
 const { logIn, goHomeAs } = useHomeAccount()
+const { start } = useHomeOnboarding()
 
+// The Home opens with the onboarding wizard over it.
 function onSubmit(username: string): void {
   window.scrollTo(0, 0)
-  goHomeAs(() => logIn(username))
+  goHomeAs(() => {
+    logIn(username)
+    start()
+  })
 }
 </script>
 

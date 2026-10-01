@@ -6,6 +6,8 @@
  * - `?reset` — forget everything the Home prototype stored.
  * - `?username=<name>` — name of the account made in the prototype (shown for the
  *   **New user** preset). An empty value clears it.
+ * - `?onboarding=<step>` — open the onboarding wizard on that step (`welcome`, …;
+ *   see `data/onboarding.ts`). An empty or unknown value closes it.
  *
  * Who is signed in is ProtoWiki's global `?user=` (Mock user preset:
  * `logged-out`, `new`, `experienced`, `real`). `reset` runs first, so
@@ -15,8 +17,9 @@
 import type { LocationQuery } from 'vue-router'
 
 import { patchHomeConfig, resetHomeConfig } from './homeConfig'
+import { isOnboardingStep } from './onboarding'
 
-export const HOME_URL_PARAMS = ['reset', 'username'] as const
+export const HOME_URL_PARAMS = ['reset', 'username', 'onboarding'] as const
 
 function firstValue(value: LocationQuery[string]): string | null {
   const raw = Array.isArray(value) ? value[0] : value
@@ -29,6 +32,10 @@ export function applyHomeUrlParams(query: LocationQuery): LocationQuery | null {
 
   if ('reset' in query) resetHomeConfig()
   if ('username' in query) patchHomeConfig({ username: firstValue(query.username) })
+  if ('onboarding' in query) {
+    const step = firstValue(query.onboarding)
+    patchHomeConfig({ onboarding: isOnboardingStep(step) ? step : null })
+  }
 
   const rest = { ...query }
   for (const key of HOME_URL_PARAMS) delete rest[key]

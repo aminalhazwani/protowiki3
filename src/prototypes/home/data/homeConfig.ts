@@ -8,6 +8,8 @@
  * only for breaking changes.
  */
 
+import { isOnboardingStep, type OnboardingStep } from './onboarding'
+
 export const HOME_CONFIG_STORAGE_KEY = 'protowiki-home-config-v1'
 
 export interface HomeConfig {
@@ -36,6 +38,8 @@ export interface HomeConfig {
   interests: string[]
   /** Which of the reader's activity shapes the personal modules (Personalization). */
   sources: HomeSources
+  /** The onboarding step the reader is on; `null` once it's finished (or never started). */
+  onboarding: OnboardingStep | null
 }
 
 export interface HomeSources {
@@ -55,6 +59,7 @@ export const DEFAULT_HOME_CONFIG: HomeConfig = {
   layout: null,
   interests: [],
   sources: { interests: true, saved: true, watchlist: true, contributions: true },
+  onboarding: null,
 }
 
 /** MediaWiki's limit on username length. */
@@ -119,6 +124,7 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
     layout: normalizeLayout(record.layout),
     interests: normalizeInterests(record.interests),
     sources: normalizeSources(record.sources),
+    onboarding: isOnboardingStep(record.onboarding) ? record.onboarding : null,
   }
 }
 
