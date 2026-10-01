@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
+import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import { useConfig } from '@/composables/useConfig'
 import type { HeaderItem } from '@/components/header/headerItems'
 import { globalTheme } from '@/theme'
@@ -18,7 +19,6 @@ const MAX_FLANK_ITEMS = 4
 
 const DEFAULT_LEFT: HeaderItem[] = [{ type: 'button', icon: 'menu', label: 'Main menu' }]
 
-const SEARCH_ITEM: HeaderItem = { type: 'button', icon: 'search', label: 'Search' }
 const NOTIFICATIONS_ITEM: HeaderItem = {
   type: 'button',
   icon: 'bell-outline',
@@ -54,6 +54,19 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
+
+/**
+ * PROTOWIKI+ (Home) The default search button opens Minerva's full-screen
+ * search, so every mobile chrome has one that works. A prototype passing its
+ * own `right` items brings its own search.
+ */
+const searchOpen = ref(false)
+const SEARCH_ITEM: HeaderItem = {
+  type: 'button',
+  icon: 'search',
+  label: 'Search',
+  onClick: () => (searchOpen.value = true),
+}
 
 const { user } = useConfig()
 /** PROTOWIKI+ (Home) Minerva: notifications only exist for logged-in readers. */
@@ -233,6 +246,8 @@ function isExternalHref(href: string): boolean {
       </div>
     </nav>
   </header>
+
+  <MobileSearchOverlay v-if="searchOpen" :theme="effectiveTheme" @close="searchOpen = false" />
 </template>
 
 <style scoped>

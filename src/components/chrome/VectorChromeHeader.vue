@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import {
@@ -56,6 +56,25 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
+
+/*
+ * PROTOWIKI+ (Home) Below 1120px the search box folds into an icon. Like Vector
+ * 2022, the icon now opens the box in place of the header's tools (instead of
+ * linking to the real Special:Search), and it folds again on Escape or when
+ * focus leaves it.
+ */
+const searchOpen = ref(false)
+const inlineSearch = ref<HTMLElement | null>(null)
+
+async function openSearch(): Promise<void> {
+  searchOpen.value = true
+  await nextTick()
+  inlineSearch.value?.querySelector('input')?.focus()
+}
+
+function onSearchFocusOut(event: FocusEvent): void {
+  if (!inlineSearch.value?.contains(event.relatedTarget as Node | null)) searchOpen.value = false
+}
 const trimmedUsername = computed(() => (props.username ?? '').trim())
 const showChromeUsernameLink = computed(() => trimmedUsername.value.length > 0)
 const isLoggedOut = computed(() => user.value === 'logged-out')
@@ -73,7 +92,12 @@ function navHas(tool: ChromeNavTool): boolean {
 </script>
 
 <template>
-  <header class="vector-chrome-header" data-skin="desktop" :data-theme="effectiveTheme">
+  <header
+    class="vector-chrome-header"
+    :class="{ 'vector-chrome-header--search-open': searchOpen }"
+    data-skin="desktop"
+    :data-theme="effectiveTheme"
+  >
     <nav class="vector-chrome-header__nav" aria-label="Site">
       <div class="vector-chrome-header__start">
         <slot name="menu">
@@ -109,7 +133,12 @@ function navHas(tool: ChromeNavTool): boolean {
         </RouterLink>
       </div>
 
-      <div class="vector-chrome-header__inline-search">
+      <div
+        ref="inlineSearch"
+        class="vector-chrome-header__inline-search"
+        @focusout="onSearchFocusOut"
+        @keydown.esc="searchOpen = false"
+      >
         <div class="vector-chrome-header__search">
           <Search />
         </div>
@@ -132,8 +161,8 @@ function navHas(tool: ChromeNavTool): boolean {
           class="vector-chrome-header__search-icon-toggle"
           weight="quiet"
           aria-label="Search"
-          tag="a"
-          href="https://en.wikipedia.org/wiki/Special:Search"
+          :aria-expanded="searchOpen"
+          @click="openSearch"
         >
           <CdxIcon :icon="cdxIconSearch" />
         </CdxButton>
@@ -364,6 +393,15 @@ a.vector-chrome-header__text-link:hover {
 
 @media (max-width: 1120px) {
   .vector-chrome-header__inline-search {
+    display: none;
+  }
+
+  /* Opened from the icon: the search box takes the place of the header's tools. */
+  .vector-chrome-header--search-open .vector-chrome-header__inline-search {
+    display: flex;
+  }
+
+  .vector-chrome-header--search-open .vector-chrome-header__end {
     display: none;
   }
 

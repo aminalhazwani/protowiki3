@@ -76,7 +76,7 @@ The last registration wins, and it's withdrawn when its component unmounts.
 
 ## Inside `VectorChromeHeader`
 
-Desktop Vector chrome always mounts **`<Search />`** in the inline search cluster (no `#search` slot). Its **Search** button submits that form (`form="protowiki-search"`), so it carries the query; below 1120px the header shows a search icon that links to the real `Special:Search`. Most prototypes never import **`Search`** — they use **`ChromeWrapper`**, which renders the default **`ChromeHeader`**.
+Desktop Vector chrome always mounts **`<Search />`** in the inline search cluster (no `#search` slot). Its **Search** button submits that form (`form="protowiki-search"`), so it carries the query. Below 1120px the box folds into a search icon; as in Vector 2022, the icon opens the box in place of the header's tools, and it folds again on Escape or when focus leaves it. Most prototypes never import **`Search`** — they use **`ChromeWrapper`**, which renders the default **`ChromeHeader`**.
 
 The chrome user link is **`ChromeHeader`'s **`username`** prop (**`ChromeWrapper`** forwards the same prop when you use the default header). **`username=""`** hides that link.
 
@@ -91,3 +91,23 @@ For a different search surface, replace **`ChromeWrapper`'s `#header`** with a c
 - See [`wiki-apis/references/etiquette.md`](../../wiki-apis/references/etiquette.md)
   for the WMF policy on User-Agent and rate-limits when extending this
   beyond opensearch.
+
+## Mobile: `MobileSearchOverlay`
+
+Minerva's search, in `src/components/search/`. **`MinervaChromeHeader`'s default
+search button opens it** (a prototype passing its own `right` items brings its
+own). It covers the screen with a search field (focused, so the keyboard is up)
+over title suggestions from REST `search/title` (`titleSearch.ts`, with
+descriptions and free thumbnails), rendered by `TitleSearchResults`.
+
+- There's no results page: Enter does nothing, and picking a row is the way out.
+- With an `articleOpener` registered, a row opens in place and the overlay closes;
+  without one, rows are plain links to the real wiki.
+- Back arrow or Escape closes it (`close` event).
+
+| Prop | Default | Notes |
+| --- | --- | --- |
+| `placeholder` | `'Search Wikipedia'` | Also the dialog's label |
+| `lang` | `'en'` | Wiki searched |
+| `limit` | `6` | Max suggestions |
+| `theme` | `undefined` | Local theme override |
