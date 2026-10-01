@@ -1,24 +1,37 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
+import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconAppearance,
   cdxIconBell,
+  cdxIconBookmarkList,
+  cdxIconExpand,
+  cdxIconHome,
+  cdxIconImageGallery,
+  cdxIconLabFlask,
+  cdxIconLanguage,
+  cdxIconLogOut,
   cdxIconMenu,
+  cdxIconSandbox,
   cdxIconSearch,
+  cdxIconSettings,
   cdxIconTray,
   cdxIconUserAvatar,
+  cdxIconUserContributions,
+  cdxIconUserTalk,
   cdxIconWatchlist,
 } from '@wikimedia/codex-icons'
 
 import { useConfig } from '@/composables/useConfig'
+import { accountActions } from './accountActions'
 import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
 import Search from '../Search.vue'
 
-const { user } = useConfig()
+const { user, displayName } = useConfig()
 
 /** Fallback EN CDN SVGs — override via **`wordmarkSrc`** / **`taglineSrc`**. */
 const WIKIPEDIA_WORDMARK_EN =
@@ -31,6 +44,8 @@ interface Props {
   theme?: Theme
   /**
    * Meta link mock before tool icons; trim; empty hides unless **`#username`** overrides.
+   * With **`user-menu`** in **`navTools`** the name labels that button instead
+   * (the mock user's display name stands in when empty).
    */
   username?: string
   /** Stacked wordmark image URL (`#logo` replaces both lines). */
@@ -76,7 +91,6 @@ function onSearchFocusOut(event: FocusEvent): void {
   if (!inlineSearch.value?.contains(event.relatedTarget as Node | null)) searchOpen.value = false
 }
 const trimmedUsername = computed(() => (props.username ?? '').trim())
-const showChromeUsernameLink = computed(() => trimmedUsername.value.length > 0)
 const isLoggedOut = computed(() => user.value === 'logged-out')
 
 const desktopWordmarkSrc = computed(() => props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN)
@@ -89,6 +103,37 @@ const effectiveNavTools = computed(() =>
 function navHas(tool: ChromeNavTool): boolean {
   return effectiveNavTools.value.includes(tool)
 }
+
+/* PROTOWIKI+ (Home) The `user-menu` tool carries the name, so the meta link would repeat it. */
+const showChromeUsernameLink = computed(
+  () => trimmedUsername.value.length > 0 && !navHas('user-menu'),
+)
+const userMenuLabel = computed(() => trimmedUsername.value || displayName.value)
+
+/**
+ * PROTOWIKI+ (Home) Mocked Vector user menu. The name is on the button, so the
+ * first row names the destination. Rows are inert like the rest of the chrome
+ * (except "Log out" when the page registered `accountActions`): a pick closes
+ * the menu and the selection is cleared, so no row stays checked.
+ */
+const USER_MENU_ITEMS: MenuButtonItemData[] = [
+  { value: 'user-page', label: 'User page', icon: cdxIconUserAvatar },
+  { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
+  { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
+  { value: 'preferences', label: 'Preferences', icon: cdxIconSettings },
+  { value: 'beta', label: 'Beta', icon: cdxIconLabFlask },
+  { value: 'contributions', label: 'Contributions', icon: cdxIconUserContributions },
+  { value: 'translations', label: 'Translations', icon: cdxIconLanguage },
+  { value: 'uploaded-media', label: 'Uploaded media', icon: cdxIconImageGallery },
+  { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
+]
+
+const userMenuSelection = ref<MenuItemValue | null>(null)
+watch(userMenuSelection, (value) => {
+  if (value === null) return
+  userMenuSelection.value = null
+  if (value === 'log-out') accountActions.value?.logOut?.()
+})
 </script>
 
 <template>
@@ -200,6 +245,15 @@ function navHas(tool: ChromeNavTool): boolean {
           </a>
         </slot>
         <slot v-if="!isLoggedOut" name="nav">
+          <!-- PROTOWIKI+ (Home) Opt-in Home tool: a link to where the wordmark goes. -->
+          <RouterLink
+            v-if="navHas('home')"
+            class="vector-chrome-header__home cdx-button cdx-button--fake-button cdx-button--fake-button--enabled cdx-button--weight-quiet cdx-button--action-progressive"
+            :to="props.brandTo"
+          >
+            <CdxIcon :icon="cdxIconHome" />
+            Home
+          </RouterLink>
           <CdxButton v-if="navHas('appearance')" weight="quiet" aria-label="Appearance">
             <CdxIcon :icon="cdxIconAppearance" />
           </CdxButton>
@@ -213,6 +267,9 @@ function navHas(tool: ChromeNavTool): boolean {
           <CdxButton v-if="navHas('notices')" weight="quiet" aria-label="Notices">
             <CdxIcon :icon="cdxIconTray" />
           </CdxButton>
+          <CdxButton v-if="navHas('bookmarks')" weight="quiet" aria-label="Reading lists">
+            <CdxIcon :icon="cdxIconBookmarkList" />
+          </CdxButton>
           <CdxButton
             v-if="navHas('watchlist')"
             weight="quiet"
@@ -224,6 +281,17 @@ function navHas(tool: ChromeNavTool): boolean {
           <CdxButton v-if="navHas('user')" weight="quiet" aria-label="User menu">
             <CdxIcon :icon="cdxIconUserAvatar" />
           </CdxButton>
+          <!-- The visible name is the accessible name, so no `aria-label`. -->
+          <CdxMenuButton
+            v-if="navHas('user-menu')"
+            v-model:selected="userMenuSelection"
+            class="vector-chrome-header__user-menu"
+            weight="quiet"
+            :menu-items="USER_MENU_ITEMS"
+          >
+            {{ userMenuLabel }}
+            <CdxIcon :icon="cdxIconExpand" size="small" />
+          </CdxMenuButton>
         </slot>
       </div>
     </nav>
@@ -384,6 +452,44 @@ a.vector-chrome-header__text-link:hover {
   min-width: var(--size-icon-medium, 32px);
   height: var(--size-icon-medium, 32px);
   padding: 0.5rem 0.4rem;
+}
+
+/*
+ * PROTOWIKI+ (Home) Home and the user menu carry labels: they size to their
+ * content and never shrink (the narrow rule below squares the other tools off
+ * at 40px, which would clip a label). Three classes outrank it.
+ */
+.vector-chrome-header__end .vector-chrome-header__home.cdx-button,
+.vector-chrome-header__end .vector-chrome-header__user-menu :deep(.cdx-button) {
+  width: auto;
+  flex-shrink: 0;
+  gap: var(--spacing-25, 4px);
+  padding-inline: var(--spacing-50, 8px);
+  white-space: nowrap;
+}
+
+.vector-chrome-header__home {
+  text-decoration: none;
+}
+
+/*
+ * CODEX+ CdxMenuButton: no option to size the menu to its rows. Floating UI
+ * writes the trigger's width inline, so a short name would clip "Uploaded
+ * media"; only `!important` beats an inline style. Floating UI still flips the
+ * wider menu to grow leftwards at the screen edge.
+ */
+.vector-chrome-header__user-menu :deep(.cdx-menu) {
+  width: max-content !important;
+  max-width: 22rem;
+}
+
+/* Vector's user menu: base-coloured icons, progressive (link) labels. */
+.vector-chrome-header__user-menu :deep(.cdx-menu-item__icon) {
+  color: var(--color-base, #202122);
+}
+
+.vector-chrome-header__user-menu :deep(.cdx-menu-item__text__label) {
+  color: var(--color-progressive, #36c);
 }
 
 .vector-chrome-header[data-theme='dark'] .vector-chrome-header__wordmark-img,
