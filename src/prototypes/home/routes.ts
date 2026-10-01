@@ -3,6 +3,9 @@ import type { RouteLocationRaw } from 'vue-router'
 /** The Home prototype root — the Main Page while logged out. */
 export const HOME_PATH = '/home'
 
+/** The prototype's own `Special:CreateAccount` (`home.create-account`). */
+export const CREATE_ACCOUNT_PATH = `${HOME_PATH}/create-account`
+
 const MAIN_PAGE_TITLE = 'Main Page'
 
 /** `Gravity_dam` / `Gravity%20dam` → `Gravity dam`. */

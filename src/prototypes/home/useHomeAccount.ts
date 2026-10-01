@@ -10,6 +10,7 @@ import {
   resetHomeConfig,
 } from './data/homeConfig'
 import { applyHomeUrlParams } from './data/homeUrlParams'
+import { HOME_PATH } from './routes'
 
 // Module-level: every Home page shares one account name.
 const username = ref<string | null>(loadHomeConfig().username)
@@ -28,6 +29,7 @@ window.addEventListener('storage', (event) => {
  */
 export function useHomeAccount() {
   const { user } = useConfig()
+  const router = useRouter()
   const isLoggedIn = computed(() => user.value !== 'logged-out')
 
   /** Sign in as a new account (the onboarding outcome), optionally naming it. */
@@ -45,7 +47,23 @@ export function useHomeAccount() {
     username.value = resetHomeConfig().username
   }
 
-  return { username, isLoggedIn, logIn, logOut, reset }
+  /*
+   * Go to `/home` and switch the account there (`logIn` / `logOut`), wherever
+   * the reader was. The switch happens as the route commits, not before: the
+   * setting change rewrites `?user=` on the current route, and that replace
+   * would cancel the navigation. Not after either, or the wrong Home would
+   * mount (and fetch) first. `afterEach` runs before the new page renders, and
+   * also on a duplicate push.
+   */
+  function goHomeAs(switchAccount: () => void): void {
+    const stop = router.afterEach(() => {
+      stop()
+      switchAccount()
+    })
+    void router.push(HOME_PATH)
+  }
+
+  return { username, isLoggedIn, logIn, logOut, reset, goHomeAs }
 }
 
 /**

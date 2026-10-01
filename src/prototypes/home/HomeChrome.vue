@@ -17,7 +17,7 @@ import type { ChromeNavTool } from '@/components/chrome/headerNavTools'
 import { globalSkin } from '@/theme'
 
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
-import { HOME_PATH, homeArticleLocation } from './routes'
+import { CREATE_ACCOUNT_PATH, HOME_PATH, homeArticleLocation } from './routes'
 import { useHomeSession } from './useHomeAccount'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
 
@@ -47,7 +47,7 @@ const NAV_TOOLS: ChromeNavTool[] = [
   'user-menu',
 ]
 
-const { isLoggedIn, logIn, logOut } = useHomeSession()
+const { isLoggedIn, logOut, goHomeAs } = useHomeSession()
 
 const showFloatingHome = computed(
   () => props.floatingHome && isLoggedIn.value && globalSkin.value === 'mobile',
@@ -60,28 +60,13 @@ registerArticleOpener({
   open: (title) => void router.push(homeArticleLocation(title)),
 })
 
-/*
- * Go to `/home` and switch the account there, wherever the reader was. The
- * switch happens as the route commits, not before: the setting change rewrites
- * `?user=` on the current route, and that replace would cancel the navigation.
- * Not after either, or the wrong Home would mount (and fetch) first.
- * `afterEach` runs before the new page renders, and also on a duplicate push.
- */
-function goHomeAs(switchAccount: () => void): void {
-  const stop = router.afterEach(() => {
-    stop()
-    switchAccount()
-  })
-  void router.push(HOME_PATH)
-}
-
 registerAccountActions({
   // Logging out lands on the logged-out Main Page.
   logOut: () => goHomeAs(logOut),
-  // Placeholder until onboarding (Phase F): sign straight in as a new account.
+  // The prototype's own Special:CreateAccount.
   createAccount: {
-    href: () => router.resolve({ path: HOME_PATH, query: { user: 'new' } }).href,
-    open: () => goHomeAs(() => logIn()),
+    href: () => router.resolve(CREATE_ACCOUNT_PATH).href,
+    open: () => void router.push(CREATE_ACCOUNT_PATH),
   },
 })
 </script>
