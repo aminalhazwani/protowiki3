@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { loadHomeConfig, patchHomeConfig, type HomeConfig } from './data/homeConfig'
 import { resolveHomeLayout } from './data/homeLayout'
 import { HOME_MODULES, type HomeAnyModuleSpec, type HomeModuleId } from './modules'
+import { useHomeOnboarding } from './useHomeOnboarding'
 
 const MODULE_IDS = HOME_MODULES.map((spec) => spec.id)
 
@@ -14,7 +15,9 @@ const stored = ref<HomeConfig['layout'] | undefined>(undefined)
 export function useHomeLayout() {
   if (stored.value === undefined) stored.value = loadHomeConfig().layout
 
-  const layout = computed(() => resolveHomeLayout(stored.value ?? null, MODULE_IDS))
+  // Until the reader changes it, the layout follows their onboarding survey answer.
+  const { survey } = useHomeOnboarding()
+  const layout = computed(() => resolveHomeLayout(stored.value ?? null, MODULE_IDS, survey.value))
 
   /** Every module, in layout order. */
   const modules = computed(() =>

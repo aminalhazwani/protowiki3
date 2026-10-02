@@ -8,7 +8,12 @@
  * only for breaking changes.
  */
 
-import { isOnboardingStep, type OnboardingStep } from './onboarding'
+import {
+  isOnboardingStep,
+  isSurveyAnswer,
+  type OnboardingStep,
+  type SurveyAnswer,
+} from './onboarding'
 
 export const HOME_CONFIG_STORAGE_KEY = 'protowiki-home-config-v1'
 
@@ -40,6 +45,8 @@ export interface HomeConfig {
   sources: HomeSources
   /** The onboarding step the reader is on; `null` once it's finished (or never started). */
   onboarding: OnboardingStep | null
+  /** The onboarding survey's answer; `null` until answered (counts as `both`). */
+  survey: SurveyAnswer | null
 }
 
 export interface HomeSources {
@@ -60,6 +67,7 @@ export const DEFAULT_HOME_CONFIG: HomeConfig = {
   interests: [],
   sources: { interests: true, saved: true, watchlist: true, contributions: true },
   onboarding: null,
+  survey: null,
 }
 
 /** MediaWiki's limit on username length. */
@@ -125,6 +133,7 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
     interests: normalizeInterests(record.interests),
     sources: normalizeSources(record.sources),
     onboarding: isOnboardingStep(record.onboarding) ? record.onboarding : null,
+    survey: isSurveyAnswer(record.survey) ? record.survey : null,
   }
 }
 
