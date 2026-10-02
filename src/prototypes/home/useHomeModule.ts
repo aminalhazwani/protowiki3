@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import type { HomeCardData } from './data/types'
 import { moduleSlots, type HomeModuleSpec } from './modules'
 import { preloadImages } from './preloadImages'
+import { useHomeOnboarding } from './useHomeOnboarding'
 import { useHomePersonalization } from './useHomePersonalization'
 
 /**
@@ -101,8 +102,23 @@ export function useHomeModule(spec: HomeModuleSpec) {
   onUnmounted(() => controller?.abort())
   if (spec.reloadOn) watch(spec.reloadOn, () => load({ inPlace: true }))
   if (spec.personalized) {
+    /*
+     * While onboarding is open, its interests step changes Personalization
+     * chip by chip; reloading on each would queue the Home's requests ahead of
+     * the step's own suggestions. Hold the reload until the wizard closes.
+     */
     const { version } = useHomePersonalization()
-    watch(version, () => load({ inPlace: true }))
+    const { step } = useHomeOnboarding()
+    let stale = false
+    watch(version, () => {
+      if (step.value) stale = true
+      else void load({ inPlace: true })
+    })
+    watch(step, (open) => {
+      if (open || !stale) return
+      stale = false
+      void load({ inPlace: true })
+    })
   }
 
   return {

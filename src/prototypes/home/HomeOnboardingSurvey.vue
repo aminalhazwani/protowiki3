@@ -80,7 +80,7 @@ onBeforeUnmount(() => clearTimeout(timer))
 
 <template>
   <div class="home-onboarding-survey">
-    <h1 class="home-onboarding-survey__title">{{ QUESTION }}</h1>
+    <h1 class="home-onboarding-title">{{ QUESTION }}</h1>
     <!--
       Each option is a stock CdxCard; `url` makes it a link, so hover, active and
       focus come from Codex. The card is the radio itself (role + aria-checked)
@@ -111,21 +111,6 @@ onBeforeUnmount(() => clearTimeout(timer))
 </template>
 
 <style scoped>
-/* home2's step title: a 48px lead-in on Minerva, the card's own rhythm on Vector. */
-.home-onboarding-survey__title {
-  margin: 0;
-  padding-top: var(--spacing-300);
-  font-family: var(--font-family-system-sans), var(--font-family-base);
-  font-size: var(--font-size-x-large);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-x-large);
-  color: var(--color-base);
-}
-
-[data-skin='desktop'] .home-onboarding-survey__title {
-  padding-top: var(--spacing-100);
-}
-
 .home-onboarding-survey__options {
   display: flex;
   flex-direction: column;

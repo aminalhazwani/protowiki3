@@ -6,7 +6,7 @@
  * content) asks before leaving.
  */
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { CdxIcon } from '@wikimedia/codex'
 import { cdxIconHome } from '@wikimedia/codex-icons'
 
@@ -17,7 +17,7 @@ import type { ChromeNavTool } from '@/components/chrome/headerNavTools'
 import { globalSkin } from '@/theme'
 
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
-import { CREATE_ACCOUNT_PATH, HOME_PATH, homeArticleLocation } from './routes'
+import { CREATE_ACCOUNT_PATH, HOME_PATH, homeArticleLocation, titleFromRouteParam } from './routes'
 import { useHomeSession } from './useHomeAccount'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
 
@@ -55,18 +55,26 @@ const showFloatingHome = computed(
 const { onLeaveCapture } = useHomeLeavePrototype()
 
 const router = useRouter()
+const route = useRoute()
 registerArticleOpener({
   href: (title) => router.resolve(homeArticleLocation(title)).href,
   open: (title) => void router.push(homeArticleLocation(title)),
 })
 
+/** From an article, `?from=<Title>`: onboarding's interests start from it (home2). */
+function createAccountLocation() {
+  const title = (route.params as { title?: string | string[] }).title
+  const from = title ? titleFromRouteParam(title) : ''
+  return { path: CREATE_ACCOUNT_PATH, query: from ? { from } : {} }
+}
+
 registerAccountActions({
   // Logging out lands on the logged-out Main Page.
   logOut: () => goHomeAs(logOut),
-  // The prototype's own Special:CreateAccount.
+  // The prototype's own Special:CreateAccount, told which article it was opened from.
   createAccount: {
-    href: () => router.resolve(CREATE_ACCOUNT_PATH).href,
-    open: () => void router.push(CREATE_ACCOUNT_PATH),
+    href: () => router.resolve(createAccountLocation()).href,
+    open: () => void router.push(createAccountLocation()),
   },
 })
 </script>

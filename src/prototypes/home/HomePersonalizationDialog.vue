@@ -4,15 +4,14 @@
  * personal modules, with a lookup for adding interests. Opened over the Home
  * from a personal module's "Configure"; the modules reload as things change.
  */
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { CdxMultiselectLookup, CdxToggleSwitch } from '@wikimedia/codex'
-import type { ChipInputItem, MenuItemData, MenuItemValue } from '@wikimedia/codex'
+import { computed } from 'vue'
+import { CdxToggleSwitch } from '@wikimedia/codex'
 
-import { fetchTitleSearchResults } from '@/components/search/titleSearch'
 import { useConfig } from '@/composables/useConfig'
 
-import { MAX_INTERESTS, type HomeSources } from './data/homeConfig'
+import type { HomeSources } from './data/homeConfig'
 import HomeDialogShell from './HomeDialogShell.vue'
+import HomeInterestsLookup from './HomeInterestsLookup.vue'
 import { useHomePersonalization } from './useHomePersonalization'
 
 const open = defineModel<boolean>('open', { required: true })
@@ -44,63 +43,6 @@ const rows = computed(
     ]
   },
 )
-
-// The lookup holds its own chips; the dialog's content mounts on each open, so
-// starting from the saved interests is enough.
-const chips = ref<ChipInputItem[]>(interests.value.map((title) => ({ value: title })))
-const selected = ref<MenuItemValue[]>([...interests.value])
-const menuItems = ref<MenuItemData[]>([])
-const MENU_CONFIG = { showThumbnail: true, boldLabel: true }
-
-watch(selected, (values) => {
-  // Past the limit, the newest pick is dropped again rather than kept unsaved.
-  if (values.length > MAX_INTERESTS) {
-    selected.value = values.slice(0, MAX_INTERESTS)
-    chips.value = chips.value.slice(0, MAX_INTERESTS)
-    return
-  }
-  setInterests(values.map(String))
-})
-
-let controller: AbortController | null = null
-let timer: ReturnType<typeof setTimeout> | undefined
-
-async function search(term: string): Promise<void> {
-  controller?.abort()
-  if (!term.trim()) {
-    menuItems.value = []
-    return
-  }
-  controller = new AbortController()
-  try {
-    const hits = await fetchTitleSearchResults(term, {
-      signal: controller.signal,
-      clientTag: 'home-interests',
-    })
-    const picked = new Set(selected.value.map((value) => String(value).toLowerCase()))
-    menuItems.value = hits
-      .filter((hit) => !picked.has(hit.title.toLowerCase()))
-      .map((hit) => ({
-        value: hit.title,
-        label: hit.title,
-        description: hit.description || undefined,
-        thumbnail: hit.thumbnailSrc ? { url: hit.thumbnailSrc } : null,
-      }))
-  } catch (error) {
-    if ((error as Error).name !== 'AbortError') menuItems.value = []
-  }
-}
-
-/** Debounced 200ms, and the previous search is aborted. */
-function onInput(value: string | number): void {
-  clearTimeout(timer)
-  timer = setTimeout(() => void search(String(value)), 200)
-}
-
-onBeforeUnmount(() => {
-  controller?.abort()
-  clearTimeout(timer)
-})
 </script>
 
 <template>
@@ -127,20 +69,12 @@ onBeforeUnmount(() => {
           </template>
         </CdxToggleSwitch>
 
-        <CdxMultiselectLookup
+        <HomeInterestsLookup
           v-if="row.key === 'interests' && sources.interests"
-          v-model:input-chips="chips"
-          v-model:selected="selected"
           class="home-personalization-dialog__lookup"
-          :menu-items="menuItems"
-          :menu-config="MENU_CONFIG"
-          :separate-input="chips.length > 0"
-          placeholder="Search articles or topics"
-          aria-label="Search articles or topics"
-          @input="onInput"
-        >
-          <template #no-results>No results found.</template>
-        </CdxMultiselectLookup>
+          :model-value="interests"
+          @update:model-value="setInterests"
+        />
       </template>
     </div>
   </HomeDialogShell>

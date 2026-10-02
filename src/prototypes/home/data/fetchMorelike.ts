@@ -10,6 +10,8 @@ export interface MorelikeHit {
   title: string
   description?: string
   thumbnailUrl?: string
+  /** When the article was last edited (ISO), with `{ lastEdited: true }`. */
+  lastEdited?: string
 }
 
 interface GeneratorPage {
@@ -17,13 +19,18 @@ interface GeneratorPage {
   index?: number
   description?: string
   thumbnail?: { source?: string }
+  revisions?: { timestamp?: string }[]
 }
 
-/** Up to `limit` articles like `seed` (never the seed itself), best match first. */
+/**
+ * Up to `limit` articles like `seed` (never the seed itself), best match first.
+ * `lastEdited` also asks for each one's latest revision time.
+ */
 export async function fetchMorelike(
   seed: string,
   limit: number,
   signal?: AbortSignal,
+  { lastEdited = false } = {},
 ): Promise<MorelikeHit[]> {
   const params = new URLSearchParams({
     action: 'query',
@@ -39,6 +46,10 @@ export async function fetchMorelike(
     formatversion: '2',
     origin: '*',
   })
+  if (lastEdited) {
+    params.set('prop', 'pageimages|description|revisions')
+    params.set('rvprop', 'timestamp')
+  }
   const response = await fetchWikimedia(`https://${EN_WIKI_HOST}/w/api.php?${params}`, {
     signal,
     headers: wikimediaApiFetchHeaders('home-morelike'),
@@ -55,5 +66,6 @@ export async function fetchMorelike(
       title: page.title,
       description: page.description,
       thumbnailUrl: page.thumbnail?.source,
+      lastEdited: page.revisions?.[0]?.timestamp,
     }))
 }

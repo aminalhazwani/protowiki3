@@ -10,32 +10,45 @@ import { cdxIconClose, cdxIconPrevious } from '@wikimedia/codex-icons'
 
 import type { OnboardingStep } from './data/onboarding'
 import HomeDialogShell from './HomeDialogShell.vue'
+import HomeOnboardingInterests from './HomeOnboardingInterests.vue'
 import HomeOnboardingSurvey from './HomeOnboardingSurvey.vue'
 import HomeOnboardingWelcome from './HomeOnboardingWelcome.vue'
 import { useHomeOnboarding } from './useHomeOnboarding'
+import { useHomePersonalization } from './useHomePersonalization'
 
 const { step, index, total, next, back, finish, setSurvey } = useHomeOnboarding()
+const { interests } = useHomePersonalization()
 
-/** Each step's screen and footer button (`primary`: the step's main action; else quiet). */
+/** The interests step asks for three; its button goes primary once there are (home2). */
+const REQUESTED_INTERESTS = 3
+
+/** Each step's screen and footer button (`primary`: the step's main action, else quiet). */
 const STEPS: Record<
   OnboardingStep,
-  { body: Component; cta: string; primary: boolean; onCta: () => void }
+  { body: Component; cta: string; primary: () => boolean; onCta: () => void }
 > = {
   welcome: {
     body: HomeOnboardingWelcome,
     cta: 'Personalize your Home',
-    primary: true,
+    primary: () => true,
     onCta: next,
   },
   survey: {
     body: HomeOnboardingSurvey,
     cta: 'Skip',
-    primary: false,
+    primary: () => false,
     // Skipping counts as "A bit of both" (home2).
     onCta: () => {
       setSurvey('both')
       next()
     },
+  },
+  // The last step: its button closes the wizard onto the Home.
+  interests: {
+    body: HomeOnboardingInterests,
+    cta: 'Go to your Home',
+    primary: () => interests.value.length >= REQUESTED_INTERESTS,
+    onCta: next,
   },
 }
 
@@ -95,8 +108,8 @@ watch(index, (to, from) => {
     <template #footer>
       <CdxButton
         class="home-onboarding__cta"
-        :action="current.primary ? 'progressive' : 'default'"
-        :weight="current.primary ? 'primary' : 'quiet'"
+        :action="current.primary() ? 'progressive' : 'default'"
+        :weight="current.primary() ? 'primary' : 'quiet'"
         size="large"
         @click="current.onCta"
       >
@@ -152,6 +165,24 @@ watch(index, (to, from) => {
 
 .home-onboarding__step {
   flex: 1 1 auto;
+}
+
+/*
+ * The question steps' title (home2's `.ob-title`): bold system sans, a 48px
+ * lead-in on Minerva and the card's own rhythm on Vector.
+ */
+.home-onboarding__step :deep(.home-onboarding-title) {
+  margin: 0;
+  padding-top: var(--spacing-300);
+  font-family: var(--font-family-system-sans), var(--font-family-base);
+  font-size: var(--font-size-x-large);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-x-large);
+  color: var(--color-base);
+}
+
+[data-skin='desktop'] .home-onboarding__step :deep(.home-onboarding-title) {
+  padding-top: var(--spacing-100);
 }
 
 /* The step's whole footer (Codex caps buttons at 28rem). */

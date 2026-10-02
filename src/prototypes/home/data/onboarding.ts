@@ -2,10 +2,8 @@
  * The onboarding wizard after account creation (home2): its steps, in order.
  * The counter ("1 of N") and back / next follow this list, so a step joins the
  * flow by being added here (and to `HomeOnboarding`'s step table).
- *
- * Next: `interests` (F6).
  */
-export const ONBOARDING_STEPS = ['welcome', 'survey'] as const
+export const ONBOARDING_STEPS = ['welcome', 'survey', 'interests'] as const
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number]
 

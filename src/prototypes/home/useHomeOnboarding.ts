@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 
 import { loadHomeConfig, patchHomeConfig } from './data/homeConfig'
 import { ONBOARDING_STEPS, type OnboardingStep, type SurveyAnswer } from './data/onboarding'
+import { useHomePersonalization } from './useHomePersonalization'
 
 // Module-level: the create-account page starts it and the Home's wizard shows it.
 // Read on first use, not at import, so it sees `?reset` / `?onboarding=`
@@ -14,6 +15,8 @@ const survey = ref<SurveyAnswer | null | undefined>(undefined)
  * stored in the Home config so a reload reopens it where the reader was.
  */
 export function useHomeOnboarding() {
+  const { setInterests } = useHomePersonalization()
+
   if (step.value === undefined || survey.value === undefined) {
     const config = loadHomeConfig()
     step.value = config.onboarding
@@ -37,9 +40,14 @@ export function useHomeOnboarding() {
     },
     index,
     total: ONBOARDING_STEPS.length,
-    /** Open the wizard on its first step (account just created), with the survey unanswered. */
-    start: () => {
+    /**
+     * Open the wizard on its first step (account just created): the survey
+     * unanswered, and the interests just the article the account was made
+     * from, if any (the interests step starts from it, home2).
+     */
+    start: (seed?: string | null) => {
       survey.value = patchHomeConfig({ survey: null }).survey
+      setInterests(seed ? [seed] : [])
       go(ONBOARDING_STEPS[0])
     },
     /** The next step, or close the wizard after the last one. */
