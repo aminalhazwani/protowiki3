@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, provide } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 
 import { useConfig } from '@/composables/useConfig'
 import type { ChromeNavTool } from './headerNavTools'
@@ -44,6 +45,8 @@ interface Props {
   mobileWordmarkSrc?: string
   /** Forwarded to **`ChromeHeader`** (desktop tools only). */
   navTools?: ChromeNavTool[]
+  /** PROTOWIKI+ (Home) Where the Wikipedia wordmark links to (default **`'/'`**, the gallery). */
+  brandTo?: RouteLocationRaw
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -58,6 +61,7 @@ const props = withDefaults(defineProps<Props>(), {
   taglineSrc: undefined,
   mobileWordmarkSrc: undefined,
   navTools: undefined,
+  brandTo: '/',
 })
 
 const { displayName } = useConfig()
@@ -87,6 +91,7 @@ provide(PROTOWIKI_CHROME_THEME, effectiveTheme)
         :tagline-src="props.taglineSrc"
         :mobile-wordmark-src="props.mobileWordmarkSrc"
         :nav-tools="props.navTools"
+        :brand-to="props.brandTo"
       >
         <template v-if="$slots.menu" #menu>
           <slot name="menu" />

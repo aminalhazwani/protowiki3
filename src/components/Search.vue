@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { CdxTypeaheadSearch, type SearchResult } from '@wikimedia/codex'
 
+import { articleOpener } from '@/components/article/shared/articleOpener'
 import { wikimediaApiFetchHeaders, wikiHostFromLang } from '@/config'
 import type { Skin, Theme } from '@/theme'
 
@@ -43,6 +44,22 @@ const isSearching = ref(false)
 const lastQuery = ref('')
 
 const formAction = computed(() => `https://${props.host}/w/index.php`)
+
+/*
+ * PROTOWIKI+ (Home) A page that can show any article registers an opener
+ * (`articleOpener.ts`), and search stops leaving for the real wiki: suggestions
+ * link inside ProtoWiki, the "pages containing …" footer (a results page we
+ * don't have) drops out, and Enter opens the best match instead of
+ * `Special:Search`. Without one, nothing changes.
+ */
+const opensInPlace = computed(() => articleOpener.value !== null)
+
+/** Suggestions as the menu renders them: in place, each one links to its ProtoWiki page. */
+const searchResults = computed<SearchResult[]>(() => {
+  const opener = articleOpener.value
+  if (!opener) return suggestions.value
+  return suggestions.value.map((result) => ({ ...result, url: opener.href(String(result.value)) }))
+})
 
 const lang = computed(() => props.host.split('.')[0] ?? 'en')
 
@@ -136,26 +153,79 @@ async function onInput(value: string) {
   }
 }
 
-function onSearchResultClick(payload: { title?: string; value?: string }) {
-  const title = payload.title ?? payload.value ?? ''
-  if (title) emit('select', title)
+// CdxTypeaheadSearch's payload is `{ searchResult, index, numberOfResults }`.
+function onSearchResultClick(payload: { searchResult?: SearchResult | null }) {
+  const title = payload.searchResult ? String(payload.searchResult.value) : ''
+  if (!title) return
+  emit('select', title)
+  articleOpener.value?.open(title)
 }
 
 function onSubmit(payload: { value?: string }) {
   const query = (payload.value ?? lastQuery.value ?? '').trim()
   if (query) emit('submit', query)
 }
+
+/** `Gravity_dam` and `gravity dam` are the same title: spaces, and a first letter of either case. */
+function titleKey(title: string): string {
+  const spaced = title.replace(/_/g, ' ').trim()
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+/** MediaWiki's "Go", near enough: an exact title match wins, otherwise the first suggestion. */
+function bestMatch(query: string): string | null {
+  const titles = suggestions.value.map((result) => String(result.value))
+  return titles.find((title) => titleKey(title) === titleKey(query)) ?? titles[0] ?? null
+}
+
+/**
+ * In place, a plain click on a suggestion is handled by `onSearchResultClick`,
+ * so the link's own full page load is cancelled. Modified clicks keep the link:
+ * they're for a new tab. Capture phase, ahead of the menu item's handler.
+ */
+function onCapturedClick(event: MouseEvent): void {
+  if (!opensInPlace.value || event.button !== 0) return
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  if (event.target instanceof Element && event.target.closest('a')) event.preventDefault()
+}
+
+/**
+ * In place, the form never submits to `Special:Search`: Enter opens the best
+ * match for what's in the field (the typed query, or the suggestion picked with
+ * the arrow keys, which Codex writes into it). Capture phase and
+ * `stopPropagation`, so Codex's own handler — which would `location.assign()`
+ * a keyboard-picked result — never runs.
+ */
+function onCapturedSubmit(event: Event): void {
+  if (!opensInPlace.value) return
+  event.preventDefault()
+  event.stopPropagation()
+  const input = (event.target as HTMLElement | null)?.querySelector?.('input')
+  const query = (input?.value || lastQuery.value).trim()
+  const title = query ? bestMatch(query) : null
+  if (title) articleOpener.value?.open(title)
+}
 </script>
 
 <template>
-  <div class="search-bar" :data-skin="props.skin" :data-theme="props.theme">
+  <div
+    class="search-bar"
+    :data-skin="props.skin"
+    :data-theme="props.theme"
+    @click.capture="onCapturedClick"
+    @submit.capture="onCapturedSubmit"
+  >
     <CdxTypeaheadSearch
       id="protowiki-search"
       :placeholder="props.placeholder"
       :form-action="formAction"
-      :search-results="suggestions"
+      :search-results="searchResults"
       :search-results-label="props.placeholder"
-      :search-footer-url="`https://${props.host}/wiki/Special:Search?search=${encodeURIComponent(lastQuery)}`"
+      :search-footer-url="
+        opensInPlace
+          ? ''
+          : `https://${props.host}/wiki/Special:Search?search=${encodeURIComponent(lastQuery)}`
+      "
       :show-thumbnail="false"
       @input="onInput"
       @search-result-click="onSearchResultClick"

@@ -56,8 +56,19 @@ footer mock last-edited chrome, username, and header logo / nav-tool configurati
 | `taglineSrc`        | `string`                | `undefined`      | Forwarded to **`ChromeHeader`** — desktop tagline image under the wordmark                                                                                                                                          |
 | `mobileWordmarkSrc` | `string`                | `undefined`      | Forwarded to **`ChromeHeader`** — Minerva bar wordmark; defaults to **`wordmarkSrc`** then EN constant                                                                                                              |
 | `navTools`          | `ChromeNavTool[]`       | full desktop set | Forwarded to **`ChromeHeader`** — which mocked Vector tool icons appear (**desktop**); **`#nav`** still replaces the cluster                                                                                        |
+| `brandTo`           | `RouteLocationRaw`      | `'/'`            | Forwarded to **`ChromeHeader`** — where the Wikipedia wordmark links (both skins); defaults to the prototype gallery                                                                                                |
 
 `ChromeNavTool` literals: `'appearance' \| 'notifications' \| 'notices' \| 'watchlist' \| 'user'` (see `src/components/chrome/headerNavTools.ts`). In the chrome header, `'appearance'` renders as a static, non-interactive icon button (like `'notifications'` / `'notices'`) — the working Appearance settings popover lives only on the prototype gallery home page (`src/prototypes/index.vue`).
+
+Opt-in literals, not in the default set: `'home'`, `'bookmarks'` and `'user-menu'`.
+
+- `'home'`: a quiet progressive **Home** button, a link to **`brandTo`** (where the wordmark goes).
+- `'bookmarks'`: an inert **Reading lists** icon button.
+- `'user-menu'`: a quiet `CdxMenuButton` labelled with the username (the mock user's display name when empty) and a ⌄ chevron, which replaces the username meta link. Its Vector user-menu rows (User page … Log out) are inert: a pick closes the menu and nothing stays selected. The menu sizes to its longest row.
+
+A prototype with its own signed-in state makes **Log out** work, and keeps the logged-out **Create account** link inside ProtoWiki, by calling `registerAccountActions({ logOut, createAccount: { href, open } })` (`src/components/chrome/accountActions.ts`) in `<script setup>`. It's module-level like `articleOpener`; the last registration wins and is cleared on unmount. `createAccount.href()` is the link's real `href` (⌘-click opens it in a new tab); a plain click calls `open()` instead. Without a registration the link goes to the real `Special:CreateAccount`. Navigating in `logOut` needs care: changing the Mock user preset rewrites `?user=` on the current route, which cancels a navigation in flight. Home switches the preset in a one-shot `router.afterEach` (see `src/prototypes/home/HomeChrome.vue`).
+
+The Home prototype uses `['home', 'appearance', 'notifications', 'notices', 'bookmarks', 'watchlist', 'user-menu']`.
 
 `lang` and `dir` are the usual top-of-tree handles: primitives inside don't need their
 own `lang` prop because the value is inherited via the DOM. **`ArticleLive`**, **`ArticleSnapshot`**, and **`ArticleCustom`** also accept

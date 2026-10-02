@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, markRaw, ref, watch } from 'vue'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 
 import { resolveHeaderIcon } from '@/components/header/headerIcons'
+import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
+import { useConfig } from '@/composables/useConfig'
 import type { HeaderItem } from '@/components/header/headerItems'
+import MinervaUserMenu from './MinervaUserMenu.vue'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
 
@@ -17,11 +20,13 @@ const MAX_FLANK_ITEMS = 4
 
 const DEFAULT_LEFT: HeaderItem[] = [{ type: 'button', icon: 'menu', label: 'Main menu' }]
 
-const DEFAULT_RIGHT: HeaderItem[] = [
-  { type: 'button', icon: 'search', label: 'Search' },
-  { type: 'button', icon: 'bell-outline', label: 'Notifications' },
-  { type: 'button', icon: 'user-avatar-outline', label: 'User menu' },
-]
+const NOTIFICATIONS_ITEM: HeaderItem = {
+  type: 'button',
+  icon: 'bell-outline',
+  label: 'Notifications',
+}
+/** PROTOWIKI+ (Home) The avatar opens Minerva's user menu (logged in or out). */
+const USER_MENU_ITEM: HeaderItem = { type: 'component', component: markRaw(MinervaUserMenu) }
 
 interface Props {
   theme?: Theme
@@ -32,6 +37,8 @@ interface Props {
   wordmarkSrc?: string
   /** Minerva wordmark; defaults to **`wordmarkSrc`** then EN constant. */
   mobileWordmarkSrc?: string
+  /** PROTOWIKI+ (Home) Where the Wikipedia wordmark links to (default **`'/'`**, the gallery). */
+  brandTo?: RouteLocationRaw
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -41,9 +48,31 @@ const props = withDefaults(defineProps<Props>(), {
   right: undefined,
   wordmarkSrc: undefined,
   mobileWordmarkSrc: undefined,
+  brandTo: '/',
 })
 
 const effectiveTheme = computed<Theme>(() => props.theme ?? globalTheme.value)
+
+/**
+ * PROTOWIKI+ (Home) The default search button opens Minerva's full-screen
+ * search, so every mobile chrome has one that works. A prototype passing its
+ * own `right` items brings its own search.
+ */
+const searchOpen = ref(false)
+const SEARCH_ITEM: HeaderItem = {
+  type: 'button',
+  icon: 'search',
+  label: 'Search',
+  onClick: () => (searchOpen.value = true),
+}
+
+const { user } = useConfig()
+/** PROTOWIKI+ (Home) Minerva: notifications only exist for logged-in readers. */
+const defaultRight = computed<HeaderItem[]>(() =>
+  user.value === 'logged-out'
+    ? [SEARCH_ITEM, USER_MENU_ITEM]
+    : [SEARCH_ITEM, NOTIFICATIONS_ITEM, USER_MENU_ITEM],
+)
 
 const wordmarkResolved = computed(
   () => props.mobileWordmarkSrc ?? props.wordmarkSrc ?? WIKIPEDIA_WORDMARK_EN,
@@ -58,7 +87,7 @@ function clampFlank(items: HeaderItem[], side: 'left' | 'right'): HeaderItem[] {
 }
 
 const effectiveLeft = computed(() => clampFlank(props.left ?? DEFAULT_LEFT, 'left'))
-const effectiveRight = computed(() => clampFlank(props.right ?? DEFAULT_RIGHT, 'right'))
+const effectiveRight = computed(() => clampFlank(props.right ?? defaultRight.value, 'right'))
 const effectiveMiddle = computed(() => props.middle ?? [])
 
 const useDefaultWordmark = computed(() => props.middle === undefined)
@@ -133,7 +162,7 @@ function isExternalHref(href: string): boolean {
         <RouterLink
           v-if="useDefaultWordmark"
           class="minerva-chrome-header__brand"
-          to="/"
+          :to="props.brandTo"
           aria-label="Visit the main page"
         >
           <img
@@ -215,6 +244,8 @@ function isExternalHref(href: string): boolean {
       </div>
     </nav>
   </header>
+
+  <MobileSearchOverlay v-if="searchOpen" :theme="effectiveTheme" @close="searchOpen = false" />
 </template>
 
 <style scoped>

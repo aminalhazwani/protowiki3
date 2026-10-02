@@ -256,11 +256,17 @@ https://<org>.github.io/ProtoWiki/template-chrome?skin=mobile
 https://<org>.github.io/ProtoWiki/template-app-article?os=ios
 https://<org>.github.io/ProtoWiki/template-app-chrome?os=android&theme=dark
 https://<org>.github.io/ProtoWiki/template-app-article?os=auto
+https://<org>.github.io/ProtoWiki/template-chrome?user=logged-out
+https://<org>.github.io/ProtoWiki/template-chrome?user=real&realUser=Todepond
 ```
 
-The `?skin=`, `?theme=`, and `?os=` URL params are handled at boot — paste them
-into review tickets to pin a specific preview. `?os=auto|ios|android` masks the
-saved App OS preference without changing it.
+The `?skin=`, `?theme=`, `?os=`, `?user=`, and `?realUser=` URL params are
+handled at boot — paste them into review tickets to pin a specific preview.
+`?os=auto|ios|android` masks the saved App OS preference without changing it.
+`?user=` takes the **Mock user settings** preset ids (`logged-out`, `new`,
+`experienced`, `real`); `?realUser=<name>` is the account for `real`. All of
+them are carried across navigation, and changing the matching setting updates
+the param when it is already in the URL.
 
 ## Troubleshooting
 
