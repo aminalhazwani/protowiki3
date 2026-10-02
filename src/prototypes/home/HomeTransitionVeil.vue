@@ -44,7 +44,7 @@ const visible = computed(
   align-items: center;
   justify-content: center;
   background-color: var(--background-color-backdrop-light);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 /*
@@ -64,9 +64,9 @@ const visible = computed(
 
 .home-transition-veil__text {
   margin: 0;
-  font-size: var(--font-size-small);
-  line-height: var(--line-height-small);
-  color: var(--color-base);
+  font-size: var(--font-size-medium);
+  line-height: var(--line-height-medium);
+  color: var(--color-subtle);
 }
 
 /*
