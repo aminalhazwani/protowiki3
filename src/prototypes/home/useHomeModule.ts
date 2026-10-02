@@ -6,6 +6,9 @@ import { preloadImages } from './preloadImages'
 import { useHomeOnboarding } from './useHomeOnboarding'
 import { useHomePersonalization } from './useHomePersonalization'
 
+/** Behind the onboarding wizard, a personal module reloads once interests stop changing for this long. */
+const ONBOARDING_RELOAD_DELAY_MS = 1000
+
 /**
  * Loads one module's cards: abortable, with loading / error state and a retry.
  *
@@ -103,22 +106,21 @@ export function useHomeModule(spec: HomeModuleSpec) {
   if (spec.reloadOn) watch(spec.reloadOn, () => load({ inPlace: true }))
   if (spec.personalized) {
     /*
-     * While onboarding is open, its interests step changes Personalization
-     * chip by chip; reloading on each would queue the Home's requests ahead of
-     * the step's own suggestions. Hold the reload until the wizard closes.
+     * While onboarding is open, the Home follows its interests step live,
+     * behind the wizard (`useHomeTransition`). The step changes Personalization
+     * chip by chip, so wait for a pause: reloading on each would queue the
+     * Home's requests ahead of the step's own suggestions.
      */
     const { version } = useHomePersonalization()
     const { step } = useHomeOnboarding()
-    let stale = false
+    let timer: ReturnType<typeof setTimeout> | undefined
     watch(version, () => {
-      if (step.value) stale = true
+      clearTimeout(timer)
+      if (step.value)
+        timer = setTimeout(() => void load({ inPlace: true }), ONBOARDING_RELOAD_DELAY_MS)
       else void load({ inPlace: true })
     })
-    watch(step, (open) => {
-      if (open || !stale) return
-      stale = false
-      void load({ inPlace: true })
-    })
+    onUnmounted(() => clearTimeout(timer))
   }
 
   return {

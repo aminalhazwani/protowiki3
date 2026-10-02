@@ -1,9 +1,12 @@
+import { cdxIconChart } from '@wikimedia/codex-icons'
+
 import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
 
 import { homeArticleLocation, normalizeTitle } from '../routes'
 import { useHomeSeeds } from '../useHomeSeeds'
 import { fetchMorelike, type MorelikeHit } from './fetchMorelike'
 import { readDayCache, utcDayKey, writeDayCache } from './homeCache'
+import { loadTrending } from './loadTrending'
 import type { HomeCardData } from './types'
 
 const CACHE_SLOT = 'daily-reads'
@@ -27,11 +30,14 @@ function pickRandom<T>(items: readonly T[], count: number): T[] {
  * one `morelike` call each, interleaved round-robin so the first row mixes seeds;
  * duplicates and the seeds themselves are dropped. Cached per day and seed set,
  * so the Home doesn't reshuffle on every visit.
+ *
+ * With no seeds yet (a new account with no interests), today's most-read
+ * articles, so Daily reads still holds its place in every survey answer's layout.
  */
 export async function loadDailyReads(signal: AbortSignal): Promise<HomeCardData[]> {
   const { seeds } = useHomeSeeds()
   const allSeeds = seeds.value
-  if (!allSeeds.length) return []
+  if (!allSeeds.length) return loadPopular(signal)
 
   const cacheKey = `${utcDayKey()}|${allSeeds.map(normalizeTitle).sort().join('|')}`
   const cached = readDayCache<HomeCardData[]>(CACHE_SLOT, cacheKey)
@@ -68,4 +74,14 @@ export async function loadDailyReads(signal: AbortSignal): Promise<HomeCardData[
 
   writeDayCache(CACHE_SLOT, cacheKey, cards)
   return cards
+}
+
+/** Today's most-read articles (Trending's cards), as Daily reads cards. */
+async function loadPopular(signal: AbortSignal): Promise<HomeCardData[]> {
+  const cards = await loadTrending(signal)
+  return cards.map((card) => ({
+    ...card,
+    key: `daily:${card.pageTitle ?? card.title}`,
+    supportingIcon: cdxIconChart,
+  }))
 }

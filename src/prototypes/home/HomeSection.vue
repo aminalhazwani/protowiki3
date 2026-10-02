@@ -116,7 +116,7 @@ if (props.standalone) {
           :variant="spec.variant"
           :card="slot.card"
           :loading="!slot.card"
-          :supporting-icon="spec.supportingIcon"
+          :supporting-icon="slot.card?.supportingIcon ?? spec.supportingIcon"
           :saveable="spec.saveable"
           :divider="standalone"
         />

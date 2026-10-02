@@ -71,7 +71,7 @@ function createAccountLocation() {
 
 registerAccountActions({
   // Logging out lands on the logged-out Main Page.
-  logOut: () => goHomeAs(logOut),
+  logOut: () => void goHomeAs(logOut),
   // The prototype's own Special:CreateAccount, told which article it was opened from.
   createAccount: {
     href: () => router.resolve(createAccountLocation()).href,

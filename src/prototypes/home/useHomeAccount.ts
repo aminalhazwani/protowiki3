@@ -53,14 +53,14 @@ export function useHomeAccount() {
    * setting change rewrites `?user=` on the current route, and that replace
    * would cancel the navigation. Not after either, or the wrong Home would
    * mount (and fetch) first. `afterEach` runs before the new page renders, and
-   * also on a duplicate push.
+   * also on a duplicate push. Resolves once the Home is the current route.
    */
-  function goHomeAs(switchAccount: () => void): void {
+  function goHomeAs(switchAccount: () => void): Promise<unknown> {
     const stop = router.afterEach(() => {
       stop()
       switchAccount()
     })
-    void router.push(HOME_PATH)
+    return router.push(HOME_PATH)
   }
 
   return { username, isLoggedIn, logIn, logOut, reset, goHomeAs }

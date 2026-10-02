@@ -3,6 +3,9 @@
  * The onboarding wizard (home2's "Personalize your Home"), over the new
  * reader's Home: a step counter, the step, and its call to action. Step 1
  * closes with ✕; later steps go back instead. Escape does the same.
+ *
+ * It opens and closes through `useHomeTransition`: it waits for the Home to
+ * load behind the veil, and leaving it lifts the veil onto that Home.
  */
 import { computed, ref, watch, type Component } from 'vue'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
@@ -15,9 +18,11 @@ import HomeOnboardingSurvey from './HomeOnboardingSurvey.vue'
 import HomeOnboardingWelcome from './HomeOnboardingWelcome.vue'
 import { useHomeOnboarding } from './useHomeOnboarding'
 import { useHomePersonalization } from './useHomePersonalization'
+import { useHomeTransition } from './useHomeTransition'
 
 const { step, index, total, next, back, finish, setSurvey } = useHomeOnboarding()
 const { interests } = useHomePersonalization()
+const { phase, finishOnboarding, skipOnboarding } = useHomeTransition()
 
 /** The interests step asks for three; its button goes primary once there are (home2). */
 const REQUESTED_INTERESTS = 3
@@ -43,20 +48,22 @@ const STEPS: Record<
       next()
     },
   },
-  // The last step: its button closes the wizard onto the Home.
+  // The last step: its button closes the wizard and sets up the Home.
   interests: {
     body: HomeOnboardingInterests,
     cta: 'Go to your Home',
     primary: () => interests.value.length >= REQUESTED_INTERESTS,
-    onCta: next,
+    onCta: () => void finishOnboarding(next),
   },
 }
 
-const current = computed(() => (step.value ? STEPS[step.value] : null))
+/* Not while the veil shows a status: the Home is still loading, or being set up. */
+const current = computed(() => (step.value && !phase.value ? STEPS[step.value] : null))
 const isFirst = computed(() => index.value <= 0)
 
 function onNavigate(): void {
-  if (isFirst.value) finish()
+  // Closing skips onboarding, onto the Home that loaded behind it.
+  if (isFirst.value) void skipOnboarding(finish)
   else back()
 }
 
@@ -76,7 +83,13 @@ watch(index, (to, from) => {
 </script>
 
 <template>
-  <HomeDialogShell v-if="current" v-model:open="open" title="Personalize your Home" tall>
+  <HomeDialogShell
+    v-if="current"
+    v-model:open="open"
+    class="home-onboarding-dialog"
+    title="Personalize your Home"
+    tall
+  >
     <template #header>
       <div class="home-onboarding__header">
         <CdxButton

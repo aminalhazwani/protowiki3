@@ -27,6 +27,8 @@ export interface HomeCardData {
   icon?: Icon
   /** Short line under the text, e.g. "Article of the day". */
   supportingText?: string
+  /** Its glyph, when it differs from the module's (`HomeModuleSpec.supportingIcon`). */
+  supportingIcon?: Icon
   /** When, e.g. "3h ago": set apart at the far end of the supporting line (home2). */
   supportingTime?: string
   chips?: HomeCardChip[]
