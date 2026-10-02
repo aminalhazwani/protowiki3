@@ -3,7 +3,7 @@
  * applied once — written into the Home config — and then removed from the URL,
  * so reloading doesn't re-apply them and the config stays the source of truth.
  *
- * - `?reset` — forget everything the Home prototype stored.
+ * - `?reset` — forget everything the Home prototype stored (the intro splash shows again).
  * - `?username=<name>` — name of the account made in the prototype (shown for the
  *   **New user** preset). An empty value clears it.
  * - `?onboarding=<step>` — open the onboarding wizard on that step (`welcome`, …;

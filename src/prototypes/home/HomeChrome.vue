@@ -2,8 +2,8 @@
 /**
  * Wikipedia chrome for every Home page: the wordmark leads back to `/home`, the
  * header follows the prototype's account (see `useHomeSession`), search opens
- * articles inside the prototype, and any link off the prototype (header or
- * content) asks before leaving.
+ * articles inside the prototype, ☰ can reset the prototype, and any link off
+ * the prototype (header or content) asks before leaving.
  */
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -17,6 +17,7 @@ import type { ChromeNavTool } from '@/components/chrome/headerNavTools'
 import { globalSkin } from '@/theme'
 
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
+import HomePrototypeMenu from './HomePrototypeMenu.vue'
 import { CREATE_ACCOUNT_PATH, HOME_PATH, homeArticleLocation, titleFromRouteParam } from './routes'
 import { useHomeSession } from './useHomeAccount'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
@@ -90,6 +91,10 @@ registerAccountActions({
       <!-- A page's own header (a module page's back bar) replaces the wiki header. -->
       <template v-if="$slots.header" #header>
         <slot name="header" />
+      </template>
+      <!-- ☰ holds "Reset prototype", for starting a test session over. -->
+      <template #menu>
+        <HomePrototypeMenu />
       </template>
       <slot />
       <!-- Framed, thumb-sized and icon-only: a labelled pill would cover more of the article. -->

@@ -47,6 +47,8 @@ export interface HomeConfig {
   onboarding: OnboardingStep | null
   /** The onboarding survey's answer; `null` until answered (counts as `both`). */
   survey: SurveyAnswer | null
+  /** The prototype's intro ("Home prototype … Begin") was dismissed. */
+  splashDismissed: boolean
 }
 
 export interface HomeSources {
@@ -68,6 +70,7 @@ export const DEFAULT_HOME_CONFIG: HomeConfig = {
   sources: { interests: true, saved: true, watchlist: true, contributions: true },
   onboarding: null,
   survey: null,
+  splashDismissed: false,
 }
 
 /** MediaWiki's limit on username length. */
@@ -134,6 +137,7 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
     sources: normalizeSources(record.sources),
     onboarding: isOnboardingStep(record.onboarding) ? record.onboarding : null,
     survey: isSurveyAnswer(record.survey) ? record.survey : null,
+    splashDismissed: record.splashDismissed === true,
   }
 }
 
