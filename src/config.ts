@@ -225,7 +225,8 @@ export function isConfigWebSkin(value: unknown): value is ConfigWebSkin {
   return typeof value === 'string' && VALID_WEB_SKINS.includes(value as ConfigWebSkin)
 }
 
-function isConfigUser(value: unknown): value is ConfigUser {
+// PROTOWIKI+ (Home) Exported for `?user=` URL sync.
+export function isConfigUser(value: unknown): value is ConfigUser {
   return typeof value === 'string' && VALID_USERS.includes(value as ConfigUser)
 }
 

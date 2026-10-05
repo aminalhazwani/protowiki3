@@ -13,7 +13,7 @@ or **`MinervaChromeHeader`** (mobile skin) based on effective skin:
 | Skin | Component | Chrome feel | Notes |
 | --- | --- | --- | --- |
 | `desktop` | **`VectorChromeHeader`** | **Vector 2022–style** | Wordmark/tagline (**`wordmarkSrc`**, **`taglineSrc`**, **`#logo`**), **`Search`** + **Search** button, username link (**`username`** + **`#username`**), user-tool cluster (**`navTools`** vs **`#nav`**). Main-menu glyph is icon-only (mock). Global skin stays **desktop** until viewport **≤640px**; below **1120px** inline search collapses to a search icon; below **768px** watchlist hides. |
-| `mobile` | **`MinervaChromeHeader`** | **Minerva-style** | Grey elevated bar: menu · wordmark · search + notifications + user — prop-driven **`left`** / **`middle`** / **`right`** item arrays. **`navTools`** is ignored. |
+| `mobile` | **`MinervaChromeHeader`** | **Minerva-style** | Grey elevated bar: menu · wordmark · search + notifications (logged in only) + user — prop-driven **`left`** / **`middle`** / **`right`** item arrays. **`navTools`** is ignored. |
 
 **`ChromeFooter`** matches the skin:
 
@@ -41,7 +41,7 @@ Public skin-aware delegator — import directly or use via **`ChromeWrapper`'s**
 | `wordmarkSrc` | `string` | EN CDN SVG | Desktop wordmark **`#logo`** (+ Minerva fallback when **`mobileWordmarkSrc`** omitted) |
 | `taglineSrc` | `string` | EN CDN SVG | Desktop tagline **`#logo`** stack |
 | `mobileWordmarkSrc` | `string` | **`wordmarkSrc`** then EN CDN | Minerva bar wordmark when **`middle`** is omitted |
-| `navTools` | `ChromeNavTool[]` | full set | **Desktop only** — which Vector tool icons render; **`#nav`** replaces cluster |
+| `navTools` | `ChromeNavTool[]` | full set | **Desktop only** — which Vector tool icons render (opt-in `home`, `bookmarks`, `user-menu`: see `wrappers.md`); **`#nav`** replaces cluster |
 | `left` | `HeaderItem[]` | Minerva default | **Mobile only** — override Minerva **`left`** region |
 | `middle` | `HeaderItem[]` | built-in wordmark | **Mobile only** — override Minerva **`middle`** region |
 | `right` | `HeaderItem[]` | Minerva default | **Mobile only** — override Minerva **`right`** region |
@@ -100,9 +100,11 @@ import type { MinervaHeaderItem } from '@/components/chrome/MinervaChromeHeader.
 | --- | --- |
 | `left` | menu button |
 | `middle` | Wikipedia wordmark (`RouterLink` + `<img>`) when **`middle`** omitted |
-| `right` | search, notifications, user avatar buttons |
+| `right` | search (opens `MobileSearchOverlay`), notifications (hidden when `user` is `logged-out`), and the user avatar, which opens **`MinervaUserMenu`** |
 
 Adjacent icon buttons/links in **`left`** and **`right`** have **no gap** between them (flush groups).
+
+**`MinervaUserMenu`** (`src/components/chrome/MinervaUserMenu.vue`) is the default avatar: a `CdxMenu` hanging 4px under it, flush with its end edge, with thumb-sized 46px rows in `color-subtle` and semi-bold labels. Logged in, its rows are the display name · Talk · Sandbox · Saved · Watchlist · Contributions · Log out. Logged out, they're Create account · Log in. Rows are inert mocks, except **Log out** and **Create account**, which call `accountActions` when the page registered them (see `wrappers.md`). It closes on a pick, an outside tap or Escape; arrow keys work from the avatar. A prototype passing its own `right` drops it, the same as the default search.
 
 Props: **`theme?`**, **`left?`**, **`middle?`**, **`right?`**, **`wordmarkSrc?`**, **`mobileWordmarkSrc?`**
 
@@ -168,3 +170,22 @@ import ChromeFooter from '@/components/chrome/ChromeFooter.vue'
 `skin` / `theme` props are omitted, so article columns and special-page
 typography track embedded `<ChromeWrapper skin="mobile">` previews without
 repeating props on every child.
+
+## Pretending who is signed in (`useUserOverride`)
+
+The chrome and article header read the signed-in state from `useConfig()`
+(`user`, `displayName`, `pageTitle`). A prototype with its own pretend account
+can override that for as long as it is mounted, without touching the user's
+saved ProtoWiki setting:
+
+```ts
+import { useUserOverride } from '@/composables/useConfig'
+
+useUserOverride(() =>
+  account.value ? { user: 'new', displayName: account.value } : { user: 'logged-out' },
+)
+```
+
+`source` is reactive; return `null` for "no override". The override is in
+memory only and is removed when the calling component unmounts, so other
+prototypes see the saved setting again. See `src/prototypes/home/useHomeAccount.ts`.

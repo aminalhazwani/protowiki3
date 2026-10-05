@@ -239,7 +239,9 @@ async function fetchPageviewsSince(
 
   try {
     assertNotAborted(signal)
-    const response = await fetch(url, { signal, headers: wikimediaApiFetchHeaders('user-impact') })
+    // PROTOWIKI+ (Home) No `Api-User-Agent` here: a custom header forces a CORS preflight,
+    // which the metrics host answers 405, so every pageview request failed. A plain GET passes.
+    const response = await fetch(url, { signal })
     if (!response.ok) {
       return { total: 0, daily: [] }
     }

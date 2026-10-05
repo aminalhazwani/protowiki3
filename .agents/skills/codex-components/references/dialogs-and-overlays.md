@@ -83,6 +83,14 @@ menus, contextual actions on a row, etc.
 </CdxMenuButton>
 ```
 
+Emits `update:selected` and `load-more` (the user scrolled towards the
+bottom of the menu — append items for infinite scrolling).
+
+Menu items with a `url` render as links whose clickable area spans the
+full item width; `urlNewTab: true` sets `target="_blank"` only (no `rel`
+is added — set it yourself if you need one). Item `supportingText` renders
+at the small font size.
+
 ## CdxPopover
 
 Generic positioned overlay (not a menu). Use for rich popovers, hover
@@ -93,6 +101,15 @@ cards, etc. — anything beyond a flat list of options.
   <slot />
 </CdxPopover>
 ```
+
+| Prop | Values |
+| --- | --- |
+| `useBottomSheet` | `'never'` (default) / `'responsive'` (bottom sheet on mobile ≤639px, floating popover above) / `'always'` (bottom sheet on every viewport). Boolean values are deprecated (`true` = `'responsive'`). |
+| `hideBackdrop` | hide the scrim behind the bottom sheet (shown by default) |
+| `hideArrow` | remove the arrow pointing at the anchor (e.g. when the popover can't sit next to its trigger); the popover is then positioned closer to the anchor. The bottom sheet never has an arrow. |
+
+On tablet and wider viewports the `'always'` bottom sheet is centred with
+a max width, side borders and rounded corners.
 
 ## Pattern — confirm before destructive
 
