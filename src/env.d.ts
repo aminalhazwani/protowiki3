@@ -9,6 +9,10 @@ interface CodexBuildVariant {
   id: 'patched' | 'stock'
   label: string
   base: string
+  /** Gerrit subject; set on the patched variant when build:variants runs. */
+  patchSubject?: string | null
+  /** Gerrit change id; fallback label when subject is missing. */
+  patchChange?: string | null
 }
 
 /** What Codex this bundle was built with, plus the other variants deployed alongside it. */

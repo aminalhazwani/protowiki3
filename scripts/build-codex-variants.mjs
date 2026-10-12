@@ -18,9 +18,16 @@ import { ensureCodex } from './lib-codex-state.mjs'
 
 const base = (process.env.PROTOWIKI_BASE ?? '/protowiki/').replace(/\/?$/, '/')
 
-const variants = hasPatch()
+const manifest = hasPatch() ? readManifest() : null
+const variants = manifest
   ? [
-      { id: 'patched', label: patchLabel(readManifest()), base },
+      {
+        id: 'patched',
+        label: patchLabel(manifest),
+        base,
+        patchSubject: manifest.subject ?? null,
+        patchChange: manifest.change != null ? String(manifest.change) : null,
+      },
       { id: 'stock', label: 'Stock', base: `${base}codex/stock/` },
     ]
   : [{ id: 'stock', label: 'Stock', base }]

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { CdxIcon, CdxMessage } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxMessage } from '@wikimedia/codex'
 import { cdxIconLinkExternal } from '@wikimedia/codex-icons'
 
 const build = __CODEX_BUILD__
@@ -20,6 +20,23 @@ const patchLinkLabel = computed(() => {
   if (patch.subject) return patch.subject
   if (patch.change) return `Gerrit change ${patch.change}`
   return 'View change'
+})
+
+function patchNameForVariant(variant: CodexBuildVariant): string {
+  if (variant.patchSubject) return variant.patchSubject
+  if (variant.patchChange) return `Gerrit change ${variant.patchChange}`
+  return variant.label
+}
+
+const siblingButtonLabel = computed(() => {
+  const s = sibling.value
+  if (!s) return ''
+  if (s.id === 'stock') return 'Open with unmodified Codex'
+  const name =
+    patchNameForVariant(s) ||
+    patchLinkLabel.value ||
+    s.label
+  return `Open with Codex patch: “${name}”`
 })
 
 function siblingHref(base: string): string {
@@ -51,12 +68,16 @@ function siblingHref(base: string): string {
     <template v-else>
       ProtoWiki is running stock Codex.
     </template>
-    <template v-if="sibling">
-      <br>
-      <a :href="siblingHref(sibling.base)">
-        View with {{ sibling.id === 'stock' ? 'stock Codex' : sibling.label }}
-      </a>
-    </template>
+    <CdxButton
+      v-if="sibling"
+      class="codex-patch-message__variant-button"
+      tag="a"
+      :href="siblingHref(sibling.base)"
+      action="progressive"
+      weight="normal"
+    >
+      {{ siblingButtonLabel }}
+    </CdxButton>
   </CdxMessage>
 </template>
 
@@ -75,5 +96,10 @@ function siblingHref(base: string): string {
 
 .codex-patch-message__link :deep(.cdx-icon) {
   color: var(--color-progressive);
+}
+
+.codex-patch-message__variant-button {
+  display: inline-flex;
+  margin-top: var(--spacing-50);
 }
 </style>

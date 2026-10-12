@@ -45,9 +45,10 @@ prototype). It shows whenever
 the build is patched or has a stock sibling:
 
 - patched: ProtoWiki is running with a modified version of Codex. “tokens: Update
-  color values” (subject linked), plus “View with stock Codex” in previews;
-- the stock preview build: "ProtoWiki is running stock Codex." with a link to
-  the patched build.
+  color values” (subject linked), plus an **Open with unmodified Codex** button in
+  previews;
+- the stock preview build: "ProtoWiki is running stock Codex." with an **Open
+  with Codex patch: “{subject}”** button back to the patched build.
 
 It can be dismissed for the current page visit only (nothing is stored). Stock-only
 builds show nothing.
