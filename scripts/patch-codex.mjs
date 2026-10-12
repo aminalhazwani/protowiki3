@@ -116,8 +116,21 @@ function resolveBaselineSha(version, changeSha) {
   return run('git', ['merge-base', changeSha, 'origin/main'], { cwd: CODEX_REPO_DIR })
 }
 
+function isGitRepo(dir) {
+  return (
+    tryRun('git', ['rev-parse', '--git-dir'], { cwd: dir }).status === 0 &&
+    fs.existsSync(path.join(dir, '.git'))
+  )
+}
+
 function ensureRepo() {
   fs.mkdirSync(CACHE_ROOT, { recursive: true })
+  if (fs.existsSync(CODEX_REPO_DIR) && !isGitRepo(CODEX_REPO_DIR)) {
+    console.warn(
+      `Removing invalid Codex cache at ${CODEX_REPO_DIR} (not a git repository).`,
+    )
+    fs.rmSync(CODEX_REPO_DIR, { recursive: true, force: true })
+  }
   if (!fs.existsSync(CODEX_REPO_DIR)) {
     console.log(`Cloning design/codex into ${CODEX_REPO_DIR}`)
     run('git', ['clone', '--filter=blob:none', GERRIT_REPO, CODEX_REPO_DIR], { cwd: CACHE_ROOT })
