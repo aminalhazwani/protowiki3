@@ -25,6 +25,7 @@ import {
   patchFileName,
   prettierVersion,
   readManifest,
+  readPatchMarker,
   readPrettierOptions,
   run,
   sha256,
@@ -243,6 +244,13 @@ function mergeThreeWay(rel, current, base, other) {
   }
 }
 
+function patchDirHasFiles() {
+  if (!fs.existsSync(PATCH_DIR)) return false
+  return fs.readdirSync(PATCH_DIR).some(
+    (file) => file === 'manifest.json' || file.endsWith('.patch'),
+  )
+}
+
 function removePatchFiles() {
   if (!fs.existsSync(PATCH_DIR)) return
   for (const file of fs.readdirSync(PATCH_DIR)) {
@@ -385,12 +393,16 @@ async function makePatch(changeInput) {
 }
 
 async function reset() {
-  if (!hasPatch()) {
+  const hadPatchFiles = patchDirHasFiles()
+  const hadMarker = Boolean(readPatchMarker())
+  if (!hadPatchFiles && !hadMarker) {
     console.log('No patch in patches/codex/; nothing to remove.')
     return
   }
   await ensureCodex(false)
-  removePatchFiles()
+  if (hadPatchFiles) {
+    removePatchFiles()
+  }
   clearViteCache()
   console.log('Removed the Codex patch. Installs and deploys are stock Codex again.')
 }

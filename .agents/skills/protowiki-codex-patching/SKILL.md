@@ -115,6 +115,16 @@ open each build from the Codex patch message on the home screen (stock lives und
 
 ## Pitfalls (each has bitten us)
 
+- **Patch drift after `git checkout`.** Git updates tracked files under
+  `patches/codex/` but does not touch `node_modules`. ProtoWiki reconciles
+  installed Codex with the manifest on `npm install`, on git checkout/merge
+  (via `githooks/`, wired on `npm install` when `core.hooksPath` is unset), and
+  at the start of `npm run dev` / `npm run build`. Restart the dev server after
+  a switch so Vite re-reads the patch marker. **Untracked** `patches/codex/`
+  survives every branch change — run `npm run codex:reset` before switching if
+  you do not want a local patch on `main`. **`codex:reset`** deletes patch files
+  and restores stock; **`codex:use-stock`** keeps patch files but runs published
+  Codex in `node_modules`.
 - **"The patch isn't showing."** Run `npm run codex:use-patch`, then restart the
   dev server. `npm install` re-applies the patch, so a stray install undoes a
   manual `codex:use-stock`.

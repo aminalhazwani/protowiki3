@@ -13,6 +13,7 @@
     "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
     "lint": "eslint . --ext .ts,.vue",
     "snapshot:wiki-skins": "bash scripts/snapshot-wiki-skins.sh",
+    "prepare": "node scripts/ensure-githooks.mjs",
     "postinstall": "node scripts/apply-codex-patch.mjs",
     "codex:use-stock": "node scripts/codex.mjs stock",
     "codex:use-patch": "node scripts/codex.mjs patched",

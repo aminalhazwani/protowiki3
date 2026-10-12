@@ -74,6 +74,21 @@ npm run codex:use-patch     # the committed patch
 
 Restart `npm run dev` afterwards.
 
+## Stay in sync after branch switches
+
+`node_modules` Codex is reconciled with whatever is in `patches/codex/` (manifest
+present → patched, absent → stock) on:
+
+- `npm install` (`postinstall`)
+- `git checkout` / `git merge` when repo `githooks/` is active (set on
+  `npm install` if `core.hooksPath` was unset)
+- `npm run dev` and `npm run build` (Vite startup)
+
+Restart the dev server after switching branches so the app picks up the new
+marker. Untracked patch files are **not** removed by git when you checkout
+another branch; use `npm run codex:reset` to delete them, or commit them on the
+branch where they belong.
+
 ## Remove the patch
 
 ```bash
