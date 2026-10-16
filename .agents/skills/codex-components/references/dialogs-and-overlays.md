@@ -78,13 +78,14 @@ menus, contextual actions on a row, etc.
     { value: 'edit', label: 'Edit', icon: cdxIconEdit },
     { value: 'delete', label: 'Delete', icon: cdxIconTrash },
   ]"
+  @load-more="loadMoreItems"
 >
   <CdxIcon :icon="cdxIconEllipsis" />
 </CdxMenuButton>
 ```
 
-Emits `update:selected` and `load-more` (the user scrolled towards the
-bottom of the menu — append items for infinite scrolling).
+Emits `update:selected`, and `load-more` when the user scrolls toward the
+bottom of the menu — use it to append items for infinite scrolling.
 
 Menu items with a `url` render as links whose clickable area spans the
 full item width; `urlNewTab: true` sets `target="_blank"` only (no `rel`
@@ -97,17 +98,26 @@ Generic positioned overlay (not a menu). Use for rich popovers, hover
 cards, etc. — anything beyond a flat list of options.
 
 ```vue
-<CdxPopover v-model:open="open" :anchor="anchorRef">
+<CdxPopover
+  v-model:open="open"
+  :anchor="anchorRef"
+  use-bottom-sheet="responsive"
+  :hide-arrow="false"
+>
   <slot />
 </CdxPopover>
 ```
 
-| Prop | Values |
-| --- | --- |
-| `useBottomSheet` | `'never'` (default) / `'responsive'` (bottom sheet on mobile ≤639px, floating popover above) / `'always'` (bottom sheet on every viewport). Boolean values are deprecated (`true` = `'responsive'`). |
-| `hideBackdrop` | hide the scrim behind the bottom sheet (shown by default) |
-| `hideArrow` | remove the arrow pointing at the anchor (e.g. when the popover can't sit next to its trigger); the popover is then positioned closer to the anchor. The bottom sheet never has an arrow. |
+| Prop             | Values                                                     | Default   |
+| ---------------- | ---------------------------------------------------------- | --------- |
+| `useBottomSheet` | `'never'` / `'responsive'` / `'always'`                    | `'never'` |
+| `hideArrow`      | hide the pointer arrow (popover sits closer to the anchor) | `false`   |
+| `hideBackdrop`   | hide the bottom-sheet scrim                                | `false`   |
 
+`'responsive'` shows a bottom sheet on mobile (≤639px) and a regular
+popover on larger screens. `'always'` uses the bottom sheet on all
+viewports. The bottom sheet variant has no arrow.
+Boolean `useBottomSheet` values are deprecated (`true` = `'responsive'`).
 On tablet and wider viewports the `'always'` bottom sheet is centred with
 a max width, side borders and rounded corners.
 

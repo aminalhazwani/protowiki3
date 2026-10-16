@@ -6,7 +6,8 @@ import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconAppearance,
   cdxIconBell,
-  cdxIconBookmarkList,
+  cdxIconBookmark,
+  cdxIconDownTriangle,
   cdxIconExpand,
   cdxIconHome,
   cdxIconImageGallery,
@@ -24,12 +25,15 @@ import {
   cdxIconWatchlist,
 } from '@wikimedia/codex-icons'
 
+import { useChromeSearchHandlers } from '@/composables/useChromeSearch'
 import { useConfig } from '@/composables/useConfig'
 import { accountActions } from './accountActions'
 import { DEFAULT_CHROME_NAV_TOOLS, type ChromeNavTool } from './headerNavTools'
 import { globalTheme } from '@/theme'
 import type { Theme } from '@/theme'
-import Search from '../Search.vue'
+import Search, { type SearchSubmitPayload } from '../Search.vue'
+
+const chromeSearchHandlers = useChromeSearchHandlers()
 
 const { user, displayName } = useConfig()
 
@@ -151,6 +155,14 @@ watch(userMenuSelection, (value) => {
   userMenuSelection.value = null
   if (value === 'log-out') accountActions.value?.logOut?.()
 })
+
+function handleSearchSelect(title: string) {
+  chromeSearchHandlers?.onSelect?.(title)
+}
+
+function handleSearchSubmit(payload: SearchSubmitPayload) {
+  chromeSearchHandlers?.onSubmit?.(payload)
+}
 </script>
 
 <template>
@@ -202,20 +214,13 @@ watch(userMenuSelection, (value) => {
         @keydown.esc="searchOpen = false"
       >
         <div class="vector-chrome-header__search">
-          <Search />
+          <Search
+            use-button
+            auto-expand-width
+            @select="handleSearchSelect"
+            @submit="handleSearchSubmit"
+          />
         </div>
-        <!--
-          PROTOWIKI+ (Home) Submits the search form (its id is Search's `protowiki-search`)
-          rather than linking to an empty Special:Search: the query goes with it, and a
-          page with an article opener opens the best match in place.
-        -->
-        <CdxButton
-          class="vector-chrome-header__search-submit"
-          type="submit"
-          form="protowiki-search"
-        >
-          Search
-        </CdxButton>
       </div>
 
       <div class="vector-chrome-header__end">
@@ -285,25 +290,27 @@ watch(userMenuSelection, (value) => {
           <CdxButton v-if="navHas('notices')" weight="quiet" aria-label="Notices">
             <CdxIcon :icon="cdxIconTray" />
           </CdxButton>
-          <CdxButton v-if="navHas('bookmarks')" weight="quiet" aria-label="Reading lists">
-            <CdxIcon :icon="cdxIconBookmarkList" />
+          <CdxButton v-if="navHas('bookmarks')" weight="quiet" aria-label="Bookmarks">
+            <CdxIcon :icon="cdxIconBookmark" />
           </CdxButton>
-          <CdxButton
-            v-if="navHas('watchlist')"
-            weight="quiet"
-            class="vector-chrome-header__hide-narrow"
-            aria-label="Watchlist"
-          >
+          <CdxButton v-if="navHas('watchlist')" weight="quiet" aria-label="Watchlist">
             <CdxIcon :icon="cdxIconWatchlist" />
           </CdxButton>
-          <CdxButton v-if="navHas('user')" weight="quiet" aria-label="User menu">
-            <CdxIcon :icon="cdxIconUserAvatar" />
-          </CdxButton>
+          <div v-if="navHas('user')" class="vector-chrome-header__user-menu">
+            <CdxButton weight="quiet" aria-label="User menu" aria-haspopup="menu">
+              <CdxIcon :icon="cdxIconUserAvatar" />
+              <CdxIcon
+                class="vector-chrome-header__user-menu-caret"
+                :icon="cdxIconDownTriangle"
+                size="small"
+              />
+            </CdxButton>
+          </div>
           <!-- The visible name is the accessible name, so no `aria-label`. -->
           <CdxMenuButton
             v-if="navHas('user-menu')"
             v-model:selected="userMenuSelection"
-            class="vector-chrome-header__user-menu"
+            class="vector-chrome-header__account-menu"
             weight="quiet"
             :menu-items="USER_MENU_ITEMS"
           >
@@ -335,7 +342,6 @@ watch(userMenuSelection, (value) => {
 /*
  * Breakpoint parity with FakeMediaWiki `src/views/SpecialView/style.css`:
  * - max-width 1120px — collapse inline search → icon (nav-item-search / nav-button-search).
- * - max-width 768px — hide desktop-only tools (nav-button-desktop, e.g. watchlist).
  * Skin swap (nav-desktop vs nav-mobile) stays at 640px via src/theme.ts.
  */
 
@@ -424,12 +430,6 @@ watch(userMenuSelection, (value) => {
   max-width: 32rem;
 }
 
-.vector-chrome-header__search-submit.cdx-button {
-  align-self: stretch;
-  border-radius: 0 var(--border-radius-base, 2px) var(--border-radius-base, 2px) 0;
-  margin-inline-start: -1px;
-}
-
 .vector-chrome-header__search-icon-toggle {
   display: none;
 }
@@ -478,7 +478,7 @@ a.vector-chrome-header__text-link:hover {
  * at 40px, which would clip a label). Three classes outrank it.
  */
 .vector-chrome-header__end .vector-chrome-header__home.cdx-button,
-.vector-chrome-header__end .vector-chrome-header__user-menu :deep(.cdx-button) {
+.vector-chrome-header__end .vector-chrome-header__account-menu :deep(.cdx-button) {
   width: auto;
   flex-shrink: 0;
   gap: var(--spacing-25, 4px);
@@ -496,18 +496,31 @@ a.vector-chrome-header__text-link:hover {
  * media"; only `!important` beats an inline style. Floating UI still flips the
  * wider menu to grow leftwards at the screen edge.
  */
-.vector-chrome-header__user-menu :deep(.cdx-menu) {
+.vector-chrome-header__account-menu :deep(.cdx-menu) {
   width: max-content !important;
   max-width: 22rem;
 }
 
 /* Vector's user menu: base-coloured icons, progressive (link) labels. */
-.vector-chrome-header__user-menu :deep(.cdx-menu-item__icon) {
+.vector-chrome-header__account-menu :deep(.cdx-menu-item__icon) {
   color: var(--color-base, #202122);
 }
 
-.vector-chrome-header__user-menu :deep(.cdx-menu-item__text__label) {
+.vector-chrome-header__account-menu :deep(.cdx-menu-item__text__label) {
   color: var(--color-progressive, #36c);
+}
+
+.vector-chrome-header__user-menu .cdx-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-width: calc(var(--size-icon-medium, 32px) + 0.75rem);
+  padding-inline-end: 0.25rem;
+}
+
+.vector-chrome-header__user-menu-caret {
+  flex-shrink: 0;
+  margin-inline-start: -0.125rem;
 }
 
 .vector-chrome-header[data-theme='dark'] .vector-chrome-header__wordmark-img,
@@ -538,11 +551,10 @@ a.vector-chrome-header__text-link:hover {
     width: var(--size-icon-large, 40px);
     padding: 0.7rem;
   }
-}
 
-@media (max-width: 768px) {
-  .vector-chrome-header__hide-narrow {
-    display: none !important;
+  .vector-chrome-header__user-menu .cdx-button {
+    width: auto;
+    min-width: calc(var(--size-icon-large, 40px) + 0.75rem);
   }
 }
 </style>

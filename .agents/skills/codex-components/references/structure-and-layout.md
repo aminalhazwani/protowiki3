@@ -12,27 +12,26 @@ default body slot.
 </CdxCard>
 ```
 
-The home gallery (`src/prototypes/index.vue`) uses one `CdxCard` per prototype (`#title`, optional `#description` from route `meta.title` / `meta.description`). For gallery ordering, category, hiding, and spotlight, see [`protowiki-create-prototype` → `gallery-meta.md`](../../protowiki-create-prototype/references/gallery-meta.md).
+The home gallery (`src/prototypes/index.vue`) uses one `CdxCard` per prototype (`#title`, optional `#description` from route `meta.title` / `meta.description`, optional `:icon` from `meta.icon`). For gallery ordering, category, hiding, spotlight, and icons, see [`protowiki-create-prototype` → `gallery-meta.md`](../../protowiki-create-prototype/references/gallery-meta.md).
 
-| Prop / slot | Use |
-| --- | --- |
-| `url` | Optional href; if set, the whole card renders as a link |
-| `#title` | Card title (slot) |
-| `#description` | Secondary text (slot) |
-| `thumbnail` | `{ url, width, height }` for a thumbnail image |
-| `icon` | icon descriptor (alternative to thumbnail) |
-| `forceThumbnail` | render thumbnail container even without an image |
-| `thumbnailPosition` | `inline-start` (default, before the text) / `inline-end` (after the text) / `block-start` (full-width image above the text, 16/9 aspect ratio) |
-| `thumbnailSize` | `small` (default, 48px) / `large` (96px); ignored for `block-start` |
-| `separation` | `outline` (default, bordered card) / `divider` (border between stacked cards) / `none` (space only) |
+| Prop / slot         | Use                                                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`               | Optional href; if set, the whole card renders as a link                                                                                     |
+| `#title`            | Card title (slot)                                                                                                                           |
+| `#description`      | Secondary text (slot)                                                                                                                       |
+| `thumbnail`         | `{ url, width, height }` for a thumbnail image                                                                                              |
+| `icon`              | icon descriptor (alternative to thumbnail)                                                                                                  |
+| `forceThumbnail`    | render thumbnail container even without an image                                                                                            |
+| `thumbnailPosition` | `'inline-start'` (default) / `'inline-end'` / `'block-start'` — `'block-start'` shows a full-width image above the text (16∶9 aspect ratio) |
+| `thumbnailSize`     | `'small'` (48px, default) / `'large'` (96px) — only applies for inline positions                                                            |
+| `separation`        | `'outline'` (default) / `'divider'` / `'none'` — `'divider'` is for vertical card groups only                                               |
 
 Image guidance: put the image first (`inline-start`) when recognizing it
 matters most (article cards), at the end (`inline-end`) when it is
 supplementary ("Did you know?"); use `small` when space is tight and
 `large` when recognizing the image at a glance matters. Don't mix sizes or
-positions within one collection of cards. Use `divider` only for vertical
-groups of cards. For horizontal layouts, text aligns to the top of the
-media unless there is only a title (then centred).
+positions within one collection of cards. For horizontal layouts, text
+aligns to the top of the media unless there is only a title (then centred).
 
 ## CdxTable
 
@@ -106,6 +105,6 @@ when assistive tech relies on the role.
 
 ## Content overflow (style guide)
 
-For *how to handle overflow* — wrapping vs ellipsis (+tooltip) vs a
+For _how to handle overflow_ — wrapping vs ellipsis (+tooltip) vs a
 scroll fade — see
 [`codex-style-guide` → content overflow](../../codex-style-guide/references/content-overflow.md).
