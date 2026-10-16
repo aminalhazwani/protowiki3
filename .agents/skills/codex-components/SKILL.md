@@ -61,6 +61,7 @@ When in doubt, the canonical docs are at
 | A modal | `CdxDialog` |
 | A small contextual menu | `CdxMenu` (or `CdxMenuButton` for a trigger + menu) |
 | A keyboard-focusable popover | `CdxPopover` |
+| A bottom sheet (mobile or all viewports) | `CdxPopover` with `use-bottom-sheet="responsive"` / `"always"` |
 | A row of tabs | `CdxTabs` + `CdxTab` |
 | A card with title + content | `CdxCard` |
 | A table | `CdxTable` |

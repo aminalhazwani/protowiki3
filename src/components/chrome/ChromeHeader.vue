@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, useSlots } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 
 import type { HeaderItem } from '@/components/header/headerItems'
 import type { ChromeNavTool } from './headerNavTools'
@@ -32,6 +32,8 @@ interface Props {
   middle?: HeaderItem[]
   /** Minerva bar only — override default **`right`** item array. */
   right?: HeaderItem[]
+  /** PROTOWIKI+ (Home) Where the Wikipedia wordmark links to (default **`'/'`**, the gallery). */
+  brandTo?: RouteLocationRaw
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -45,6 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
   left: undefined,
   middle: undefined,
   right: undefined,
+  brandTo: '/',
 })
 
 const slots = useSlots()
@@ -82,7 +85,7 @@ const minervaMiddle = computed((): HeaderItem[] | undefined => {
                 RouterLink,
                 {
                   class: 'minerva-chrome-header__brand',
-                  to: '/',
+                  to: props.brandTo,
                   'aria-label': 'Visit the main page',
                 },
                 () => slots.logo?.() ?? null,
@@ -106,6 +109,7 @@ const minervaRight = computed((): HeaderItem[] | undefined => props.right)
     :wordmark-src="props.wordmarkSrc"
     :tagline-src="props.taglineSrc"
     :nav-tools="props.navTools"
+    :brand-to="props.brandTo"
   >
     <template v-if="slots.menu" #menu>
       <slot name="menu" />
@@ -129,5 +133,6 @@ const minervaRight = computed((): HeaderItem[] | undefined => props.right)
     :right="minervaRight"
     :wordmark-src="props.wordmarkSrc"
     :mobile-wordmark-src="props.mobileWordmarkSrc"
+    :brand-to="props.brandTo"
   />
 </template>
