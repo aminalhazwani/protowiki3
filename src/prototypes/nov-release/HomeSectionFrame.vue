@@ -23,7 +23,7 @@ defineProps<{
 .home-section-frame {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-50);
+  gap: var(--spacing-25);
 }
 
 /* Actions sit at the heading's end. */

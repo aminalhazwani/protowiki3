@@ -164,14 +164,6 @@ if (props.standalone) {
   gap: var(--spacing-50);
 }
 
-/* Desktop: the 2-column card matrix every module shares. */
-[data-skin='desktop'] .home-section__cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: stretch;
-  gap: var(--spacing-100);
-}
-
 /*
  * On a module page the strip sticks under the bar (home2): 4px from it, 8px
  * above its own hairline, full width over the scrolling list. `top` is the
@@ -238,7 +230,7 @@ if (props.standalone) {
 /* Under a grid a full-width bar would read as another cell: hug the label instead. */
 .home-section__more {
   align-self: flex-start;
-  margin-top: var(--spacing-25);
+  margin-top: var(--spacing-50);
 }
 
 /* Minerva: a full-width bar under the stacked cards (home2). */
