@@ -15,6 +15,11 @@ import { onScopeDispose, shallowRef, type ShallowRef } from 'vue'
 export interface AccountActions {
   /** The user menu's "Log out" row. */
   logOut?(): void
+  /**
+   * PROTOWIKI+ (Nov release) The user menu's own row: the account's name in
+   * Minerva, "User page" in Vector. A prototype can send it somewhere of its own.
+   */
+  userPage?(): void
   /** The logged-out "Create account" link: the prototype's own account flow. */
   createAccount?: {
     /**

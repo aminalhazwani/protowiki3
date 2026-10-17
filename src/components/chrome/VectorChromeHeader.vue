@@ -114,10 +114,15 @@ const showChromeUsernameLink = computed(
 )
 const userMenuLabel = computed(() => trimmedUsername.value || displayName.value)
 
+/* PROTOWIKI+ (Nov release) The name link leads where the page says (`accountActions.userPage`). */
+function onUsernameClick(): void {
+  accountActions.value?.userPage?.()
+}
+
 /**
  * PROTOWIKI+ (Home) Mocked Vector user menu. The name is on the button, so the
  * first row names the destination. Rows are inert like the rest of the chrome
- * (except "Log out" when the page registered `accountActions`): a pick closes
+ * (except "User page" and "Log out" when the page registered `accountActions`): a pick closes
  * the menu and the selection is cleared, so no row stays checked.
  */
 const USER_MENU_ITEMS: MenuButtonItemData[] = [
@@ -131,6 +136,12 @@ const USER_MENU_ITEMS: MenuButtonItemData[] = [
   { value: 'uploaded-media', label: 'Uploaded media', icon: cdxIconImageGallery },
   { value: 'log-out', label: 'Log out', icon: cdxIconLogOut },
 ]
+
+/*
+ * PROTOWIKI+ (Nov release) Behind the avatar (`user-avatar-menu`) the name is a
+ * link beside the menu, as in Vector 2022, so the menu drops "User page".
+ */
+const USER_AVATAR_MENU_ITEMS = USER_MENU_ITEMS.filter((item) => item.value !== 'user-page')
 
 /*
  * PROTOWIKI+ (Home) "Create account" opens the prototype's own flow when the
@@ -153,6 +164,7 @@ const userMenuSelection = ref<MenuItemValue | null>(null)
 watch(userMenuSelection, (value) => {
   if (value === null) return
   userMenuSelection.value = null
+  if (value === 'user-page') accountActions.value?.userPage?.()
   if (value === 'log-out') accountActions.value?.logOut?.()
 })
 
@@ -262,7 +274,7 @@ function handleSearchSubmit(payload: SearchSubmitPayload) {
             v-else-if="showChromeUsernameLink"
             class="vector-chrome-header__text-link vector-chrome-header__username-display"
             href="#"
-            @click.prevent
+            @click.prevent="onUsernameClick"
           >
             {{ trimmedUsername }}
           </a>
@@ -315,6 +327,17 @@ function handleSearchSubmit(payload: SearchSubmitPayload) {
             :menu-items="USER_MENU_ITEMS"
           >
             {{ userMenuLabel }}
+            <CdxIcon :icon="cdxIconExpand" size="small" />
+          </CdxMenuButton>
+          <CdxMenuButton
+            v-if="navHas('user-avatar-menu')"
+            v-model:selected="userMenuSelection"
+            class="vector-chrome-header__account-menu"
+            weight="quiet"
+            aria-label="User menu"
+            :menu-items="USER_AVATAR_MENU_ITEMS"
+          >
+            <CdxIcon :icon="cdxIconUserAvatar" />
             <CdxIcon :icon="cdxIconExpand" size="small" />
           </CdxMenuButton>
         </slot>

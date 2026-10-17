@@ -21,8 +21,8 @@ import { accountActions } from './accountActions'
 /**
  * Minerva's avatar button with the user menu hanging off it: the account's
  * pages when logged in, Create account / Log in when logged out. Rows are
- * inert mocks, except "Log out" and "Create account" when the page registered
- * `accountActions`.
+ * inert mocks, except the name, "Log out" and "Create account" when the page
+ * registered `accountActions`.
  */
 const { user, displayName } = useConfig()
 
@@ -52,6 +52,7 @@ const menuItems = computed((): MenuItemData[] =>
 watch(selection, (value) => {
   if (value === null) return
   selection.value = null
+  if (value === 'user-page') accountActions.value?.userPage?.()
   if (value === 'log-out') accountActions.value?.logOut?.()
   if (value === 'create-account') accountActions.value?.createAccount?.open()
 })
