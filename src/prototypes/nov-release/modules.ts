@@ -17,7 +17,7 @@ import {
   type Icon,
 } from '@wikimedia/codex-icons'
 
-import { DISCUSSION_FILTERS, loadActiveDiscussions } from './data/loadActiveDiscussions'
+import { loadActiveDiscussions } from './data/loadActiveDiscussions'
 import { loadDailyReads } from './data/loadDailyReads'
 import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
@@ -148,10 +148,9 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     id: 'daily-reads',
     title: 'Daily reads',
     variant: 'article',
+    // Just its three cards: no "Show more" (so no module page) and no save button.
     slots: 3,
-    pageSize: 3,
     supportingIcon: cdxIconLink,
-    saveable: true,
     load: loadDailyReads,
     personalized: true,
   },
@@ -202,7 +201,6 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     slots: 3,
     pageSize: 3,
     moreLabel: 'Show more',
-    filters: DISCUSSION_FILTERS,
     supportingIcon: cdxIconSpeechBubbles,
     load: loadActiveDiscussions,
   },
