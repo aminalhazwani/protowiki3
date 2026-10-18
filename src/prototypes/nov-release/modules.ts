@@ -21,12 +21,12 @@ import { DISCUSSION_FILTERS, loadActiveDiscussions } from './data/loadActiveDisc
 import { loadDailyReads } from './data/loadDailyReads'
 import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
-import { hasImpact, loadImpact } from './data/loadImpact'
 import { loadReviewChanges, RANDOM_CHANGE_COUNT } from './data/loadReviewChanges'
 import { loadSaved } from './data/loadSaved'
 import { loadSuggestedEdits, RANDOM_SUGGESTION_COUNT } from './data/loadSuggestedEdits'
 import { loadTrending } from './data/loadTrending'
 import type { HomeCardData } from './data/types'
+import HomeImpact from './HomeImpact.vue'
 import HomeMentor from './HomeMentor.vue'
 import { MENTOR_CONTENT } from './data/mentorContent'
 import { useHomeMentor } from './useHomeMentor'
@@ -110,6 +110,11 @@ export interface HomeCustomModuleSpec {
   /** Its name in the "Home layout" list, when that isn't `title` (or `title` varies). */
   layoutLabel?: string
   body: Component
+  /**
+   * `false` when the body brings its own frame and title (the Homepage
+   * template's cards), so the Home doesn't add its heading over it.
+   */
+  framed?: boolean
 }
 
 export type HomeAnyModuleSpec = HomeModuleSpec | HomeCustomModuleSpec
@@ -163,20 +168,11 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     personalized: true,
   },
   {
-    // Views across the row, then a 2 × 2 grid of stats (home2).
+    // The Homepage template's Impact card (its own frame and title).
     id: 'impact',
     title: 'Your impact',
-    variant: 'stat',
-    // No skeletons when there's nothing to load: the empty state shows straight away.
-    slots: () => (hasImpact() ? 5 : 0),
-    load: loadImpact,
-    empty: {
-      title: '0 edits to articles so far.',
-      text: [
-        'Help extend free knowledge to the world by editing topics that matter most to you.',
-        'Start with a few suggested edits, then see how many people are viewing your contributions here.',
-      ],
-    },
+    body: HomeImpact,
+    framed: false,
   },
   {
     id: 'mentor',

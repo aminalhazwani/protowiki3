@@ -62,9 +62,12 @@ function titleOf(title: string | (() => string)): string {
         :class="`home-dashboard__modules--${column.key}`"
       >
         <template v-for="spec in column.modules" :key="spec.id">
-          <HomeSectionFrame v-if="isCustomModule(spec)" :id="spec.id" :title="titleOf(spec.title)">
-            <component :is="spec.body" />
-          </HomeSectionFrame>
+          <template v-if="isCustomModule(spec)">
+            <component :is="spec.body" v-if="spec.framed === false" />
+            <HomeSectionFrame v-else :id="spec.id" :title="titleOf(spec.title)">
+              <component :is="spec.body" />
+            </HomeSectionFrame>
+          </template>
           <HomeSection v-else :spec="spec" />
         </template>
       </div>
