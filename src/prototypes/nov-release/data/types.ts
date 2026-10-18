@@ -18,6 +18,8 @@ export interface HomeCardData {
   /** Part of `title` to show bold (a Did you know hook's article). */
   titleEmphasis?: string
   description?: string
+  /** A plain line under the title, inside it (a change card's article description). */
+  titleDescription?: string
   thumbnailUrl?: string
   /** Where the card leads inside the prototype. Give this or `href`. */
   to?: RouteLocationRaw

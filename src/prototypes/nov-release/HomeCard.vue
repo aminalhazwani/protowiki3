@@ -128,6 +128,9 @@ function onClick(event: MouseEvent): void {
           <span>{{ titleParts.after }}</span>
         </span>
         <template v-else>{{ card.title }}</template>
+        <span v-if="card.titleDescription" class="home-card__title-description">
+          {{ card.titleDescription }}
+        </span>
       </template>
       <template v-if="card.description" #description>{{ card.description }}</template>
       <template v-if="card.supportingText || card.supportingTime" #supporting-text>
@@ -172,6 +175,19 @@ function onClick(event: MouseEvent): void {
 
 .home-card--hook :deep(.cdx-card__text__title strong) {
   font-weight: var(--font-weight-bold);
+}
+
+/* CODEX+ CdxCard: one description slot. A change card's article description goes under its title. */
+.home-card__title-description {
+  display: block;
+  font-weight: var(--font-weight-normal);
+  color: var(--color-subtle);
+}
+
+/* A change card's description is the edit summary: the editor's own words, in base colour. */
+.home-card--change :deep(.cdx-card__text__description) {
+  color: var(--color-base);
+  font-style: italic;
 }
 
 .home-card {
@@ -298,9 +314,9 @@ function onClick(event: MouseEvent): void {
   height: 122px;
 }
 
-/* A change card: chip row, title, one-line summary, editor (measured 139 on both skins). */
+/* A change card: chip row, title, article description, one-line summary, editor (measured 158). */
 .home-card-skeleton--change {
-  height: 139px;
+  height: 158px;
 }
 
 /* A text card: title, one-line description, supporting line. */

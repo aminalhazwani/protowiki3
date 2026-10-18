@@ -10,6 +10,7 @@ import { mapWithConcurrency } from '@/lib/mapWithConcurrency'
 
 import { useHomeSeeds } from '../useHomeSeeds'
 import { formatEditSummary } from './editSummary'
+import { fetchPageCards, type PageCardInfo } from './fetchPageCards'
 import {
   diffUrl,
   fetchDiff,
@@ -149,11 +150,16 @@ function chipsFor(revision: Revision, { flag, major }: ReviewSignals): HomeCardC
   return chips
 }
 
-function toCard(revision: Revision, signals: ReviewSignals): HomeCardData {
+function toCard(
+  revision: Revision,
+  signals: ReviewSignals,
+  page: PageCardInfo | null | undefined,
+): HomeCardData {
   return {
     key: `change:${revision.revid}`,
     title: revision.title,
     pageTitle: revision.title,
+    titleDescription: page?.description,
     description: formatEditSummary(revision.parsedComment, revision.comment),
     href: diffUrl(revision),
     supportingText: revision.user || 'Anonymous',
@@ -178,12 +184,21 @@ export async function loadReviewChanges(signal: AbortSignal): Promise<HomeCardDa
       0,
       signals.findIndex((s) => s.flag || s.major),
     )
-    return pool.length ? [toCard(pool[pick], signals[pick])] : []
+    if (!pool.length) return []
+    const [page] = await fetchPageCards([pool[pick].title], signal).catch(() => [])
+    return [toCard(pool[pick], signals[pick], page)]
   }
 
   const revisions = (await fetchLatestRevisions(seeds.value, signal))
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     .slice(0, PERSONAL_CHANGE_COUNT)
-  const signals = await signalsFor(revisions, signal)
-  return revisions.map((revision, i) => toCard(revision, signals[i]))
+  // Article descriptions, batched, alongside the review signals; a failed lookup just means none.
+  const [signals, pages] = await Promise.all([
+    signalsFor(revisions, signal),
+    fetchPageCards(
+      revisions.map((r) => r.title),
+      signal,
+    ).catch(() => []),
+  ])
+  return revisions.map((revision, i) => toCard(revision, signals[i], pages[i]))
 }
