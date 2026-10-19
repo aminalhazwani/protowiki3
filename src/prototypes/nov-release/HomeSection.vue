@@ -97,8 +97,8 @@ if (props.standalone) {
     :id="spec.id"
     :title="standalone ? undefined : spec.title"
   >
-    <template v-if="spec.personalized" #actions>
-      <HomeModuleMenu />
+    <template v-if="spec.menu" #actions>
+      <HomeModuleMenu :menu="spec.menu" />
     </template>
     <div v-if="error" class="home-section__error">
       <p>Couldn't load this section.</p>
