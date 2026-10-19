@@ -6,14 +6,19 @@
  * row leads back to the Home, and any link off the prototype (header or content)
  * asks before leaving.
  */
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { registerArticleOpener } from '@/components/article/shared/articleOpener'
 import { registerAccountActions } from '@/components/chrome/accountActions'
+import ChromeFooter from '@/components/chrome/ChromeFooter.vue'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import type { ChromeNavTool } from '@/components/chrome/headerNavTools'
+import { useConfig } from '@/composables/useConfig'
+import { globalSkin } from '@/theme'
 
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
+import HomeMobileTabBar from './HomeMobileTabBar.vue'
 import HomePrototypeMenu from './HomePrototypeMenu.vue'
 import { CREATE_ACCOUNT_PATH, HOME_PATH, homeArticleLocation, titleFromRouteParam } from './routes'
 import { useHomeSession } from './useHomeAccount'
@@ -44,7 +49,11 @@ const NAV_TOOLS: ChromeNavTool[] = [
   'user-avatar-menu',
 ]
 
-const { logOut, goHomeAs } = useHomeSession()
+const { isLoggedIn, logOut, goHomeAs } = useHomeSession()
+const { displayName } = useConfig()
+
+/** Signed in on mobile: the tab bar sits under every page. */
+const showTabBar = computed(() => isLoggedIn.value && globalSkin.value === 'mobile')
 
 const { onLeaveCapture } = useHomeLeavePrototype()
 
@@ -92,6 +101,15 @@ registerAccountActions({
         <HomePrototypeMenu />
       </template>
       <slot />
+      <!-- PROTOWIKI+ (mobile-nav) ChromeWrapper has no slot after its footer, so the footer is rebuilt here. -->
+      <template #footer>
+        <ChromeFooter
+          v-if="props.showFooter"
+          :last-edited-notice="props.lastEditedNotice"
+          :username="displayName"
+        />
+        <HomeMobileTabBar v-if="showTabBar" />
+      </template>
     </ChromeWrapper>
     <HomeLeavePrototypeDialog />
   </div>
