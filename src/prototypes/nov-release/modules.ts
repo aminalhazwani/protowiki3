@@ -110,11 +110,6 @@ export interface HomeCustomModuleSpec {
   /** Its name in the "Home layout" list, when that isn't `title` (or `title` varies). */
   layoutLabel?: string
   body: Component
-  /**
-   * `false` when the body brings its own frame and title (the Homepage
-   * template's cards), so the Home doesn't add its heading over it.
-   */
-  framed?: boolean
 }
 
 export type HomeAnyModuleSpec = HomeModuleSpec | HomeCustomModuleSpec
@@ -167,11 +162,10 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     personalized: true,
   },
   {
-    // The Homepage template's Impact card (its own frame and title).
+    // The Homepage template's Impact module, under the Home's own heading.
     id: 'impact',
     title: 'Your impact',
     body: HomeImpact,
-    framed: false,
   },
   {
     id: 'mentor',

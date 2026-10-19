@@ -53,12 +53,9 @@ function titleOf(title: string | (() => string)): string {
         :class="`home-dashboard__modules--${column.key}`"
       >
         <template v-for="spec in column.modules" :key="spec.id">
-          <template v-if="isCustomModule(spec)">
-            <component :is="spec.body" v-if="spec.framed === false" />
-            <HomeSectionFrame v-else :id="spec.id" :title="titleOf(spec.title)">
-              <component :is="spec.body" />
-            </HomeSectionFrame>
-          </template>
+          <HomeSectionFrame v-if="isCustomModule(spec)" :id="spec.id" :title="titleOf(spec.title)">
+            <component :is="spec.body" />
+          </HomeSectionFrame>
           <HomeSection v-else :spec="spec" />
         </template>
       </div>
@@ -73,7 +70,7 @@ function titleOf(title: string | (() => string)): string {
 .home-dashboard__modules {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-150);
+  gap: var(--spacing-200);
 }
 
 /* Each desktop module is a block of cards, so it needs a wider break between. */
