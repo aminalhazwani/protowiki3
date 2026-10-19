@@ -1,18 +1,15 @@
 <script setup lang="ts">
 /**
- * The signed-in Home: a special-page shell with the greeting as its title (and
- * the "Home layout" button beside it), then the layout's modules in order. On
+ * The signed-in Home: a special-page shell with the greeting as its title, then
+ * the layout's modules in order (the layout lives in ☰ Prototype settings). On
  * desktop they split 60/40: Impact and Mentor take the side column, the rest
  * the main one, each in the layout's order.
  */
-import { computed, ref } from 'vue'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
-import { cdxIconConfigure } from '@wikimedia/codex-icons'
+import { computed } from 'vue'
 
 import { useConfig } from '@/composables/useConfig'
 import { globalSkin } from '@/theme'
 
-import HomeLayoutDialog from './HomeLayoutDialog.vue'
 import HomeOnboarding from './HomeOnboarding.vue'
 import HomePage from './HomePage.vue'
 import HomePersonalizationDialog from './HomePersonalizationDialog.vue'
@@ -24,7 +21,6 @@ import { useHomePersonalization } from './useHomePersonalization'
 
 const { pageTitle } = useConfig()
 const { visibleModules } = useHomeLayout()
-const layoutOpen = ref(false)
 // Opened from a personal module's "Configure" (`HomeConfigureMenu`).
 const { open: personalizationOpen } = useHomePersonalization()
 
@@ -49,11 +45,6 @@ function titleOf(title: string | (() => string)): string {
 
 <template>
   <HomePage :title="pageTitle" class="home-dashboard">
-    <template #actions>
-      <CdxButton weight="quiet" aria-label="Home layout" @click="layoutOpen = true">
-        <CdxIcon :icon="cdxIconConfigure" />
-      </CdxButton>
-    </template>
     <div class="home-dashboard__columns" :class="{ 'home-dashboard__columns--split': columns.length > 1 }">
       <div
         v-for="column in columns"
@@ -72,7 +63,6 @@ function titleOf(title: string | (() => string)): string {
         </template>
       </div>
     </div>
-    <HomeLayoutDialog v-model:open="layoutOpen" />
     <HomePersonalizationDialog v-model:open="personalizationOpen" />
     <!-- After account creation: the onboarding wizard, over the reader's new Home. -->
     <HomeOnboarding />

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * The header's ☰ main menu on every Home page: "Prototype settings" (inert for
- * now), and home2's "Reset prototype", for starting a test session over, as the
- * menu's footer in the destructive (error) colour.
+ * The header's ☰ main menu on every Home page: "Prototype settings" (a dialog
+ * holding the Home layout), and home2's "Reset prototype", for starting a test
+ * session over, as the menu's footer in the destructive (error) colour.
  */
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -14,6 +14,7 @@ import {
 } from '@wikimedia/codex'
 import { cdxIconMenu } from '@wikimedia/codex-icons'
 
+import HomePrototypeSettingsDialog from './HomePrototypeSettingsDialog.vue'
 import { HOME_PATH } from './routes'
 
 const MENU_ITEMS: MenuButtonItemData[] = [{ value: 'settings', label: 'Prototype settings' }]
@@ -26,6 +27,7 @@ const MENU_FOOTER: MenuButtonItemData = {
 const route = useRoute()
 const router = useRouter()
 const selected = ref<MenuItemValue | null>(null)
+const settingsOpen = ref(false)
 
 /*
  * Everything this browser stored (home2): ProtoWiki's settings too, not just the
@@ -49,6 +51,7 @@ function resetPrototype(): void {
 watch(selected, (value) => {
   if (value === null) return
   selected.value = null
+  if (value === 'settings') settingsOpen.value = true
   if (value === 'reset') resetPrototype()
 })
 </script>
@@ -64,6 +67,7 @@ watch(selected, (value) => {
   >
     <CdxIcon :icon="cdxIconMenu" />
   </CdxMenuButton>
+  <HomePrototypeSettingsDialog v-model:open="settingsOpen" />
 </template>
 
 <style scoped>

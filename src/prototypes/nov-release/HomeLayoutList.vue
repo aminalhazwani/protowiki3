@@ -1,17 +1,15 @@
 <script setup lang="ts">
 /**
- * "Home layout" (home2's configure page): every module with a drag handle and
- * a switch, in layout order. Opened over the Home, which follows each change.
+ * The Home layout list (home2's configure page): every module with a drag
+ * handle and a switch, in layout order. It sits in "Prototype settings"; the
+ * Home follows each change.
  */
 import { ref } from 'vue'
 import { CdxButton, CdxIcon, CdxToggleSwitch } from '@wikimedia/codex'
 import { cdxIconDraggableVertical } from '@wikimedia/codex-icons'
 
-import HomeDialogShell from './HomeDialogShell.vue'
 import { useDragReorder } from './useDragReorder'
 import { layoutLabel, useHomeLayout } from './useHomeLayout'
-
-const open = defineModel<boolean>('open', { required: true })
 
 const { modules, isOn, setOn, move } = useHomeLayout()
 
@@ -24,40 +22,38 @@ const { dragging, onPointerDown, onKeydown } = useDragReorder(
 </script>
 
 <template>
-  <HomeDialogShell v-model:open="open" title="Home layout" subtitle="Drag to rearrange sections">
-    <!-- No long-press menu on touch: it would cut a drag short. -->
-    <ul
-      ref="list"
-      class="home-layout-dialog__list"
-      :class="{ 'home-layout-dialog__list--dragging': dragging !== null }"
-      @contextmenu.capture.prevent
+  <!-- No long-press menu on touch: it would cut a drag short. -->
+  <ul
+    ref="list"
+    class="home-layout-dialog__list"
+    :class="{ 'home-layout-dialog__list--dragging': dragging !== null }"
+    @contextmenu.capture.prevent
+  >
+    <li
+      v-for="(spec, index) in modules"
+      :key="spec.id"
+      class="home-layout-dialog__row"
+      :class="{ 'home-layout-dialog__row--dragging': dragging === index }"
     >
-      <li
-        v-for="(spec, index) in modules"
-        :key="spec.id"
-        class="home-layout-dialog__row"
-        :class="{ 'home-layout-dialog__row--dragging': dragging === index }"
+      <CdxButton
+        class="home-layout-dialog__handle"
+        weight="quiet"
+        aria-label="Drag to reorder"
+        @pointerdown="onPointerDown($event, index)"
+        @keydown="onKeydown($event, index)"
       >
-        <CdxButton
-          class="home-layout-dialog__handle"
-          weight="quiet"
-          aria-label="Drag to reorder"
-          @pointerdown="onPointerDown($event, index)"
-          @keydown="onKeydown($event, index)"
-        >
-          <CdxIcon :icon="cdxIconDraggableVertical" />
-        </CdxButton>
-        <CdxToggleSwitch
-          class="home-layout-dialog__switch"
-          :model-value="isOn(spec.id)"
-          align-switch
-          @update:model-value="setOn(spec.id, $event)"
-        >
-          {{ layoutLabel(spec) }}
-        </CdxToggleSwitch>
-      </li>
-    </ul>
-  </HomeDialogShell>
+        <CdxIcon :icon="cdxIconDraggableVertical" />
+      </CdxButton>
+      <CdxToggleSwitch
+        class="home-layout-dialog__switch"
+        :model-value="isOn(spec.id)"
+        align-switch
+        @update:model-value="setOn(spec.id, $event)"
+      >
+        {{ layoutLabel(spec) }}
+      </CdxToggleSwitch>
+    </li>
+  </ul>
 </template>
 
 <style scoped>

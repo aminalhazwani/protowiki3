@@ -19,9 +19,11 @@ interface Props {
    * doesn't resize between steps and a screen can push content to the bottom.
    */
   tall?: boolean
+  /** Codex's fixed height (the dialog's maximum) on Vector too; Minerva always has it. */
+  fixedHeight?: boolean
 }
 
-withDefaults(defineProps<Props>(), { subtitle: undefined, tall: false })
+withDefaults(defineProps<Props>(), { subtitle: undefined, tall: false, fixedHeight: false })
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -36,7 +38,7 @@ const isMobile = computed(() => globalSkin.value === 'mobile')
     :title="title"
     :subtitle="subtitle"
     use-close-button
-    :fixed-height="isMobile || tall"
+    :fixed-height="isMobile || tall || fixedHeight"
   >
     <!-- A flow's own header (e.g. back + step counter) replaces Codex's title row. -->
     <template v-if="$slots.header" #header>
