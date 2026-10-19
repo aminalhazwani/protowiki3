@@ -5,10 +5,10 @@
  * every page; it slides away while the reader scrolls down and back on scroll up.
  *
  * Destinations: Special:Search opens Minerva's search, Special:Random a random
- * article, other special pages leave the prototype (after asking), and any
- * other title opens in the prototype.
+ * article, Special:Nearby the prototype's own, other special pages leave the
+ * prototype (after asking), and any other title opens in the prototype.
  */
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconHome } from '@wikimedia/codex-icons'
@@ -21,7 +21,7 @@ import { resolveCodexIcon } from './data/codexIcons'
 import { HOME_PATH, homeArticleLocation, normalizeTitle, titleFromRouteParam } from './routes'
 import { useHideOnScroll } from './useHideOnScroll'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
-import { useHomeTabBar } from './useHomeTabBar'
+import { tabBarInset, useHomeTabBar } from './useHomeTabBar'
 
 interface TabItem {
   id: string
@@ -86,6 +86,11 @@ const items = computed<TabItem[]>(() => {
 // A new page starts with the bar in view.
 watch(() => route.fullPath, show)
 
+/** Matches `--home-tab-bar-height`. */
+const BAR_HEIGHT = 56
+watch(hidden, (isHidden) => (tabBarInset.value = isHidden ? 0 : BAR_HEIGHT), { immediate: true })
+onBeforeUnmount(() => (tabBarInset.value = 0))
+
 async function fetchRandomTitle(): Promise<string | null> {
   const params = new URLSearchParams({
     action: 'query',
@@ -105,6 +110,9 @@ async function fetchRandomTitle(): Promise<string | null> {
   }
 }
 
+/** Special pages the prototype renders itself (see `mobile-nav.wiki.[title]`). */
+const IN_PROTOTYPE_SPECIAL_PAGES = new Set(['nearby'])
+
 async function onClick(item: TabItem): Promise<void> {
   if (item.destination === null) {
     if (route.path !== HOME_PATH) void router.push(HOME_PATH)
@@ -114,6 +122,8 @@ async function onClick(item: TabItem): Promise<void> {
   const special = destination.match(/^Special:(.+)$/i)?.[1].toLowerCase()
   if (special === 'search') {
     searchOpen.value = true
+  } else if (special && IN_PROTOTYPE_SPECIAL_PAGES.has(special)) {
+    if (!item.selected) void router.push(homeArticleLocation(destination))
   } else if (special === 'random' || special === 'randompage') {
     const title = await fetchRandomTitle()
     if (title) void router.push(homeArticleLocation(title))

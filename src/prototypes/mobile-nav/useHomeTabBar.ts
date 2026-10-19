@@ -7,6 +7,9 @@ import { DEFAULT_TAB_BAR, type HomeTabSlot } from './data/tabBar'
 // Read on first use, not at import, so it sees `?reset`.
 const stored = ref<HomeConfig['tabBar'] | undefined>(undefined)
 
+/** Viewport height (px) the mobile tab bar covers now: 0 while it's slid away or not shown. */
+export const tabBarInset = ref(0)
+
 /** The mobile tab bar's editable tabs (after Home), and the edits "Prototype settings" makes. */
 export function useHomeTabBar() {
   if (stored.value === undefined) stored.value = loadHomeConfig().tabBar

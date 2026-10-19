@@ -40,6 +40,9 @@ export function homeArticleLocation(
 ): RouteLocationRaw {
   const hash = fragment ? `#${fragment}` : ''
   if (normalizeTitle(title) === MAIN_PAGE_TITLE) return { path: HOME_PATH, hash }
+  // Wikipedia leaves `:` and `,` readable (`/wiki/Special:Nearby`).
   const slug = encodeURIComponent(normalizeTitle(title).replace(/ /g, '_'))
+    .replace(/%3A/gi, ':')
+    .replace(/%2C/gi, ',')
   return { path: `${HOME_PATH}/wiki/${slug}`, hash }
 }
