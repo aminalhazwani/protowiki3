@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Wikipedia chrome for every Home page: the wordmark leads back to `/home`, the
+ * Wikipedia chrome for every Home page: the wordmark leads to the Main Page, the
  * header follows the prototype's account (see `useHomeSession`), search opens
  * articles inside the prototype, ☰ can reset the prototype, the user menu's own
  * row leads back to the Home, and any link off the prototype (header or content)
@@ -20,7 +20,13 @@ import { globalSkin } from '@/theme'
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
 import HomeMobileTabBar from './HomeMobileTabBar.vue'
 import HomePrototypeMenu from './HomePrototypeMenu.vue'
-import { CREATE_ACCOUNT_PATH, HOME_PATH, homeArticleLocation, titleFromRouteParam } from './routes'
+import {
+  CREATE_ACCOUNT_PATH,
+  HOME_PATH,
+  homeArticleLocation,
+  MAIN_PAGE_PATH,
+  titleFromRouteParam,
+} from './routes'
 import { useHomeSession } from './useHomeAccount'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
 
@@ -51,6 +57,9 @@ const NAV_TOOLS: ChromeNavTool[] = [
 
 const { isLoggedIn, logOut, goHomeAs } = useHomeSession()
 const { displayName } = useConfig()
+
+/* Logged out, the prototype root is the Main Page; signed in it's the Home, so the Main Page is a wiki page. */
+const brandTo = computed(() => (isLoggedIn.value ? MAIN_PAGE_PATH : HOME_PATH))
 
 /** Signed in on mobile: the tab bar sits under every page. */
 const showTabBar = computed(() => isLoggedIn.value && globalSkin.value === 'mobile')
@@ -93,7 +102,7 @@ registerAccountActions({
     @click.capture="onLeaveCapture"
   >
     <ChromeWrapper
-      :brand-to="HOME_PATH"
+      :brand-to="brandTo"
       :nav-tools="NAV_TOOLS"
       :last-edited-notice="props.lastEditedNotice"
       :show-footer="props.showFooter"

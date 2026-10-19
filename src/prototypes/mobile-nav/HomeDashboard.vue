@@ -41,7 +41,7 @@ function titleOf(title: string | (() => string)): string {
 </script>
 
 <template>
-  <HomePage :title="pageTitle" class="home-dashboard">
+  <HomePage :title="pageTitle" tabs class="home-dashboard">
     <div class="home-dashboard__columns" :class="{ 'home-dashboard__columns--split': columns.length > 1 }">
       <div
         v-for="column in columns"
