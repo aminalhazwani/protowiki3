@@ -9,7 +9,8 @@
  */
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { CdxButton } from '@wikimedia/codex'
+import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { cdxIconCollapse } from '@wikimedia/codex-icons'
 
 import { useSkin } from '@/composables/useSkin'
 
@@ -35,6 +36,8 @@ const {
   hasMore,
   reload,
   revealMore,
+  collapse,
+  expanded,
   setFilter,
 } = useHomeModule(props.spec)
 
@@ -69,6 +72,18 @@ const more = computed(() => {
   return skin.value === 'desktop' ? 'reveal' : 'page'
 })
 
+/* Vector, once "Show more" was used: a quiet button folds the module back to its first cards. */
+const collapsible = computed(() => !props.standalone && skin.value === 'desktop' && expanded.value)
+
+const section = ref<InstanceType<typeof HomeSectionFrame> | null>(null)
+
+/** Fold back, and bring the heading into view if the reader had scrolled past it. */
+function onCollapse(): void {
+  collapse()
+  const el = section.value?.$el as HTMLElement | undefined
+  if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' })
+}
+
 const sentinel = ref<HTMLElement | null>(null)
 if (props.standalone) {
   useRevealOnScroll(sentinel, () => hasMore.value && ready.value === reserved.value, revealMore)
@@ -76,7 +91,12 @@ if (props.standalone) {
 </script>
 
 <template>
-  <HomeSectionFrame v-if="!hidden" :id="spec.id" :title="standalone ? undefined : spec.title">
+  <HomeSectionFrame
+    v-if="!hidden"
+    ref="section"
+    :id="spec.id"
+    :title="standalone ? undefined : spec.title"
+  >
     <template v-if="spec.personalized" #actions>
       <HomeConfigureMenu />
     </template>
@@ -122,14 +142,24 @@ if (props.standalone) {
         />
       </div>
 
-      <CdxButton
-        v-if="more === 'reveal'"
-        class="home-section__more"
-        :disabled="ready < reserved"
-        @click="revealMore"
-      >
-        {{ spec.moreLabel ?? 'Show more' }}
-      </CdxButton>
+      <div v-if="more === 'reveal' || collapsible" class="home-section__more-row">
+        <CdxButton
+          v-if="more === 'reveal'"
+          :disabled="ready < reserved"
+          @click="revealMore"
+        >
+          {{ spec.moreLabel ?? 'Show more' }}
+        </CdxButton>
+        <CdxButton
+          v-if="collapsible"
+          class="home-section__collapse"
+          weight="quiet"
+          aria-label="Show fewer"
+          @click="onCollapse"
+        >
+          <CdxIcon :icon="cdxIconCollapse" />
+        </CdxButton>
+      </div>
 
       <!-- A link that looks like a button: it goes somewhere (Codex's CSS-only button). -->
       <RouterLink
@@ -231,6 +261,17 @@ if (props.standalone) {
 .home-section__more {
   align-self: flex-start;
   margin-top: var(--spacing-50);
+}
+
+/* Vector: "Show more" hugs its label at the start, the collapse button sits at the end. */
+.home-section__more-row {
+  display: flex;
+  align-items: center;
+  margin-top: var(--spacing-50);
+}
+
+.home-section__collapse {
+  margin-inline-start: auto;
 }
 
 /* Minerva: a full-width bar under the stacked cards (home2). */

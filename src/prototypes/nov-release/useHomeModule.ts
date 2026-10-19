@@ -87,6 +87,16 @@ export function useHomeModule(spec: HomeModuleSpec) {
     ready.value = to
   }
 
+  /** Back to the first cards only (what the module shows before any "Show more"). */
+  function collapse(): void {
+    const shown = Math.min(moduleSlots(spec), visible.value.length)
+    reserved.value = shown
+    ready.value = Math.min(ready.value, shown)
+  }
+
+  /** More cards out than the module starts with: "Show more" was used. */
+  const expanded = computed(() => reserved.value > Math.min(moduleSlots(spec), visible.value.length))
+
   /** Show one filter's cards (or all, for `null`), from the first page again. */
   async function setFilter(id: string | null): Promise<void> {
     if (filter.value === id) return
@@ -132,6 +142,8 @@ export function useHomeModule(spec: HomeModuleSpec) {
     hasMore,
     reload: () => load(),
     revealMore,
+    collapse,
+    expanded,
     setFilter,
   }
 }
