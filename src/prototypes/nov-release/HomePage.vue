@@ -5,15 +5,23 @@
  */
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
 
-/** The page's `h1`; `null` when the page brings its own (a module page's bar). */
-defineProps<{ title: string | null }>()
+import HomePageHeader from './HomePageHeader.vue'
+
+defineProps<{
+  /** The page's `h1`; `null` when the page brings its own (a module page's bar). */
+  title: string | null
+  /** Production's Homepage / User page / Talk tabs under the title (the Home itself). */
+  tabs?: boolean
+}>()
 </script>
 
 <template>
-  <SpecialPageWrapper :title="title" class="home-page">
+  <!-- PROTOWIKI+ (nov-release) SpecialPageWrapper: no tabs under the title, so the Home draws its own header. -->
+  <SpecialPageWrapper :title="tabs ? null : title" class="home-page">
     <template v-if="$slots.actions" #actions>
       <slot name="actions" />
     </template>
+    <HomePageHeader v-if="tabs && title" :title="title" />
     <slot />
   </SpecialPageWrapper>
 </template>
