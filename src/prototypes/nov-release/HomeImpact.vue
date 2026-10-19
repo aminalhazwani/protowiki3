@@ -22,9 +22,49 @@ const { impactDesktopProps, onImpactRefresh } = useHomepageImpact()
 <style scoped>
 /* A Codex card's frame (`CdxCard`), so it reads like the other modules' cards. */
 .home-impact {
+  overflow: hidden;
   border: var(--border-width-base) var(--border-style-base) var(--border-color-base);
   border-radius: var(--border-radius-base);
   padding: var(--spacing-75);
   background-color: var(--background-color-base);
+}
+
+/*
+ * PROTOWIKI+ (Nov release) The template's stats band and empty-state
+ * illustration run to the card's edges (out of its padding); the rest keeps it.
+ */
+.home-impact :deep(.impact-module__desktop-stats) {
+  margin-top: calc(-1 * var(--spacing-75));
+  margin-inline: calc(-1 * var(--spacing-75));
+  /* The empty state's band too (the template greys it), like the filled grid. */
+  background-color: var(--background-color-progressive-subtle);
+}
+
+/* The lines between stats are thick gaps in the band, in the card's own colour (both states). */
+.home-impact :deep(.impact-module__desktop-stat-divider) {
+  width: var(--border-width-thick);
+  background-color: var(--border-color-inverted);
+}
+
+.home-impact :deep(.impact-module__desktop-stat--border-left) {
+  border-left-width: var(--border-width-thick);
+  border-left-color: var(--border-color-inverted);
+}
+
+.home-impact :deep(.impact-module__desktop-stat--border-top) {
+  border-top-width: var(--border-width-thick);
+  border-top-color: var(--border-color-inverted);
+}
+
+/* Empty: the illustration's band follows the stats straight on, on a subtle grey. */
+.home-impact :deep(.impact-module__desktop-stats:has(+ .impact-module__desktop-empty-body)) {
+  margin-bottom: 0;
+}
+
+.home-impact :deep(.impact-module__desktop-empty-body) {
+  margin-inline: calc(-1 * var(--spacing-75));
+  margin-bottom: var(--spacing-75);
+  padding: var(--spacing-100) var(--spacing-75);
+  background-color: var(--background-color-interactive-subtle);
 }
 </style>
