@@ -5,6 +5,7 @@ import { moduleSlots, type HomeModuleSpec } from './modules'
 import { preloadImages } from './preloadImages'
 import { useHomeOnboarding } from './useHomeOnboarding'
 import { useHomePersonalization } from './useHomePersonalization'
+import { useHomeSeeds } from './useHomeSeeds'
 
 /**
  * Loads one module's cards: abortable, with loading / error state and a retry.
@@ -121,9 +122,11 @@ export function useHomeModule(spec: HomeModuleSpec) {
      * the step's own suggestions. Hold the reload until the wizard closes.
      */
     const { version } = useHomePersonalization()
+    const { seeds } = useHomeSeeds()
     const { step } = useHomeOnboarding()
     let stale = false
-    watch(version, () => {
+    // The reader's pages too: another Mock user, a list edited, or a real user's edits arriving.
+    watch([version, () => seeds.value.join('\n')], () => {
       if (step.value) stale = true
       else void load({ inPlace: true })
     })
