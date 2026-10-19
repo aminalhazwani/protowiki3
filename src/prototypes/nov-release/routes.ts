@@ -6,7 +6,13 @@ export const HOME_PATH = '/nov-release'
 /** The prototype's own `Special:CreateAccount` (`home.create-account`). */
 export const CREATE_ACCOUNT_PATH = `${HOME_PATH}/create-account`
 
-const MAIN_PAGE_TITLE = 'Main Page'
+export const MAIN_PAGE_TITLE = 'Main Page'
+
+/**
+ * The Main Page as a wiki page (`home.wiki.[title]`): where the wordmark leads
+ * once signed in, when {@link HOME_PATH} is the Home rather than the Main Page.
+ */
+export const MAIN_PAGE_PATH = `${HOME_PATH}/wiki/Main_Page`
 
 /** `Gravity_dam` / `Gravity%20dam` → `Gravity dam`. */
 export function normalizeTitle(raw: string): string {
@@ -32,14 +38,14 @@ export function titleFromRouteParam(param: string | string[] | undefined): strin
 
 /**
  * In-prototype location for a wiki article, like Wikipedia's `/wiki/Title`.
- * The Main Page maps back to {@link HOME_PATH}.
+ * The Main Page is {@link MAIN_PAGE_PATH}, so it is the Main Page signed in too.
  */
 export function homeArticleLocation(
   title: string,
   fragment: string | null = null,
 ): RouteLocationRaw {
   const hash = fragment ? `#${fragment}` : ''
-  if (normalizeTitle(title) === MAIN_PAGE_TITLE) return { path: HOME_PATH, hash }
+  if (normalizeTitle(title) === MAIN_PAGE_TITLE) return { path: MAIN_PAGE_PATH, hash }
   const slug = encodeURIComponent(normalizeTitle(title).replace(/ /g, '_'))
   return { path: `${HOME_PATH}/wiki/${slug}`, hash }
 }

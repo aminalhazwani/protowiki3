@@ -2,6 +2,7 @@
 /**
  * An article opened from inside the Home prototype — `/home/wiki/<Title>`,
  * mirroring Wikipedia's `/wiki/<Title>`. Links keep the reader in the prototype.
+ * The Main Page too, once signed in (the wordmark leads here; see `MAIN_PAGE_PATH`).
  */
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -9,7 +10,7 @@ import { useRoute } from 'vue-router'
 import ArticleLive from '@/components/article/ArticleLive.vue'
 
 import HomeChrome from '../nov-release/HomeChrome.vue'
-import { titleFromRouteParam } from '../nov-release/routes'
+import { MAIN_PAGE_TITLE, titleFromRouteParam } from '../nov-release/routes'
 import { scrollToFragment, useHomeArticleLinks } from '../nov-release/useHomeArticleLinks'
 import { useHomeSaved } from '../nov-release/useHomeSaved'
 
@@ -17,6 +18,7 @@ const route = useRoute()
 const title = computed(() =>
   titleFromRouteParam((route.params as { title?: string | string[] }).title),
 )
+const isMainPage = computed(() => title.value === MAIN_PAGE_TITLE)
 
 const { onArticleClick } = useHomeArticleLinks(() => title.value)
 const { isSaved, toggleSaved } = useHomeSaved()
@@ -34,6 +36,8 @@ function onParserReady(): void {
     <div @click="onArticleClick">
       <ArticleLive
         :article="title"
+        :main-page="isMainPage"
+        :persist-cache="!isMainPage"
         :saved="isSaved(title)"
         @save-click="toggleSaved(title)"
         @parser-ready="onParserReady"
