@@ -75,10 +75,25 @@ const avatar = computed(() => {
   border-radius: var(--border-radius-circle);
 }
 
-/* CODEX+ CdxCard: description is subtle sans; the mentor's own words read as body copy. */
+/*
+ * CODEX+ CdxCard: description is subtle sans. The mentor's own words are a quote,
+ * styled as each wiki skin styles `blockquote`: Vector 2022's `.mw-body blockquote`
+ * (body sans, a 4px muted rule) and Minerva's (serif at 1.1em, a 3px subtle rule).
+ * The rule widths and Minerva's size are the skins' own; Codex has no tokens for them.
+ */
 .home-mentor__card :deep(.cdx-card__text__description) {
-  font-family: var(--font-family-serif);
+  margin-top: var(--spacing-50);
+  border-inline-start: 4px solid var(--border-color-muted);
+  padding-block: var(--spacing-50);
+  padding-inline: var(--spacing-200) var(--spacing-100);
   color: var(--color-base);
+}
+
+[data-skin='mobile'] .home-mentor__card :deep(.cdx-card__text__description) {
+  border-inline-start: 3px solid var(--border-color-subtle);
+  padding-inline: var(--spacing-200) var(--spacing-100);
+  font-family: var(--font-family-serif);
+  font-size: 1.1em;
 }
 
 /* Minerva: a full-width bar under the card, as on home2. Vector's wide column hugs the label. */
