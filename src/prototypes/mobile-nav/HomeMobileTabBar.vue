@@ -50,6 +50,17 @@ const { hidden, show } = useHideOnScroll()
 
 const searchOpen = ref(false)
 
+/** How long a roll is visibly turning (of its 450ms transition, the rest is settle). */
+const ROLL_SETTLE_MS = 300
+
+/** Turns the Random tab's die has made: each tap adds one (a roll), and a quick re-tap adds on, never restarts. */
+const randomTurns = ref(0)
+
+function isRandom(item: TabItem): boolean {
+  const special = normalizeTitle(item.destination ?? '').match(/^Special:(.+)$/i)?.[1].toLowerCase()
+  return special === 'random' || special === 'randompage'
+}
+
 /** `Special:ReadingLists` → "Reading lists"; other titles as they are. */
 function labelFor(destination: string): string {
   const name = destination.replace(/^Special:/i, '')
@@ -134,7 +145,13 @@ async function onClick(item: TabItem): Promise<void> {
   } else if (special && IN_PROTOTYPE_SPECIAL_PAGES.has(special)) {
     if (!item.selected) void router.push(homeArticleLocation(destination))
   } else if (special === 'random' || special === 'randompage') {
-    const title = await fetchRandomTitle()
+    randomTurns.value += 1
+    // The next page mounts its own bar: let the roll land (~99% round by 300ms) before leaving.
+    const settle = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ROLL_SETTLE_MS
+    const [title] = await Promise.all([
+      fetchRandomTitle(),
+      new Promise((resolve) => setTimeout(resolve, settle)),
+    ])
     if (title) void router.push(homeArticleLocation(title))
   } else if (special) {
     const slug = encodeURIComponent(destination.replace(/ /g, '_'))
@@ -164,7 +181,11 @@ async function onClick(item: TabItem): Promise<void> {
         :aria-current="item.selected ? 'page' : undefined"
         @click="onClick(item)"
       >
-        <CdxIcon :icon="item.icon" />
+        <CdxIcon
+          :icon="item.icon"
+          :class="{ 'home-tab-bar__die': isRandom(item) }"
+          :style="isRandom(item) ? { transform: `rotate(${randomTurns * 360}deg)` } : undefined"
+        />
       </CdxButton>
     </nav>
     <MobileSearchOverlay v-if="searchOpen" :lang="lang" @close="searchOpen = false" />
@@ -218,6 +239,18 @@ async function onClick(item: TabItem): Promise<void> {
   padding: 0;
   border: 0;
   border-radius: 0;
+}
+
+/* The die rolls once per tap: transform only, strong ease-out so it answers the tap at once. */
+.home-tab-bar__die {
+  transition: transform 450ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Whole turns look like no change, so without the transition nothing moves. */
+@media (prefers-reduced-motion: reduce) {
+  .home-tab-bar__die {
+    transition: none;
+  }
 }
 
 /* CODEX+ Button: hover sticks after a tap on touch screens; keep the bar flat there. */
