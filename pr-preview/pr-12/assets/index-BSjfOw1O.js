@@ -1,1 +1,0 @@
-import{P as a}from"./PlainWrapper-BBVNu1PQ.js";import{d as r,o as t,c as p,w as n,b as o}from"./index-B9BnhafF.js";import"./_plugin-vue_export-helper-DlAUqK2U.js";const _=r({__name:"index",setup(s){return(i,e)=>(t(),p(a,{heading:"Plain wrapper"},{default:n(()=>[...e[0]||(e[0]=[o("p",null,"Starter template — empty plain wrapper.",-1)])]),_:1}))}});export{_ as default};
