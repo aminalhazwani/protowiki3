@@ -7,10 +7,26 @@
  * The desktop layout on every skin: the template's mobile one is a link card to
  * an Impact page this prototype doesn't have.
  */
+import { watch } from 'vue'
+
 import ImpactModule from '../template-homepage/ImpactModule.vue'
 import { useHomepageImpact } from '../template-homepage/useHomepageImpact'
 
 const { impactDesktopProps, onImpactRefresh } = useHomepageImpact()
+
+/*
+ * PROTOWIKI+ (mobile-nav) useHomepageImpact: a real user's impact waits behind
+ * a "Load" prompt. Here it loads straight away — on page load, and whenever the
+ * preset or username changes (`?user=real&realUser=…`) to one with nothing cached —
+ * since its edited pages are what the personal modules grow from.
+ */
+watch(
+  () => impactDesktopProps.value.loadPending && !impactDesktopProps.value.refreshing,
+  (pending) => {
+    if (pending) onImpactRefresh()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

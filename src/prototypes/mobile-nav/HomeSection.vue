@@ -66,9 +66,10 @@ const hidden = computed(() => isEmpty.value && !props.spec.empty && !props.stand
 /*
  * "Show more": Vector reveals the next cards in place; Minerva links to the
  * module's own page, since a phone column would grow unreadably long (home2).
+ * Held (disabled on Vector) under the skeletons too, until the cards say whether there are more.
  */
 const more = computed(() => {
-  if (props.standalone || !hasModulePage(props.spec) || !hasMore.value) return null
+  if (props.standalone || !hasModulePage(props.spec) || !(hasMore.value || loading.value)) return null
   return skin.value === 'desktop' ? 'reveal' : 'page'
 })
 
@@ -97,8 +98,8 @@ if (props.standalone) {
     :id="spec.id"
     :title="standalone ? undefined : spec.title"
   >
-    <template v-if="spec.personalized" #actions>
-      <HomeModuleMenu />
+    <template v-if="spec.menu" #actions>
+      <HomeModuleMenu :menu="spec.menu" />
     </template>
     <div v-if="error" class="home-section__error">
       <p>Couldn't load this section.</p>
@@ -228,9 +229,18 @@ if (props.standalone) {
   border-top: var(--border-width-base) var(--border-style-base) var(--border-color-base);
 }
 
-/* Skeletons keep the rows' rhythm: a divider row is its card's padding either side. */
+/*
+ * A skeleton is a divider row too: no outline (but the rule above it), 12px
+ * top and bottom like Codex's divider cards, no inline padding.
+ */
 .home-section__cards--list > .home-card-skeleton {
-  margin-block: var(--spacing-75);
+  padding-inline: 0;
+  border-width: 0;
+  border-radius: 0;
+}
+
+.home-section__cards--list > * + .home-card-skeleton {
+  border-top-width: var(--border-width-base);
 }
 
 /* Stats pair up on every skin, under a first stat that spans the row (Impact's views). */

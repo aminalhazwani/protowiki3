@@ -6,9 +6,12 @@
  */
 
 import type { Component } from 'vue'
+import type { MenuButtonItemData } from '@wikimedia/codex'
 import {
   cdxIconBookmark,
   cdxIconChart,
+  cdxIconConfigure,
+  cdxIconLevelOne,
   cdxIconLightbulb,
   cdxIconLink,
   cdxIconSpeechBubbles,
@@ -62,6 +65,15 @@ export interface HomeModuleFilter {
   label: string
 }
 
+/**
+ * A module heading's "…" menu (`HomeModuleMenu`): its actions, then "About …"
+ * as the menu's footer. The picks don't do anything yet.
+ */
+export interface HomeModuleMenuSpec {
+  items: readonly MenuButtonItemData[]
+  footer: MenuButtonItemData
+}
+
 export interface HomeModuleSpec {
   id: HomeModuleId
   title: string
@@ -84,6 +96,8 @@ export interface HomeModuleSpec {
    * card belongs to appear, and the strip only when at least two do.
    */
   filters?: readonly HomeModuleFilter[]
+  /** Its heading's "…" menu. */
+  menu?: HomeModuleMenuSpec
   /** Glyph beside each card's supporting text. */
   supportingIcon?: Icon
   /** Supporting text (and its icon) in progressive blue: it names a task to do. */
@@ -95,8 +109,8 @@ export interface HomeModuleSpec {
   /** Reloads (in place, without skeletons) whenever this value changes. */
   reloadOn?: () => unknown
   /**
-   * Shaped by Personalization (it grows from `useHomeSeeds`): its heading gets
-   * a "…" menu, and it reloads in place when Personalization changes.
+   * Shaped by Personalization (it grows from `useHomeSeeds`): it reloads in
+   * place when Personalization changes.
    */
   personalized?: boolean
 }
@@ -112,8 +126,8 @@ export interface HomeCustomModuleSpec {
   /** Its name in the "Home layout" list, when that isn't `title` (or `title` varies). */
   layoutLabel?: string
   body: Component
-  /** Its heading gets a "…" menu (`HomeModuleMenu`). */
-  menu?: boolean
+  /** Its heading's "…" menu. */
+  menu?: HomeModuleMenuSpec
 }
 
 export type HomeAnyModuleSpec = HomeModuleSpec | HomeCustomModuleSpec
@@ -149,6 +163,10 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     variant: 'article',
     // Just its three cards: no "Show more" (so no module page) and no save button.
     slots: 3,
+    menu: {
+      items: [{ value: 'interests', label: 'Interests', icon: cdxIconConfigure }],
+      footer: { value: 'about', label: 'About daily reads' },
+    },
     supportingIcon: cdxIconLink,
     load: loadDailyReads,
     personalized: true,
@@ -161,6 +179,13 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     slots: () => (useHomeSeeds().seeds.value.length ? 3 : RANDOM_SUGGESTION_COUNT),
     pageSize: 3,
     moreLabel: 'Show more',
+    menu: {
+      items: [
+        { value: 'interests', label: 'Interests', icon: cdxIconConfigure },
+        { value: 'edit-types', label: 'Types of edits', icon: cdxIconLevelOne },
+      ],
+      footer: { value: 'about', label: 'About suggested edits' },
+    },
     supportingIcon: cdxIconLightbulb,
     supportingProgressive: true,
     load: loadSuggestedEdits,
@@ -180,7 +205,10 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
         ? MENTOR_CONTENT.assigned.title
         : MENTOR_CONTENT.unassigned.title,
     body: HomeMentor,
-    menu: true,
+    menu: {
+      items: [{ value: 'opt-out', label: 'Opt out of mentorship' }],
+      footer: { value: 'about', label: 'About mentors' },
+    },
   },
   {
     // The latest edit to each of the reader's pages; one live edit for a stranger (home2).
@@ -190,6 +218,10 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     slots: () => (useHomeSeeds().seeds.value.length ? 3 : RANDOM_CHANGE_COUNT),
     pageSize: 3,
     moreLabel: 'Show more',
+    menu: {
+      items: [{ value: 'personalization', label: 'Personalization', icon: cdxIconConfigure }],
+      footer: { value: 'about', label: 'About review changes' },
+    },
     supportingIcon: cdxIconUserAvatar,
     load: loadReviewChanges,
     personalized: true,

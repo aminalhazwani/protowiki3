@@ -60,6 +60,9 @@ const LAYOUTS: Record<HomeCardVariant, CardLayout> = {
 
 const layout = computed(() => LAYOUTS[props.variant])
 
+/** Variants that always show a thumbnail, so their skeleton holds its box too (hooks only sometimes do). */
+const SKELETON_THUMBNAIL = new Set<HomeCardVariant>(['hero', 'article'])
+
 /** Title split around `titleEmphasis`, which renders bold (Did you know hooks). */
 const titleParts = computed(() => {
   const title = props.card?.title ?? ''
@@ -89,7 +92,7 @@ function onClick(event: MouseEvent): void {
     :class="`home-card-skeleton--${variant}`"
     aria-hidden="true"
   >
-    <div v-if="variant === 'hero'" class="home-card-skeleton__image" />
+    <div v-if="SKELETON_THUMBNAIL.has(variant)" class="home-card-skeleton__image" />
   </div>
 
   <div
@@ -288,45 +291,40 @@ function onClick(event: MouseEvent): void {
 
 /*
  * CODEX+ No skeleton / loading-placeholder component in Codex.
- * Flat, borderless block at the card's shape. A band of the next neutral step
- * sweeps across it in reading direction, like Codex's indeterminate progress bar
- * (transform only, so it stays on the compositor); the sweep takes 60% of the
- * cycle and the rest is a pause, so it reads as a pulse rather than a belt.
+ * The card's own outline, empty, with an outlined box where its thumbnail goes
+ * (only on variants that always have one). No fill and no motion.
  */
 .home-card-skeleton {
-  position: relative;
-  overflow: hidden;
   box-sizing: border-box;
   min-width: 0;
+  padding: var(--spacing-75);
+  border: var(--border-width-base) var(--border-style-base) var(--border-color-base);
   border-radius: var(--border-radius-base);
-  background-color: var(--background-color-neutral-subtle);
+  background-color: var(--background-color-base);
 }
 
-.home-card-skeleton::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: linear-gradient(
-    90deg,
-    transparent,
-    var(--background-color-neutral),
-    transparent
-  );
-  transform: translateX(-100%);
-  animation: home-card-skeleton-sweep var(--animation-duration-medium, 1600ms)
-    var(--animation-timing-function-base, linear) var(--animation-iteration-count-base, infinite);
-}
-
-.home-card-skeleton:dir(rtl)::after {
-  animation-direction: reverse;
+/* Codex's large thumbnail: 96px, in the thumbnail's subtle outline. */
+.home-card-skeleton__image {
+  box-sizing: border-box;
+  width: var(--size-600);
+  height: var(--size-600);
+  border: var(--border-width-base) var(--border-style-base) var(--border-color-subtle);
+  border-radius: var(--border-radius-base);
 }
 
 /*
  * Heights match each variant's typical card, so the swap doesn't move the page.
- * Hero: the 16:9 image Codex draws for `block-start`, then the text block.
+ * Hero: the full-width 16:9 image Codex draws for `block-start`, then the text block.
  */
 .home-card-skeleton--hero {
-  padding-bottom: 104px;
+  padding-bottom: 80px;
+}
+
+.home-card-skeleton--hero .home-card-skeleton__image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin-bottom: var(--spacing-75);
 }
 
 .home-card-skeleton--article,
@@ -361,34 +359,5 @@ function onClick(event: MouseEvent): void {
 
 [data-skin='mobile'] .home-card-skeleton--hook {
   height: 136px;
-}
-
-.home-card-skeleton__image {
-  aspect-ratio: 16 / 9;
-}
-
-@keyframes home-card-skeleton-sweep {
-  60%,
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* Reduced motion: no travelling band; the block gently breathes instead. */
-@media (prefers-reduced-motion: reduce) {
-  .home-card-skeleton {
-    animation: home-card-skeleton-breathe var(--animation-duration-slow, 2000ms) ease-in-out
-      infinite alternate;
-  }
-
-  .home-card-skeleton::after {
-    content: none;
-  }
-}
-
-@keyframes home-card-skeleton-breathe {
-  to {
-    opacity: 0.6;
-  }
 }
 </style>

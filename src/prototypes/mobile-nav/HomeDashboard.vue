@@ -52,7 +52,7 @@ function titleOf(title: string | (() => string)): string {
         <template v-for="spec in column.modules" :key="spec.id">
           <HomeSectionFrame v-if="isCustomModule(spec)" :id="spec.id" :title="titleOf(spec.title)">
             <template v-if="spec.menu" #actions>
-              <HomeModuleMenu />
+              <HomeModuleMenu :menu="spec.menu" />
             </template>
             <component :is="spec.body" />
           </HomeSectionFrame>
