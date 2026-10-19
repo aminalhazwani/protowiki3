@@ -2,7 +2,8 @@
 /**
  * The prototype's Special:ReadingLists: the reader's saved pages as a page of
  * its own (wiki header and footer), not the Saved module's drill-down. Same
- * cards and data as the module; the bookmark unsaves, and the list follows.
+ * cards and data as the module, without the save button; the list follows
+ * saves made elsewhere.
  */
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { cdxIconBookmark } from '@wikimedia/codex-icons'
@@ -43,7 +44,6 @@ onBeforeUnmount(() => controller?.abort())
         variant="article"
         :card="card"
         :supporting-icon="cdxIconBookmark"
-        saveable
       />
     </div>
   </HomePage>
