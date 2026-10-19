@@ -54,6 +54,8 @@ const { displayName } = useConfig()
 
 /** Signed in on mobile: the tab bar sits under every page. */
 const showTabBar = computed(() => isLoggedIn.value && globalSkin.value === 'mobile')
+/** With a footer, the footer's own grey makes room for the bar (no white band under it). */
+const footerHoldsTabBar = computed(() => showTabBar.value && props.showFooter)
 
 const { onLeaveCapture } = useHomeLeavePrototype()
 
@@ -85,7 +87,11 @@ registerAccountActions({
 </script>
 
 <template>
-  <div @click.capture="onLeaveCapture">
+  <div
+    class="home-chrome"
+    :class="{ 'home-chrome--footer-holds-tab-bar': footerHoldsTabBar }"
+    @click.capture="onLeaveCapture"
+  >
     <ChromeWrapper
       :brand-to="HOME_PATH"
       :nav-tools="NAV_TOOLS"
@@ -108,10 +114,25 @@ registerAccountActions({
           :last-edited-notice="props.lastEditedNotice"
           :username="displayName"
         />
-        <HomeMobileTabBar v-if="showTabBar" />
+        <HomeMobileTabBar v-if="showTabBar" :reserve-space="!footerHoldsTabBar" />
       </template>
     </ChromeWrapper>
     <HomeLeavePrototypeDialog />
   </div>
 </template>
 
+<style scoped>
+/* PROTOWIKI+ (mobile-nav) ChromeWrapper: footer follows short content; push it to the screen's bottom. */
+.home-chrome :deep(.chrome-footer) {
+  margin-top: auto;
+}
+
+/*
+ * PROTOWIKI+ (mobile-nav) ChromeFooter: the room under the tab bar (56px, its
+ * height) is the footer's grey, so the page never ends on a white band. On top,
+ * the footer's own edge padding, which it leaves off at the bottom.
+ */
+.home-chrome--footer-holds-tab-bar :deep(.chrome-footer__mobile-body) {
+  padding-bottom: calc(var(--spacing-100, 16px) + 56px);
+}
+</style>

@@ -24,6 +24,14 @@ import { useHideOnScroll } from './useHideOnScroll'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
 import { tabBarInset, useHomeTabBar } from './useHomeTabBar'
 
+const props = withDefaults(
+  defineProps<{
+    /** Keep an empty band the bar's height in the page flow. Off when the footer makes room itself. */
+    reserveSpace?: boolean
+  }>(),
+  { reserveSpace: true },
+)
+
 interface TabItem {
   id: string
   icon: Icon
@@ -138,8 +146,8 @@ async function onClick(item: TabItem): Promise<void> {
 </script>
 
 <template>
-  <!-- In-flow spacer reserving the bar's height so the footer is never covered. -->
-  <div class="home-tab-bar">
+  <!-- In-flow spacer reserving the bar's height so the page's end is never covered. -->
+  <div class="home-tab-bar" :class="{ 'home-tab-bar--reserve-space': props.reserveSpace }">
     <nav
       class="home-tab-bar__bar"
       :class="{ 'home-tab-bar__bar--hidden': hidden }"
@@ -166,6 +174,9 @@ async function onClick(item: TabItem): Promise<void> {
 <style scoped>
 .home-tab-bar {
   --home-tab-bar-height: 56px;
+}
+
+.home-tab-bar--reserve-space {
   height: var(--home-tab-bar-height);
   flex-shrink: 0;
 }
