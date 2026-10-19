@@ -12,17 +12,14 @@ import { globalSkin } from '@/theme'
 
 import HomeOnboarding from './HomeOnboarding.vue'
 import HomePage from './HomePage.vue'
-import HomePersonalizationDialog from './HomePersonalizationDialog.vue'
+import HomeModuleMenu from './HomeModuleMenu.vue'
 import HomeSection from './HomeSection.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
 import { isCustomModule } from './modules'
 import { useHomeLayout } from './useHomeLayout'
-import { useHomePersonalization } from './useHomePersonalization'
 
 const { pageTitle } = useConfig()
 const { visibleModules } = useHomeLayout()
-// Opened from a personal module's "Configure" (`HomeConfigureMenu`).
-const { open: personalizationOpen } = useHomePersonalization()
 
 /** Modules for the desktop side column; everything else stays in the main one. */
 const SIDE_MODULE_IDS = new Set<string>(['impact', 'mentor'])
@@ -54,13 +51,15 @@ function titleOf(title: string | (() => string)): string {
       >
         <template v-for="spec in column.modules" :key="spec.id">
           <HomeSectionFrame v-if="isCustomModule(spec)" :id="spec.id" :title="titleOf(spec.title)">
+            <template v-if="spec.menu" #actions>
+              <HomeModuleMenu />
+            </template>
             <component :is="spec.body" />
           </HomeSectionFrame>
           <HomeSection v-else :spec="spec" />
         </template>
       </div>
     </div>
-    <HomePersonalizationDialog v-model:open="personalizationOpen" />
     <!-- After account creation: the onboarding wizard, over the reader's new Home. -->
     <HomeOnboarding />
   </HomePage>

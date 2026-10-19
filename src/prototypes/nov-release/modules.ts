@@ -96,7 +96,7 @@ export interface HomeModuleSpec {
   reloadOn?: () => unknown
   /**
    * Shaped by Personalization (it grows from `useHomeSeeds`): its heading gets
-   * a "Configure" menu, and it reloads in place when Personalization changes.
+   * a "…" menu, and it reloads in place when Personalization changes.
    */
   personalized?: boolean
 }
@@ -112,6 +112,8 @@ export interface HomeCustomModuleSpec {
   /** Its name in the "Home layout" list, when that isn't `title` (or `title` varies). */
   layoutLabel?: string
   body: Component
+  /** Its heading gets a "…" menu (`HomeModuleMenu`). */
+  menu?: boolean
 }
 
 export type HomeAnyModuleSpec = HomeModuleSpec | HomeCustomModuleSpec
@@ -178,6 +180,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
         ? MENTOR_CONTENT.assigned.title
         : MENTOR_CONTENT.unassigned.title,
     body: HomeMentor,
+    menu: true,
   },
   {
     // The latest edit to each of the reader's pages; one live edit for a stranger (home2).

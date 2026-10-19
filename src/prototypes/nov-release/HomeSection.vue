@@ -15,7 +15,7 @@ import { cdxIconCollapse } from '@wikimedia/codex-icons'
 import { useSkin } from '@/composables/useSkin'
 
 import HomeCard from './HomeCard.vue'
-import HomeConfigureMenu from './HomeConfigureMenu.vue'
+import HomeModuleMenu from './HomeModuleMenu.vue'
 import HomeFilterChips from './HomeFilterChips.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
 import { hasModulePage, type HomeModuleSpec } from './modules'
@@ -98,7 +98,7 @@ if (props.standalone) {
     :title="standalone ? undefined : spec.title"
   >
     <template v-if="spec.personalized" #actions>
-      <HomeConfigureMenu />
+      <HomeModuleMenu />
     </template>
     <div v-if="error" class="home-section__error">
       <p>Couldn't load this section.</p>
