@@ -26,20 +26,19 @@ defineProps<{
   gap: var(--spacing-25);
 }
 
-/* Actions sit at the heading's end. */
+/* Actions sit at the heading's end. Every row is one button tall (32px), so the
+   button fits inside it and headings with actions or without keep one height. */
 .home-section-frame__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-50);
+  min-height: var(--min-size-interactive-pointer);
 }
 
-/* A 32px button overhangs the 28px heading line instead of growing the row, so
-   every module's heading (with actions or without) keeps the same height. */
 .home-section-frame__actions {
   display: flex;
   flex-shrink: 0;
-  margin-block: calc(-1 * var(--spacing-25));
 }
 
 /* Codex Heading 4 — the page title above is the h1. */

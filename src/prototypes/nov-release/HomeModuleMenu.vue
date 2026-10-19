@@ -91,3 +91,10 @@ function onClick(): void {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* CODEX+ CdxMenuButton: an inline-block root adds a line box's descender under the 32px button. */
+.home-module-menu {
+  display: flex;
+}
+</style>
