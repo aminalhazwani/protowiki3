@@ -2,7 +2,8 @@
 /**
  * An article opened from inside the Home prototype — `/home/wiki/<Title>`,
  * mirroring Wikipedia's `/wiki/<Title>`. Links keep the reader in the prototype.
- * Special:Nearby is the prototype's own page (the tab bar's Nearby tab).
+ * Special:Nearby and Special:ReadingLists are the prototype's own pages (the
+ * tab bar's Nearby and Reading lists tabs).
  */
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -11,6 +12,7 @@ import ArticleLive from '@/components/article/ArticleLive.vue'
 
 import HomeChrome from '../mobile-nav/HomeChrome.vue'
 import HomeNearby from '../mobile-nav/HomeNearby.vue'
+import HomeSavedPages from '../mobile-nav/HomeSavedPages.vue'
 import { titleFromRouteParam } from '../mobile-nav/routes'
 import { scrollToFragment, useHomeArticleLinks } from '../mobile-nav/useHomeArticleLinks'
 import { useHomeSaved } from '../mobile-nav/useHomeSaved'
@@ -21,6 +23,8 @@ const title = computed(() =>
 )
 
 const isNearby = computed(() => title.value.toLowerCase() === 'special:nearby')
+const isReadingLists = computed(() => title.value.toLowerCase() === 'special:readinglists')
+const isSpecialPage = computed(() => isNearby.value || isReadingLists.value)
 
 const { onArticleClick } = useHomeArticleLinks(() => title.value)
 const { isSaved, toggleSaved } = useHomeSaved()
@@ -34,8 +38,9 @@ function onParserReady(): void {
 </script>
 
 <template>
-  <HomeChrome :last-edited-notice="!isNearby">
+  <HomeChrome :last-edited-notice="!isSpecialPage">
     <HomeNearby v-if="isNearby" />
+    <HomeSavedPages v-else-if="isReadingLists" />
     <div v-else @click="onArticleClick">
       <ArticleLive
         :article="title"

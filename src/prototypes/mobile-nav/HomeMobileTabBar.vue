@@ -5,8 +5,9 @@
  * every page; it slides away while the reader scrolls down and back on scroll up.
  *
  * Destinations: Special:Search opens Minerva's search, Special:Random a random
- * article, Special:Nearby the prototype's own, other special pages leave the
- * prototype (after asking), and any other title opens in the prototype.
+ * article, Special:Nearby and Special:ReadingLists the prototype's own, other
+ * special pages leave the prototype (after asking), and any other title opens
+ * in the prototype.
  */
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -111,7 +112,7 @@ async function fetchRandomTitle(): Promise<string | null> {
 }
 
 /** Special pages the prototype renders itself (see `mobile-nav.wiki.[title]`). */
-const IN_PROTOTYPE_SPECIAL_PAGES = new Set(['nearby'])
+const IN_PROTOTYPE_SPECIAL_PAGES = new Set(['nearby', 'readinglists'])
 
 async function onClick(item: TabItem): Promise<void> {
   if (item.destination === null) {
