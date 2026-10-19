@@ -86,6 +86,8 @@ export interface HomeModuleSpec {
   filters?: readonly HomeModuleFilter[]
   /** Glyph beside each card's supporting text. */
   supportingIcon?: Icon
+  /** Supporting text (and its icon) in progressive blue: it names a task to do. */
+  supportingProgressive?: boolean
   /** Fetches the module's cards. Throws on failure; must respect `signal`. */
   load: (signal: AbortSignal) => Promise<HomeCardData[]>
   /** Shown instead of dropping the module when it loads no cards. */
@@ -158,6 +160,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     pageSize: 3,
     moreLabel: 'Show more',
     supportingIcon: cdxIconLightbulb,
+    supportingProgressive: true,
     load: loadSuggestedEdits,
     personalized: true,
   },

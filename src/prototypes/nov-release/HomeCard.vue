@@ -18,6 +18,8 @@ const props = defineProps<{
   card?: HomeCardData
   loading?: boolean
   supportingIcon?: Icon
+  /** Supporting text (and its icon) in progressive blue (Suggested edits). */
+  supportingProgressive?: boolean
   /** Show a save (bookmark) button for the card's page. */
   saveable?: boolean
   /** A row of a divider list (a module page) rather than an outlined card. */
@@ -95,7 +97,12 @@ function onClick(event: MouseEvent): void {
     class="home-card"
     :class="[
       `home-card--${variant}`,
-      { 'home-card--saveable': saveable, 'home-card--timed': card.supportingTime },
+      {
+        'home-card--saveable': saveable,
+        'home-card--supported': card.supportingText || card.supportingTime,
+        'home-card--timed': card.supportingTime,
+        'home-card--progressive': supportingProgressive,
+      },
     ]"
   >
     <CdxCard
@@ -223,22 +230,35 @@ function onClick(event: MouseEvent): void {
 }
 
 /*
- * CODEX+ CdxCard: no slot for a timestamp. A timed card's supporting line runs
- * the full width with the time at its far end, and sits on the card's bottom
- * edge, so beside a taller neighbour every time lands in the bottom corner (home2).
+ * CODEX+ CdxCard: no option to pin the supporting text to the bottom. The text
+ * block fills the card's height and the supporting line sits on its bottom edge,
+ * so beside a taller neighbour every card's supporting line lines up.
  */
-.home-card--timed :deep(.cdx-card__text) {
+.home-card--supported :deep(.cdx-card__text) {
   flex-grow: 1;
   align-self: stretch;
 }
 
-.home-card--timed :deep(.cdx-card__text__supporting-text) {
+.home-card--supported :deep(.cdx-card__text__supporting-text) {
   margin-top: auto;
   padding-top: var(--spacing-50);
 }
 
+/*
+ * CODEX+ CdxCard: no slot for a timestamp. A timed card's supporting line runs
+ * the full width with the time at its far end, so it lands in the bottom corner (home2).
+ */
 .home-card--timed .home-card__supporting {
   display: flex;
+}
+
+/* CODEX+ CdxCard: no progressive supporting text. A suggestion's task reads as a call to action. */
+.home-card--progressive :deep(.cdx-card__text__supporting-text) {
+  color: var(--color-progressive);
+}
+
+.home-card--progressive .home-card__supporting-icon .cdx-icon {
+  color: var(--color-progressive);
 }
 
 /* On the label's last line when the label wraps (the icon stays with its first). */

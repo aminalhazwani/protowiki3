@@ -137,6 +137,7 @@ if (props.standalone) {
           :card="slot.card"
           :loading="!slot.card"
           :supporting-icon="spec.supportingIcon"
+          :supporting-progressive="spec.supportingProgressive"
           :saveable="spec.saveable"
           :divider="standalone"
         />
