@@ -19,7 +19,7 @@ import { globalSkin } from '@/theme'
 
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
 import HomeMobileTabBar from './HomeMobileTabBar.vue'
-import HomePrototypeMenu from './HomePrototypeMenu.vue'
+import HomeMainMenu from './HomeMainMenu.vue'
 import {
   CREATE_ACCOUNT_PATH,
   HOME_PATH,
@@ -111,9 +111,9 @@ registerAccountActions({
       <template v-if="$slots.header" #header>
         <slot name="header" />
       </template>
-      <!-- ☰ holds "Prototype settings" and, as its footer, "Reset prototype". -->
+      <!-- ☰: Minerva's main menu drawer (Prototype settings and Reset at its foot); Vector's small menu. -->
       <template #menu>
-        <HomePrototypeMenu />
+        <HomeMainMenu />
       </template>
       <slot />
       <!-- PROTOWIKI+ (mobile-nav) ChromeWrapper has no slot after its footer, so the footer is rebuilt here. -->

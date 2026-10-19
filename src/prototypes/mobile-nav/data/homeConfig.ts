@@ -53,6 +53,8 @@ export interface HomeConfig {
   splashDismissed: boolean
   /** The mobile tab bar's tabs after Home (Prototype settings); `null` follows the default. */
   tabBar: HomeTabSlot[] | null
+  /** Minerva's Advanced mode (Prototype settings): the main menu's extra editor links. */
+  advancedMode: boolean
 }
 
 export interface HomeSources {
@@ -76,6 +78,7 @@ export const DEFAULT_HOME_CONFIG: HomeConfig = {
   survey: null,
   splashDismissed: false,
   tabBar: null,
+  advancedMode: false,
 }
 
 /** MediaWiki's limit on username length. */
@@ -144,6 +147,7 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
     survey: isSurveyAnswer(record.survey) ? record.survey : null,
     splashDismissed: record.splashDismissed === true,
     tabBar: normalizeTabBar(record.tabBar),
+    advancedMode: record.advancedMode === true,
   }
 }
 

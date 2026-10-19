@@ -19,6 +19,7 @@ import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import { useConfig } from '@/composables/useConfig'
 
 import { resolveCodexIcon } from './data/codexIcons'
+import { fetchRandomTitle } from './data/fetchRandomTitle'
 import { HOME_PATH, homeArticleLocation, normalizeTitle, titleFromRouteParam } from './routes'
 import { useHideOnScroll } from './useHideOnScroll'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
@@ -111,25 +112,6 @@ const BAR_HEIGHT = 56
 watch(hidden, (isHidden) => (tabBarInset.value = isHidden ? 0 : BAR_HEIGHT), { immediate: true })
 onBeforeUnmount(() => (tabBarInset.value = 0))
 
-async function fetchRandomTitle(): Promise<string | null> {
-  const params = new URLSearchParams({
-    action: 'query',
-    list: 'random',
-    rnnamespace: '0',
-    rnlimit: '1',
-    format: 'json',
-    formatversion: '2',
-    origin: '*',
-  })
-  try {
-    const response = await fetch(`https://${lang.value}.wikipedia.org/w/api.php?${params}`)
-    const data = await response.json()
-    return data?.query?.random?.[0]?.title ?? null
-  } catch {
-    return null
-  }
-}
-
 /** Special pages the prototype renders itself (see `mobile-nav.wiki.[title]`). */
 const IN_PROTOTYPE_SPECIAL_PAGES = new Set(['nearby', 'readinglists'])
 
@@ -149,7 +131,7 @@ async function onClick(item: TabItem): Promise<void> {
     // The next page mounts its own bar: let the roll land (~99% round by 300ms) before leaving.
     const settle = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ROLL_SETTLE_MS
     const [title] = await Promise.all([
-      fetchRandomTitle(),
+      fetchRandomTitle(lang.value),
       new Promise((resolve) => setTimeout(resolve, settle)),
     ])
     if (title) void router.push(homeArticleLocation(title))

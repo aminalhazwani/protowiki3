@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * The header's ☰ main menu on every Home page: "Prototype settings" (a dialog
- * holding the Home layout), and home2's "Reset prototype", for starting a test
- * session over, as the menu's footer in the destructive (error) colour.
+ * The header's ☰ menu on Vector: "Prototype settings" (a dialog holding the
+ * Home layout), and home2's "Reset prototype", for starting a test session
+ * over, as the menu's footer in the destructive (error) colour. Minerva gets
+ * the main menu drawer instead (`HomeMainMenu`).
  */
 import { ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import {
   CdxIcon,
   CdxMenuButton,
@@ -15,7 +15,7 @@ import {
 import { cdxIconMenu } from '@wikimedia/codex-icons'
 
 import HomePrototypeSettingsDialog from './HomePrototypeSettingsDialog.vue'
-import { HOME_PATH } from './routes'
+import { useHomeResetPrototype } from './useHomeResetPrototype'
 
 const MENU_ITEMS: MenuButtonItemData[] = [{ value: 'settings', label: 'Prototype settings' }]
 const MENU_FOOTER: MenuButtonItemData = {
@@ -24,29 +24,9 @@ const MENU_FOOTER: MenuButtonItemData = {
   action: 'destructive',
 }
 
-const route = useRoute()
-const router = useRouter()
+const { resetPrototype } = useHomeResetPrototype()
 const selected = ref<MenuItemValue | null>(null)
 const settingsOpen = ref(false)
-
-/*
- * Everything this browser stored (home2): ProtoWiki's settings too, not just the
- * Home's. Then a fresh load of the logged-out Main Page, where the splash shows
- * again. A test link's pinned `?skin=` / `?theme=` carry over.
- */
-function resetPrototype(): void {
-  try {
-    window.localStorage.clear()
-  } catch {
-    // Unavailable storage — the reload still starts logged out.
-  }
-  const query: Record<string, string> = { user: 'logged-out' }
-  for (const key of ['skin', 'theme']) {
-    const value = route.query[key]
-    if (typeof value === 'string') query[key] = value
-  }
-  window.location.assign(router.resolve({ path: HOME_PATH, query }).href)
-}
 
 watch(selected, (value) => {
   if (value === null) return
