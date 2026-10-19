@@ -12,9 +12,6 @@ import {
 // first use, not at import, so it sees `?reset` (applied as the Home page sets up).
 const config = ref<Pick<HomeConfig, 'interests' | 'sources'> | null>(null)
 
-/** Whether the Personalization dialog is open (a personal module's "Configure" opens it). */
-const open = ref(false)
-
 /**
  * What shapes the personal modules (home2's Personalization): the reader's
  * interests, and which of their activity counts (saved pages, watchlist,
@@ -42,5 +39,5 @@ export function useHomePersonalization() {
     save({ sources: { ...sources.value, [key]: on } })
   }
 
-  return { open, interests, sources, version, setInterests, setSource }
+  return { interests, sources, version, setInterests, setSource }
 }
