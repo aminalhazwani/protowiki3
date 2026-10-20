@@ -89,4 +89,18 @@ watch(
   padding: var(--spacing-100) var(--spacing-75);
   background-color: var(--background-color-interactive-subtle);
 }
+
+/*
+ * PROTOWIKI+ (nov-release) Most viewed: a long title stops at two lines, with an
+ * ellipsis. Two 20px lines are the 40px thumbnail's height, so a wrapped title
+ * doesn't make its row taller than the others.
+ */
+.home-impact :deep(.impact-module__most-viewed-title-link) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 20px;
+}
 </style>
