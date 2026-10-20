@@ -12,6 +12,7 @@ interface ArticleLiveCommonProps {
   languagesCount?: number
   persistCache?: boolean
   mainPage?: boolean
+  mainPageGreeting?: string
   saved?: boolean
 }
 
@@ -113,6 +114,8 @@ interface Props {
   persistCache?: boolean
   /** PROTOWIKI+ (Home) Render the production Main Page header (see **`ArticleHeader`** **`mainPage`**). */
   mainPage?: boolean
+  /** PROTOWIKI+ (nov-release) Logged-in Main Page heading on mobile (see **`ArticleHeader`** **`mainPageGreeting`**). */
+  mainPageGreeting?: string
   /** PROTOWIKI+ (Home) Forwarded to **`ArticleHeader`** — fills the bookmark. */
   saved?: boolean
 }
@@ -259,6 +262,7 @@ watch(liveHtml, async (html) => {
     :description="view?.description"
     :lead-image-url="view?.thumbnailUrl ?? undefined"
     :main-page="props.mainPage"
+    :main-page-greeting="props.mainPageGreeting"
     :saved="props.saved"
     @save-click="emit('saveClick')"
   >

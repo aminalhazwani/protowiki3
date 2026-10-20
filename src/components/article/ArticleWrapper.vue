@@ -32,6 +32,8 @@ interface Props {
   leadImageUrl?: string
   /** PROTOWIKI+ (Home) Forwarded to **`ArticleHeader`** — production Main Page header. */
   mainPage?: boolean
+  /** PROTOWIKI+ (nov-release) Forwarded to **`ArticleHeader`** — the logged-in Main Page heading on mobile. */
+  mainPageGreeting?: string
   /** PROTOWIKI+ (Home) Forwarded to **`ArticleHeader`** — fills the bookmark. */
   saved?: boolean
 }
@@ -106,6 +108,7 @@ const chromeHeaderLabel = computed(() => leadTitle.value || 'Article')
       :languages-count="props.languagesCount"
       :skin="props.skin"
       :main-page="props.mainPage"
+      :main-page-greeting="props.mainPageGreeting"
       :saved="props.saved"
       @save-click="emit('saveClick')"
     />

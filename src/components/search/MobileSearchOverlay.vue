@@ -111,12 +111,24 @@ function onKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape') emit('close')
 }
 
+/*
+ * PROTOWIKI+ (nov-release) The page under the overlay doesn't scroll while search
+ * is open: a wheel or swipe over the overlay (empty, or at the end of the results)
+ * would otherwise chain through to it.
+ */
+let pageOverflow = ''
+
 // The keyboard should be up the moment search opens.
-onMounted(() => root.value?.querySelector('input')?.focus())
+onMounted(() => {
+  root.value?.querySelector('input')?.focus()
+  pageOverflow = document.documentElement.style.overflow
+  document.documentElement.style.overflow = 'hidden'
+})
 
 onBeforeUnmount(() => {
   controller?.abort()
   if (debounce) clearTimeout(debounce)
+  document.documentElement.style.overflow = pageOverflow
 })
 </script>
 
@@ -228,5 +240,7 @@ onBeforeUnmount(() => {
 .mobile-search__results {
   flex: 1;
   overflow-y: auto;
+  /* The end of the results doesn't hand the scroll on to the page. */
+  overscroll-behavior: contain;
 }
 </style>

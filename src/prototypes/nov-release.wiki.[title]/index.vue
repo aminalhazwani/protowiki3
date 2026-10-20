@@ -8,10 +8,12 @@ import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ArticleLive from '@/components/article/ArticleLive.vue'
+import { useConfig } from '@/composables/useConfig'
 
 import HomeChrome from '../nov-release/HomeChrome.vue'
 import { MAIN_PAGE_TITLE, titleFromRouteParam } from '../nov-release/routes'
 import { scrollToFragment, useHomeArticleLinks } from '../nov-release/useHomeArticleLinks'
+import { useHomeAccount } from '../nov-release/useHomeAccount'
 import { useHomeSaved } from '../nov-release/useHomeSaved'
 
 const route = useRoute()
@@ -19,6 +21,13 @@ const title = computed(() =>
   titleFromRouteParam((route.params as { title?: string | string[] }).title),
 )
 const isMainPage = computed(() => title.value === MAIN_PAGE_TITLE)
+
+/* Signed in, Minerva's Main Page greets the reader by name (shown on mobile only). */
+const { isLoggedIn } = useHomeAccount()
+const { displayName } = useConfig()
+const mainPageGreeting = computed(() =>
+  isMainPage.value && isLoggedIn.value ? `Welcome, ${displayName.value}!` : undefined,
+)
 
 const { onArticleClick } = useHomeArticleLinks(() => title.value)
 const { isSaved, toggleSaved } = useHomeSaved()
@@ -37,6 +46,7 @@ function onParserReady(): void {
       <ArticleLive
         :article="title"
         :main-page="isMainPage"
+        :main-page-greeting="mainPageGreeting"
         :persist-cache="!isMainPage"
         :saved="isSaved(title)"
         @save-click="toggleSaved(title)"

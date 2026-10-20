@@ -10,12 +10,14 @@ import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ArticleLive from '@/components/article/ArticleLive.vue'
+import { useConfig } from '@/composables/useConfig'
 
 import HomeChrome from '../mobile-nav/HomeChrome.vue'
 import HomeNearby from '../mobile-nav/HomeNearby.vue'
 import HomeSavedPages from '../mobile-nav/HomeSavedPages.vue'
 import { MAIN_PAGE_TITLE, titleFromRouteParam } from '../mobile-nav/routes'
 import { scrollToFragment, useHomeArticleLinks } from '../mobile-nav/useHomeArticleLinks'
+import { useHomeAccount } from '../mobile-nav/useHomeAccount'
 import { useHomeSaved } from '../mobile-nav/useHomeSaved'
 
 const route = useRoute()
@@ -24,6 +26,13 @@ const title = computed(() =>
 )
 
 const isMainPage = computed(() => title.value === MAIN_PAGE_TITLE)
+
+/* Signed in, Minerva's Main Page greets the reader by name (shown on mobile only). */
+const { isLoggedIn } = useHomeAccount()
+const { displayName } = useConfig()
+const mainPageGreeting = computed(() =>
+  isMainPage.value && isLoggedIn.value ? `Welcome, ${displayName.value}!` : undefined,
+)
 const isNearby = computed(() => title.value.toLowerCase() === 'special:nearby')
 const isReadingLists = computed(() => title.value.toLowerCase() === 'special:readinglists')
 const isSpecialPage = computed(() => isNearby.value || isReadingLists.value)
@@ -47,6 +56,7 @@ function onParserReady(): void {
       <ArticleLive
         :article="title"
         :main-page="isMainPage"
+        :main-page-greeting="mainPageGreeting"
         :persist-cache="!isMainPage"
         :saved="isSaved(title)"
         @save-click="toggleSaved(title)"

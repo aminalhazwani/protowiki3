@@ -46,6 +46,12 @@ interface Props {
    * Read / View source / View history. Mobile shows no header chrome.
    */
   mainPage?: boolean
+  /**
+   * PROTOWIKI+ (nov-release) Logged-in Main Page heading on mobile, as production
+   * Minerva shows it ("Welcome, Name!"): with `mainPage` on the mobile skin, the
+   * heading reads this and is shown, in the serif Homepage title style. Ignored on desktop.
+   */
+  mainPageGreeting?: string
   /** PROTOWIKI+ (Home) The page is saved — fills the bookmark (logged-in toolbar). */
   saved?: boolean
 }
@@ -54,6 +60,7 @@ const props = withDefaults(defineProps<Props>(), {
   languagesCount: 18,
   skin: undefined,
   mainPage: false,
+  mainPageGreeting: undefined,
   saved: false,
 })
 
@@ -63,6 +70,8 @@ const { user } = useConfig()
 const isLoggedOut = computed(() => user.value === 'logged-out')
 /** Main Page on mobile: nothing but the (visually hidden) heading. */
 const bareMainPage = computed(() => props.mainPage && effectiveSkin.value === 'mobile')
+/** Logged-in Main Page on mobile: the heading is a visible greeting. */
+const greeting = computed(() => (bareMainPage.value ? props.mainPageGreeting : undefined))
 
 const languagesButtonLabel = computed(() => {
   const n = props.languagesCount ?? 18
@@ -117,9 +126,13 @@ function onLanguagePick(row: ArticleLanguageLink) {
     <div class="article-header__title-row">
       <h1
         class="article-header__title"
-        :class="{ 'article-header__title--hidden': props.mainPage }"
+        :class="{
+          'article-header__title--hidden': props.mainPage && !greeting,
+          'article-header__title--greeting': greeting,
+        }"
       >
-        <slot name="title">{{ title }}</slot>
+        <template v-if="greeting">{{ greeting }}</template>
+        <slot v-else name="title">{{ title }}</slot>
       </h1>
       <div
         v-if="effectiveSkin === 'desktop' && !props.mainPage"
@@ -584,6 +597,13 @@ function onLanguagePick(row: ArticleLanguageLink) {
 .article-header[data-skin='mobile'] .article-header__title {
   font-size: 1.625rem;
   line-height: var(--line-height-xxx-small, 1.375);
+}
+
+/* PROTOWIKI+ (nov-release) The logged-in Main Page greeting: GrowthExperiments' 1.7em serif Homepage title. */
+.article-header[data-skin='mobile'] .article-header__title--greeting {
+  margin-bottom: var(--spacing-75);
+  font-size: 1.7rem;
+  line-height: 1.375;
 }
 
 .article-header[data-skin='mobile'] .article-header__title-row {

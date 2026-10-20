@@ -121,6 +121,15 @@
 }
 
 /*
+ * PROTOWIKI+ (nov-release) The Main Page's TemplateStyles put 4px above every
+ * `.mp-box`, there to space the boxes apart. The first one (the welcome banner)
+ * has nothing above it to keep apart from, so it starts flush.
+ */
+.article .mw-parser-output #mp-topbanner {
+  margin-top: 0;
+}
+
+/*
  * Main Page layout — Parsoid ships `Wikipedia:Main Page/styles.css` with viewport
  * `@media` breakpoints (500px / 875px). Inside MobileWrapper the column can be
  * ~412px while the window is wide, so re-root those breakpoints on the parser
