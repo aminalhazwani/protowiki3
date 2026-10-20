@@ -5,6 +5,7 @@ import { moduleSlots, type HomeModuleSpec } from './modules'
 import { preloadImages } from './preloadImages'
 import { useHomeOnboarding } from './useHomeOnboarding'
 import { useHomePersonalization } from './useHomePersonalization'
+import { useHomeRealUserPages } from './useHomeRealUserPages'
 import { useHomeSeeds } from './useHomeSeeds'
 
 /**
@@ -112,10 +113,27 @@ export function useHomeModule(spec: HomeModuleSpec) {
     if (filter.value === id) ready.value = shown
   }
 
-  onMounted(() => load())
+  /** Back to skeletons, loading nothing: a real user's pages are still arriving. */
+  function hold(): void {
+    controller?.abort()
+    items.value = []
+    loading.value = true
+    error.value = false
+    filter.value = null
+    reserved.value = moduleSlots(spec)
+    ready.value = 0
+  }
+
+  // A personal module waits for a real user's pages rather than flash cards that aren't theirs.
+  const { pending } = useHomeRealUserPages()
+  const waiting = () => Boolean(spec.personalized) && pending.value
+
+  onMounted(() => (waiting() ? hold() : load()))
   onUnmounted(() => controller?.abort())
   if (spec.reloadOn) watch(spec.reloadOn, () => load({ inPlace: true }))
   if (spec.personalized) {
+    watch(pending, (isPending) => (isPending ? hold() : load()))
+
     /*
      * While onboarding is open, its interests step changes Personalization
      * chip by chip; reloading on each would queue the Home's requests ahead of
@@ -127,6 +145,7 @@ export function useHomeModule(spec: HomeModuleSpec) {
     let stale = false
     // The reader's pages too: another Mock user, a list edited, or a real user's edits arriving.
     watch([version, () => seeds.value.join('\n')], () => {
+      if (pending.value) return
       if (step.value) stale = true
       else void load({ inPlace: true })
     })

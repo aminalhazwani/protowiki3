@@ -17,7 +17,15 @@ function shouldShowLoadPrompt(hasStarted: boolean, hasRenderableData: boolean): 
   return !hasStarted && !hasRenderableData
 }
 
-export function useHomepageImpact(): {
+export function useHomepageImpact({
+  syncEditedPages = true,
+}: {
+  /**
+   * Copy a real user's fetched edited pages into the Mock user's page lists.
+   * PROTOWIKI+ (nov-release) Off there: the Home fetches those pages itself, ahead of Impact.
+   */
+  syncEditedPages?: boolean
+} = {}): {
   impactMobileProps: ComputedRef<ImpactModuleBind>
   impactDesktopProps: ComputedRef<ImpactModuleBind>
   onImpactRefresh: () => void
@@ -28,7 +36,7 @@ export function useHomepageImpact(): {
   watch(
     [() => user.value, realImpact.editedPageTitles],
     ([activeUser, titles]) => {
-      if (activeUser === 'real' && titles.length > 0) {
+      if (syncEditedPages && activeUser === 'real' && titles.length > 0) {
         setCurrentUserPageList('editedPages', [...titles])
       }
     },
