@@ -3,9 +3,13 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 /** Scroll distance (px) in one direction before the bar reacts, so jitter doesn't flicker it. */
 const THRESHOLD = 8
 
+/** How close (px) to the end of the page counts as the end (rounding, subpixel scroll). */
+const BOTTOM_ZONE = 2
+
 /**
  * Hidden while the reader scrolls down, shown again as soon as they scroll up
- * (Chrome / Safari toolbar behaviour). Always shown near the top of the page.
+ * (Chrome / Safari toolbar behaviour). Always shown near the top of the page,
+ * and back again at its very end, where the footer leaves room for it.
  */
 export function useHideOnScroll(topZone = 56) {
   const hidden = ref(false)
@@ -13,7 +17,8 @@ export function useHideOnScroll(topZone = 56) {
 
   function onScroll(): void {
     const y = Math.max(0, window.scrollY)
-    if (y <= topZone) {
+    const atEnd = y + window.innerHeight >= document.documentElement.scrollHeight - BOTTOM_ZONE
+    if (y <= topZone || atEnd) {
       hidden.value = false
       lastY = y
       return
