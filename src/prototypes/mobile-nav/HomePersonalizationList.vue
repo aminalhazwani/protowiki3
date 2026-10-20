@@ -18,8 +18,17 @@ import { useHomePersonalization } from './useHomePersonalization'
 const { interests, sources, setInterests, setSource } = useHomePersonalization()
 const { user, currentUserPageLists, setCurrentUserPageList } = useConfig()
 
-/* As in ProtoWiki's user settings: a real account's lists come from the wiki, not from here. */
-const editableLists = computed(() => user.value !== 'real' && user.value !== 'logged-out')
+/*
+ * PROTOWIKI+ (mobile-nav) ProtoWiki's user settings hide a real account's lists.
+ * Here they show: saved pages and watchlist stay editable (nothing fetches them),
+ * while a real user's contributions are fetched on load (`useRealUserPagesSync`),
+ * so that field is read-only — an edit would be replaced on the next load.
+ */
+const showLists = computed(() => user.value !== 'logged-out')
+
+function isReadOnly(list: PageListKey): boolean {
+  return user.value === 'real' && list === 'editedPages'
+}
 
 /*
  * What's typed stays as typed while the field has focus (the list still updates
@@ -109,9 +118,10 @@ const rows = computed(
       />
 
       <CdxTextInput
-        v-else-if="row.list && sources[row.key] && editableLists"
+        v-else-if="row.list && sources[row.key] && showLists"
         class="home-personalization-list__field"
         :model-value="listText(row.list)"
+        :readonly="isReadOnly(row.list)"
         placeholder="Page titles, separated by commas"
         :aria-label="`${row.label}: page titles, separated by commas`"
         @update:model-value="onListInput(row.list, String($event))"

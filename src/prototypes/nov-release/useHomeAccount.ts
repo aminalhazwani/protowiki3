@@ -9,7 +9,7 @@ import {
   patchHomeConfig,
   resetHomeConfig,
 } from './data/homeConfig'
-import { applyHomeUrlParams } from './data/homeUrlParams'
+import { applyHomeUrlParams, useHomeUrlSync } from './data/homeUrlParams'
 import { HOME_PATH } from './routes'
 
 // Module-level: every Home page shares one account name.
@@ -67,21 +67,18 @@ export function useHomeAccount() {
 }
 
 /**
- * For the Home page shell: applies `?reset` / `?username=` from the URL (then
- * strips them), and shows the prototype account's name in the chrome while the
- * **New user** preset is active.
+ * For the Home page shell: applies the Home's URL params (`?reset`,
+ * `?username=`, the lists…) and keeps the URL in step with them
+ * (`useHomeUrlSync`), and shows the prototype account's name in the chrome
+ * while the **New user** preset is active.
  */
 export function useHomeSession() {
   const route = useRoute()
-  const router = useRouter()
   // The saved preset, read directly — `user` from useConfig() includes overrides.
   const { config } = useConfig()
 
-  const rest = applyHomeUrlParams(route.query)
-  if (rest) {
-    username.value = loadHomeConfig().username
-    void router.replace({ query: rest, hash: route.hash })
-  }
+  if (applyHomeUrlParams(route.query)) username.value = loadHomeConfig().username
+  useHomeUrlSync()
 
   useUserOverride(() =>
     config.value.user === 'new' && username.value ? { displayName: username.value } : null,
