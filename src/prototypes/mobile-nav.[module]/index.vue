@@ -34,8 +34,7 @@ watch(
   { immediate: true },
 )
 
-// PROTOWIKI+ Router: no `scrollBehavior`, so a new page keeps the old scroll position.
-watch(spec, () => window.scrollTo(0, 0), { immediate: true })
+// Scroll position: `useHomeScroll` (each page its own).
 </script>
 
 <template>

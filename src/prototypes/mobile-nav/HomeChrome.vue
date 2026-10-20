@@ -29,6 +29,7 @@ import {
 } from './routes'
 import { useHomeSession } from './useHomeAccount'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
+import { installHomeScroll } from './useHomeScroll'
 
 interface Props {
   /** Footer "last edited" notice — on for wiki pages, off for the Home dashboard. */
@@ -70,6 +71,8 @@ const { onLeaveCapture } = useHomeLeavePrototype()
 
 const router = useRouter()
 const route = useRoute()
+// Each page keeps its own scroll position (see `useHomeScroll`).
+installHomeScroll(router)
 registerArticleOpener({
   href: (title) => router.resolve(homeArticleLocation(title)).href,
   open: (title) => void router.push(homeArticleLocation(title)),

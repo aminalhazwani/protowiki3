@@ -1,5 +1,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { isProgrammaticScroll } from './useHomeScroll'
+
 /** Scroll distance (px) in one direction before the bar reacts, so jitter doesn't flicker it. */
 const THRESHOLD = 8
 
@@ -17,6 +19,11 @@ export function useHideOnScroll(topZone = 56) {
 
   function onScroll(): void {
     const y = Math.max(0, window.scrollY)
+    // A page restoring its scroll position isn't the reader scrolling.
+    if (isProgrammaticScroll()) {
+      lastY = y
+      return
+    }
     const atEnd = y + window.innerHeight >= document.documentElement.scrollHeight - BOTTOM_ZONE
     if (y <= topZone || atEnd) {
       hidden.value = false

@@ -6,7 +6,7 @@
  * Special:Nearby and Special:ReadingLists are the prototype's own pages (the
  * tab bar's Nearby and Reading lists tabs).
  */
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ArticleLive from '@/components/article/ArticleLive.vue'
@@ -40,8 +40,7 @@ const isSpecialPage = computed(() => isNearby.value || isReadingLists.value)
 const { onArticleClick } = useHomeArticleLinks(() => title.value)
 const { isSaved, toggleSaved } = useHomeSaved()
 
-// PROTOWIKI+ Router: no `scrollBehavior`, so new pages keep the old scroll position and ignore `#hash`.
-watch(title, () => window.scrollTo(0, 0), { immediate: true })
+// Scroll position: `useHomeScroll` (each page its own; `#hash` is handled below).
 
 function onParserReady(): void {
   if (route.hash) scrollToFragment(route.hash.slice(1))
