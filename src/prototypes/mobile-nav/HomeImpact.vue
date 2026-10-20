@@ -11,19 +11,25 @@ import { watch } from 'vue'
 
 import ImpactModule from '../template-homepage/ImpactModule.vue'
 import { useHomepageImpact } from '../template-homepage/useHomepageImpact'
+import { useHomeRealUserPages } from './useHomeRealUserPages'
 
-const { impactDesktopProps, onImpactRefresh } = useHomepageImpact()
+// The Home keeps the edited pages itself (`useRealUserPagesSync`), fetched before this.
+const { impactDesktopProps, onImpactRefresh } = useHomepageImpact({ syncEditedPages: false })
+const { pending: pagesPending } = useHomeRealUserPages()
 
 /*
  * PROTOWIKI+ (mobile-nav) useHomepageImpact: a real user's impact waits behind
- * a "Load" prompt. Here it loads straight away — on page load, and whenever the
- * preset or username changes (`?user=real&realUser=…`) to one with nothing cached —
- * since its edited pages are what the personal modules grow from.
+ * a "Load" prompt. Here it loads by itself — on page load, and whenever the
+ * preset or username changes (`?user=real&realUser=…`) to one with nothing
+ * cached — once the edited pages are in, so the personal modules start first.
  */
 watch(
-  () => impactDesktopProps.value.loadPending && !impactDesktopProps.value.refreshing,
-  (pending) => {
-    if (pending) onImpactRefresh()
+  () =>
+    impactDesktopProps.value.loadPending &&
+    !impactDesktopProps.value.refreshing &&
+    !pagesPending.value,
+  (ready) => {
+    if (ready) onImpactRefresh()
   },
   { immediate: true },
 )

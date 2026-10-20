@@ -176,7 +176,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     title: 'Suggested edits',
     variant: 'article',
     // Personal suggestions fill the grid; a stranger gets a single random one (home2).
-    slots: () => (useHomeSeeds().seeds.value.length ? 3 : RANDOM_SUGGESTION_COUNT),
+    slots: () => (useHomeSeeds().personal.value ? 3 : RANDOM_SUGGESTION_COUNT),
     pageSize: 3,
     moreLabel: 'Show more',
     menu: {
@@ -215,7 +215,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     id: 'review-changes',
     title: 'Review changes',
     variant: 'change',
-    slots: () => (useHomeSeeds().seeds.value.length ? 3 : RANDOM_CHANGE_COUNT),
+    slots: () => (useHomeSeeds().personal.value ? 3 : RANDOM_CHANGE_COUNT),
     pageSize: 3,
     moreLabel: 'Show more',
     menu: {

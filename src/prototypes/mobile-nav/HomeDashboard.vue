@@ -17,9 +17,12 @@ import HomeSection from './HomeSection.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
 import { isCustomModule } from './modules'
 import { useHomeLayout } from './useHomeLayout'
+import { useRealUserPagesSync } from './useHomeRealUserPages'
 
 const { pageTitle } = useConfig()
 const { visibleModules } = useHomeLayout()
+// Real user: their edited pages first (the personal modules wait on them), then Impact's fetch.
+useRealUserPagesSync()
 
 /** Modules for the desktop side column; everything else stays in the main one. */
 const SIDE_MODULE_IDS = new Set<string>(['impact', 'mentor'])
