@@ -1,3 +1,13 @@
+<script lang="ts">
+import { ref } from 'vue'
+
+/*
+ * Module-level: switching Skin in Prototype settings swaps the header, and this
+ * menu with it — the dialog stays open across the swap.
+ */
+const settingsOpen = ref(false)
+</script>
+
 <script setup lang="ts">
 /**
  * The header's ☰. On Minerva it's the skin's main menu drawer — markup, sizes
@@ -8,12 +18,17 @@
  * Main Page / Home, Random and Nearby stay in the prototype; every other row
  * is a real Wikipedia link, which `HomeChrome` asks about before leaving.
  * Advanced mode (Prototype settings) adds Minerva's editor links when signed in.
+ *
+ * In Minmin (Prototype settings → Skin) ☰ opens a menu instead: the same rows
+ * and prototype controls, without the drawer's About · Disclaimers footer.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
+import type { MenuButtonItemData, MenuGroupData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconDie,
+  cdxIconHeart,
   cdxIconHome,
   cdxIconLabFlask,
   cdxIconLogIn,
@@ -39,7 +54,9 @@ import HomePrototypeSettingsDialog from './HomePrototypeSettingsDialog.vue'
 import { HOME_PATH, homeArticleLocation, MAIN_PAGE_PATH } from './routes'
 import { useHomeAccount } from './useHomeAccount'
 import { useHomeAdvancedMode } from './useHomeAdvancedMode'
+import { useHomeLeavePrototype } from './useHomeLeavePrototype'
 import { useHomeResetPrototype } from './useHomeResetPrototype'
+import { useHomeSkin } from './useHomeSkin'
 
 interface MenuRow {
   id: string
@@ -53,16 +70,23 @@ interface MenuRow {
   action?: () => void
 }
 
+interface MenuGroup {
+  /** Names the group for assistive tech; production shows no headings. */
+  label: string
+  rows: MenuRow[]
+}
+
 const route = useRoute()
 const router = useRouter()
 const { lang } = useConfig()
 const { isLoggedIn } = useHomeAccount()
 const { advancedMode } = useHomeAdvancedMode()
 const { resetPrototype } = useHomeResetPrototype()
+const { requestLeave } = useHomeLeavePrototype()
+const { isMinmin } = useHomeSkin()
 
 const isMobile = computed(() => globalSkin.value === 'mobile')
 const open = ref(false)
-const settingsOpen = ref(false)
 const trigger = ref<InstanceType<typeof CdxButton> | null>(null)
 const panel = ref<HTMLElement | null>(null)
 
@@ -77,7 +101,7 @@ async function openRandom(): Promise<void> {
 }
 
 /** Production's groups, top to bottom; each is a white block on the grey panel. */
-const groups = computed<MenuRow[][]>(() => {
+const groups = computed<MenuGroup[]>(() => {
   const navigation: MenuRow[] = [
     isLoggedIn.value
       ? { id: 'main-page', label: 'Main Page', icon: cdxIconNewspaper, to: MAIN_PAGE_PATH }
@@ -90,47 +114,63 @@ const groups = computed<MenuRow[][]>(() => {
       to: homeArticleLocation('Special:Nearby'),
     },
   ]
-  const result = [navigation]
+  const result: MenuGroup[] = [{ label: 'Navigation', rows: navigation }]
 
   if (isLoggedIn.value && advancedMode.value) {
-    result.push([
-      {
-        id: 'recent-changes',
-        label: 'Recent changes',
-        icon: cdxIconRecentChanges,
-        href: wiki('Special:RecentChanges'),
-      },
-      {
-        id: 'special-pages',
-        label: 'Special pages',
-        icon: cdxIconSpecialPages,
-        href: wiki('Special:SpecialPages'),
-      },
-      {
-        id: 'community-portal',
-        label: 'Community portal',
-        icon: cdxIconSpeechBubbles,
-        href: wiki('Wikipedia:Community portal'),
-      },
-    ])
+    result.push({
+      label: 'Editing',
+      rows: [
+        {
+          id: 'recent-changes',
+          label: 'Recent changes',
+          icon: cdxIconRecentChanges,
+          href: wiki('Special:RecentChanges'),
+        },
+        {
+          id: 'special-pages',
+          label: 'Special pages',
+          icon: cdxIconSpecialPages,
+          href: wiki('Special:SpecialPages'),
+        },
+        {
+          id: 'community-portal',
+          label: 'Community portal',
+          icon: cdxIconSpeechBubbles,
+          href: wiki('Wikipedia:Community portal'),
+        },
+      ],
+    })
   }
 
   if (!isLoggedIn.value) {
     const createAccount = accountActions.value?.createAccount
-    result.push([
-      {
-        id: 'create-account',
-        label: 'Create account',
-        icon: cdxIconUserAvatar,
-        ...(createAccount ? { action: createAccount.open } : { href: wiki('Special:CreateAccount') }),
-      },
-      { id: 'log-in', label: 'Log in', icon: cdxIconLogIn, href: wiki('Special:UserLogin') },
-    ])
+    result.push({
+      label: 'Account',
+      rows: [
+        {
+          id: 'create-account',
+          label: 'Create account',
+          icon: cdxIconUserAvatar,
+          ...(createAccount
+            ? { action: createAccount.open }
+            : { href: wiki('Special:CreateAccount') }),
+        },
+        { id: 'log-in', label: 'Log in', icon: cdxIconLogIn, href: wiki('Special:UserLogin') },
+      ],
+    })
   }
 
-  result.push([
-    { id: 'settings', label: 'Settings', icon: cdxIconSettings, href: wiki('Special:MobileOptions') },
-  ])
+  result.push({
+    label: 'Settings',
+    rows: [
+      {
+        id: 'settings',
+        label: 'Settings',
+        icon: cdxIconSettings,
+        href: wiki('Special:MobileOptions'),
+      },
+    ],
+  })
   return result
 })
 
@@ -149,6 +189,57 @@ function rowHref(row: MenuRow): string | undefined {
   if (row.to) return router.resolve(row.to).href
   return row.href
 }
+
+/*
+ * Minmin's menu: the drawer's groups as Codex menu groups, the donate banner as
+ * a row (logged out only, as production), then the prototype's controls.
+ */
+const minminMenuItems = computed<(MenuButtonItemData | MenuGroupData)[]>(() => {
+  const menuGroups = groups.value.map((group) => ({
+    label: group.label,
+    hideLabel: true,
+    items: group.rows.map((row) => ({ value: row.id, label: row.label, icon: row.icon })),
+  }))
+  if (!isLoggedIn.value) {
+    menuGroups.push({
+      label: 'Donate',
+      hideLabel: true,
+      items: [{ value: 'donate', label: 'Donate', icon: cdxIconHeart }],
+    })
+  }
+  menuGroups.push({
+    label: 'Prototype',
+    hideLabel: true,
+    items: [
+      { value: 'prototype-settings', label: 'Prototype settings', icon: cdxIconLabFlask },
+      {
+        value: 'reset-prototype',
+        label: 'Reset prototype',
+        icon: cdxIconReload,
+        action: 'destructive',
+      },
+    ],
+  })
+  return menuGroups
+})
+
+// A pick only acts; clear it so no row stays selected.
+const minminSelection = ref<MenuItemValue | null>(null)
+watch(minminSelection, (value) => {
+  if (value === null) return
+  minminSelection.value = null
+  if (value === 'prototype-settings') settingsOpen.value = true
+  else if (value === 'reset-prototype') resetPrototype()
+  else if (value === 'donate') requestLeave(donateHref.value)
+  else {
+    const row = groups.value
+      .flatMap((group) => group.rows)
+      .find((candidate) => candidate.id === value)
+    if (row?.action) row.action()
+    else if (row?.to) void router.push(row.to)
+    else if (row?.href) requestLeave(row.href)
+  }
+})
 
 function close(): void {
   open.value = false
@@ -203,6 +294,17 @@ onBeforeUnmount(() => {
 
 <template>
   <HomePrototypeMenu v-if="!isMobile" />
+  <template v-else-if="isMinmin">
+    <CdxMenuButton
+      v-model:selected="minminSelection"
+      class="home-main-menu__dropdown"
+      :menu-items="minminMenuItems"
+      aria-label="Main menu"
+    >
+      <CdxIcon :icon="cdxIconMenu" />
+    </CdxMenuButton>
+    <HomePrototypeSettingsDialog v-model:open="settingsOpen" />
+  </template>
   <template v-else>
     <CdxButton
       ref="trigger"
@@ -232,8 +334,8 @@ onBeforeUnmount(() => {
       :inert="!open"
     >
       <div class="home-main-menu__scroll">
-        <ul v-for="(group, index) in groups" :key="index" class="home-main-menu__list">
-          <li v-for="row in group" :key="row.id" class="home-main-menu__item">
+        <ul v-for="group in groups" :key="group.label" class="home-main-menu__list">
+          <li v-for="row in group.rows" :key="row.id" class="home-main-menu__item">
             <a
               class="home-main-menu__anchor"
               :href="rowHref(row) ?? '#'"
@@ -305,6 +407,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* CODEX+ CdxMenuButton: an inline-block root adds a line box's descender under the 32px button. */
+.home-main-menu__dropdown {
+  display: flex;
+}
+
 /*
  * Minerva's main menu, from production (`#mw-mf-page-left`, `.main-menu-mask`,
  * `.toggle-list-item`, `.donate-banner`), on Codex tokens.

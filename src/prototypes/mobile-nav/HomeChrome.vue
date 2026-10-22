@@ -20,6 +20,7 @@ import { globalSkin } from '@/theme'
 import HomeLeavePrototypeDialog from './HomeLeavePrototypeDialog.vue'
 import HomeMobileTabBar from './HomeMobileTabBar.vue'
 import HomeMainMenu from './HomeMainMenu.vue'
+import HomeMinminHeader from './HomeMinminHeader.vue'
 import {
   CREATE_ACCOUNT_PATH,
   HOME_PATH,
@@ -30,6 +31,7 @@ import {
 import { useHomeSession } from './useHomeAccount'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
 import { installHomeScroll } from './useHomeScroll'
+import { useHomeSkin } from './useHomeSkin'
 
 interface Props {
   /** Footer "last edited" notice — on for wiki pages, off for the Home dashboard. */
@@ -68,6 +70,7 @@ const showTabBar = computed(() => isLoggedIn.value && globalSkin.value === 'mobi
 const footerHoldsTabBar = computed(() => showTabBar.value && props.showFooter)
 
 const { onLeaveCapture } = useHomeLeavePrototype()
+const { isMinmin } = useHomeSkin()
 
 const router = useRouter()
 const route = useRoute()
@@ -113,6 +116,14 @@ registerAccountActions({
       <!-- A page's own header (a module page's back bar) replaces the wiki header. -->
       <template v-if="$slots.header" #header>
         <slot name="header" />
+      </template>
+      <!-- Minmin (Prototype settings → Skin): its own bar, with search always showing. -->
+      <template v-else-if="isMinmin" #header>
+        <HomeMinminHeader :brand-to="brandTo">
+          <template #menu>
+            <HomeMainMenu />
+          </template>
+        </HomeMinminHeader>
       </template>
       <!-- ☰: Minerva's main menu drawer (Prototype settings and Reset at its foot); Vector's small menu. -->
       <template #menu>

@@ -55,6 +55,15 @@ export interface HomeConfig {
   tabBar: HomeTabSlot[] | null
   /** Minerva's Advanced mode (Prototype settings): the main menu's extra editor links. */
   advancedMode: boolean
+  /** The mobile skin being prototyped (Prototype settings). */
+  skin: HomeSkin
+}
+
+export const HOME_SKINS = ['minerva-neue', 'minmin'] as const
+export type HomeSkin = (typeof HOME_SKINS)[number]
+
+export function isHomeSkin(value: unknown): value is HomeSkin {
+  return HOME_SKINS.includes(value as HomeSkin)
 }
 
 export interface HomeSources {
@@ -79,6 +88,7 @@ export const DEFAULT_HOME_CONFIG: HomeConfig = {
   splashDismissed: false,
   tabBar: null,
   advancedMode: false,
+  skin: 'minerva-neue',
 }
 
 /** MediaWiki's limit on username length. */
@@ -148,6 +158,7 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
     splashDismissed: record.splashDismissed === true,
     tabBar: normalizeTabBar(record.tabBar),
     advancedMode: record.advancedMode === true,
+    skin: isHomeSkin(record.skin) ? record.skin : DEFAULT_HOME_CONFIG.skin,
   }
 }
 

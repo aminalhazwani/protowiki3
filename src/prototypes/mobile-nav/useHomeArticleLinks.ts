@@ -12,7 +12,19 @@ export function scrollToFragment(fragment: string): void {
   } catch {
     // Keep the raw fragment.
   }
-  document.getElementById(id)?.scrollIntoView({ block: 'start' })
+  const target = document.getElementById(id)
+  if (!target) return
+  // In a closed section (Minmin closes them all): open it first.
+  const heading =
+    target.closest('.protowiki-mobile-h2--collapsed') ??
+    target.closest('.protowiki-mobile-section-body--collapsed')?.previousElementSibling
+  if (
+    heading instanceof HTMLElement &&
+    heading.classList.contains('protowiki-mobile-h2--collapsed')
+  ) {
+    heading.click()
+  }
+  target.scrollIntoView({ block: 'start' })
 }
 
 /**

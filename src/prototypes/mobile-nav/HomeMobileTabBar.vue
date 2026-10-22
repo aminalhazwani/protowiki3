@@ -23,6 +23,7 @@ import { fetchRandomTitle } from './data/fetchRandomTitle'
 import { HOME_PATH, homeArticleLocation, normalizeTitle, titleFromRouteParam } from './routes'
 import { useHideOnScroll } from './useHideOnScroll'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
+import { useHomeSkin } from './useHomeSkin'
 import { tabBarInset, useHomeTabBar } from './useHomeTabBar'
 
 const props = withDefaults(
@@ -48,6 +49,7 @@ const { lang } = useConfig()
 const { slots } = useHomeTabBar()
 const { requestLeave } = useHomeLeavePrototype()
 const { hidden, show } = useHideOnScroll()
+const { isMinmin } = useHomeSkin()
 
 const searchOpen = ref(false)
 
@@ -149,7 +151,7 @@ async function onClick(item: TabItem): Promise<void> {
   <div class="home-tab-bar" :class="{ 'home-tab-bar--reserve-space': props.reserveSpace }">
     <nav
       class="home-tab-bar__bar"
-      :class="{ 'home-tab-bar__bar--hidden': hidden }"
+      :class="{ 'home-tab-bar__bar--hidden': hidden, 'home-tab-bar__bar--minmin': isMinmin }"
       aria-label="Tab bar"
     >
       <CdxButton
@@ -226,6 +228,11 @@ async function onClick(item: TabItem): Promise<void> {
 /* The die rolls once per tap: transform only, strong ease-out so it answers the tap at once. */
 .home-tab-bar__die {
   transition: transform 450ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Minmin's header is white, so its bar is too. */
+.home-tab-bar__bar--minmin {
+  background-color: var(--background-color-base);
 }
 
 /* Whole turns look like no change, so without the transition nothing moves. */
