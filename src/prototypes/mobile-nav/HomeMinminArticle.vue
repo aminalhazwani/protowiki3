@@ -10,8 +10,10 @@ import { computed, ref, watch } from 'vue'
 import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
 import type { MenuButtonItemData, MenuItemValue } from '@wikimedia/codex'
 import {
+  cdxIconBookmark,
   cdxIconBookmarkOutline,
   cdxIconEdit,
+  cdxIconHistory,
   cdxIconVerticalEllipsis,
   cdxIconEyeClosed,
   cdxIconLanguage,
@@ -49,9 +51,11 @@ const CHIPS = [
 ]
 
 const menuItems = computed<MenuButtonItemData[]>(() => [
-  { value: 'save', label: props.saved ? 'Remove from saved' : 'Save' },
-  { value: 'history', label: 'View history' },
-  { value: 'talk', label: 'Talk' },
+  props.saved
+    ? { value: 'save', label: 'Remove from saved', icon: cdxIconBookmark }
+    : { value: 'save', label: 'Save', icon: cdxIconBookmarkOutline },
+  { value: 'history', label: 'View history', icon: cdxIconHistory },
+  { value: 'talk', label: 'Talk', icon: cdxIconSpeechBubbles },
 ])
 const menuSelection = ref<MenuItemValue | null>(null)
 watch(menuSelection, (value) => {
@@ -243,6 +247,15 @@ watch(
 /* CODEX+ CdxMenuButton: an inline-block root adds a line box's descender under the 32px button. */
 .home-minmin-article__title-row :deep(.cdx-menu-button) {
   display: flex;
+}
+
+/* CODEX+ CdxMenuItem: no large size. Thumb-sized rows, like the account menu's (MinervaUserMenu). */
+.home-minmin-article__title-row :deep(.cdx-menu-item) {
+  padding: var(--spacing-75) var(--spacing-100);
+}
+
+.home-minmin-article__title-row :deep(.cdx-menu-item__icon.cdx-icon) {
+  margin-inline-end: var(--spacing-75);
 }
 
 .home-minmin-article__chips {
