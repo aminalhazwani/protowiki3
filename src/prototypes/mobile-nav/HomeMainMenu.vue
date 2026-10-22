@@ -412,6 +412,15 @@ onBeforeUnmount(() => {
   display: flex;
 }
 
+/* CODEX+ CdxMenuItem: no large size. Thumb-sized rows, like the account menu's (MinervaUserMenu). */
+.home-main-menu__dropdown :deep(.cdx-menu-item) {
+  padding: var(--spacing-75) var(--spacing-100);
+}
+
+.home-main-menu__dropdown :deep(.cdx-menu-item__icon.cdx-icon) {
+  margin-inline-end: var(--spacing-75);
+}
+
 /*
  * Minerva's main menu, from production (`#mw-mf-page-left`, `.main-menu-mask`,
  * `.toggle-list-item`, `.donate-banner`), on Codex tokens.
