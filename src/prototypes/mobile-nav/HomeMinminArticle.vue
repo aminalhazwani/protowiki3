@@ -216,8 +216,14 @@ watch(
 
 .home-minmin-article__title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--spacing-25);
+}
+
+/* The buttons sit level with the title's first line (1.7rem at 1.375), however many lines it wraps to. */
+.home-minmin-article__title-row > :not(.home-minmin-article__title) {
+  flex-shrink: 0;
+  margin-top: calc((1.7rem * 1.375 - var(--min-size-interactive-pointer)) / 2);
 }
 
 .home-minmin-article__title {
@@ -229,7 +235,8 @@ watch(
   font-family: var(--font-family-serif);
   font-size: 1.7rem;
   font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-xxx-small, 1.375);
+  /* Unitless: the Codex token is a fixed 1.43rem, shorter than this 1.7rem type. */
+  line-height: 1.375;
   color: var(--color-emphasized);
 }
 
