@@ -2,24 +2,20 @@
 /**
  * Minmin's header: ☰, the wordmark and the account menu in the bar, and the
  * search field always showing under it (Minerva keeps search behind an icon).
- * The field opens Minerva's full-screen search.
+ * The field is the real typeahead search, right there in the page.
  */
-import { markRaw, ref } from 'vue'
+import { markRaw } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { CdxTextInput } from '@wikimedia/codex'
-import { cdxIconSearch } from '@wikimedia/codex-icons'
 
+import Search from '@/components/Search.vue'
 import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import MinervaUserMenu from '@/components/chrome/MinervaUserMenu.vue'
 import type { HeaderItem } from '@/components/header/headerItems'
-import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 
 defineProps<{ brandTo: RouteLocationRaw }>()
 
 /** Just the account menu: search moves under the bar, notifications go. */
 const RIGHT: HeaderItem[] = [{ type: 'component', component: markRaw(MinervaUserMenu) }]
-
-const searchOpen = ref(false)
 </script>
 
 <template>
@@ -30,16 +26,8 @@ const searchOpen = ref(false)
       </template>
     </ChromeHeader>
     <div class="home-minmin-header__search">
-      <CdxTextInput
-        :start-icon="cdxIconSearch"
-        placeholder="Search"
-        aria-label="Search Wikipedia"
-        readonly
-        @click="searchOpen = true"
-        @keydown.enter="searchOpen = true"
-      />
+      <Search placeholder="Search" />
     </div>
-    <MobileSearchOverlay v-if="searchOpen" @close="searchOpen = false" />
   </div>
 </template>
 
@@ -89,9 +77,16 @@ const searchOpen = ref(false)
   padding: var(--spacing-25) var(--spacing-100) var(--spacing-50);
 }
 
-/* CODEX+ CdxTextInput: readonly greys the field; this one only opens search, so it keeps the editable look. */
-.home-minmin-header__search :deep(.cdx-text-input__input) {
-  background-color: var(--background-color-base);
-  cursor: pointer;
+/*
+ * CODEX+ CdxTypeaheadSearch: `show-thumbnail` pushes the icon right to centre it
+ * over the results' thumbnails, and only `is-mobile-view` turns that off — which
+ * hides the icon too. Back to a plain text input's icon spacing.
+ */
+.home-minmin-header__search :deep(.cdx-typeahead-search--show-thumbnail .cdx-search-input .cdx-text-input__input) {
+  padding-left: calc(var(--spacing-50) * 2 + var(--size-icon-medium));
+}
+
+.home-minmin-header__search :deep(.cdx-typeahead-search--show-thumbnail .cdx-search-input .cdx-text-input__start-icon) {
+  left: calc(var(--spacing-50) + var(--border-width-base));
 }
 </style>
