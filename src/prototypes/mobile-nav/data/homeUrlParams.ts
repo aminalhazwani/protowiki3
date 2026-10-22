@@ -3,7 +3,7 @@
  * one-off ones (`reset`, `username`, `onboarding`) are applied once — written
  * into the Home config — and then removed from the URL, so reloading doesn't
  * re-apply them. The lists (`interests`, `saved`, `watchlist`, `edited`) are
- * applied the same way but then stay in the URL, kept in step with the settings
+ * applied the same way but then stay in the URL, as does `homeSkin`, kept in step with the settings
  * (`useHomeUrlSync`), so the address bar is always a link to what you see.
  *
  * - `?reset` — forget everything the Home prototype stored (the intro splash shows again).
@@ -15,6 +15,8 @@
  * - `?saved=A|B`, `?watchlist=A|B`, `?edited=A|B` — the Mock user's saved pages,
  *   watchlist and edited pages (ProtoWiki's page lists, for the preset in effect).
  *   A **Real user**'s edited pages are fetched on load, so `edited` won't stick there.
+ * - `?homeSkin=minmin|minerva-neue` — the mobile skin (Prototype settings → Skin).
+ *   Kept in the URL like the lists, while it isn't the default (Minerva Neue).
  *
  * Lists are page titles separated by `|` (titles can hold commas); `_` reads as a
  * space, so `?saved=Wet_Leg|Gorillaz` works. An empty value clears the list.
@@ -34,7 +36,8 @@ import { DEFAULT_USER_PAGE_LISTS, type PageListKey } from '@/config'
 
 import { normalizeTitle } from '../routes'
 import { useHomePersonalization } from '../useHomePersonalization'
-import { patchHomeConfig, resetHomeConfig } from './homeConfig'
+import { useHomeSkin } from '../useHomeSkin'
+import { DEFAULT_HOME_CONFIG, isHomeSkin, patchHomeConfig, resetHomeConfig } from './homeConfig'
 import { isOnboardingStep } from './onboarding'
 
 /** Page-list params and the ProtoWiki list each one sets. */
@@ -53,7 +56,7 @@ const LIST_PARAMS = [
   ...(Object.keys(PAGE_LIST_PARAMS) as (keyof typeof PAGE_LIST_PARAMS)[]),
 ] as const
 
-export const HOME_URL_PARAMS = [...ONE_OFF_PARAMS, ...LIST_PARAMS] as const
+export const HOME_URL_PARAMS = [...ONE_OFF_PARAMS, ...LIST_PARAMS, 'homeSkin'] as const
 
 function firstValue(value: LocationQuery[string]): string | null {
   const raw = Array.isArray(value) ? value[0] : value
@@ -84,6 +87,11 @@ export function applyHomeUrlParams(query: LocationQuery): boolean {
     const step = firstValue(query.onboarding)
     patchHomeConfig({ onboarding: isOnboardingStep(step) ? step : null })
   }
+  // Through useHomeSkin, so its shared value follows. An unknown value is ignored.
+  if ('homeSkin' in query) {
+    const skin = firstValue(query.homeSkin)
+    if (isHomeSkin(skin)) useHomeSkin().skin.value = skin
+  }
   // Through Personalization, so its in-memory copy (and the modules) follow.
   if ('interests' in query) useHomePersonalization().setInterests(titleList(query.interests))
   const { setCurrentUserPageList } = useConfig()
@@ -95,7 +103,7 @@ export function applyHomeUrlParams(query: LocationQuery): boolean {
 
 /**
  * Keeps the URL in step with the Home's settings, on every Home page: drops the
- * one-off params once applied, and writes the lists (see the top of this file)
+ * one-off params once applied, and writes the lists and skin (see the top of this file)
  * whenever they or the page change — so a link copied from the address bar
  * carries them. Call after `applyHomeUrlParams`.
  */
@@ -104,6 +112,7 @@ export function useHomeUrlSync(): void {
   const router = useRouter()
   const { user, realUsername, currentUserPageLists } = useConfig()
   const { interests } = useHomePersonalization()
+  const { skin } = useHomeSkin()
 
   const listQuery = computed((): Record<string, string> => {
     const preset = user.value
@@ -124,12 +133,16 @@ export function useHomeUrlSync(): void {
     return query
   })
 
+  const skinQuery = computed((): Record<string, string> =>
+    skin.value === DEFAULT_HOME_CONFIG.skin ? {} : { homeSkin: skin.value },
+  )
+
   watch(
-    [listQuery, () => route.fullPath],
-    ([lists]) => {
+    [listQuery, skinQuery, () => route.fullPath],
+    ([lists, skinParam]) => {
       const query: LocationQuery = { ...route.query }
       for (const key of HOME_URL_PARAMS) delete query[key]
-      Object.assign(query, lists)
+      Object.assign(query, lists, skinParam)
       const keys = new Set([...Object.keys(query), ...Object.keys(route.query)])
       if ([...keys].every((key) => query[key] === route.query[key])) return
       void router.replace({ query, hash: route.hash })
