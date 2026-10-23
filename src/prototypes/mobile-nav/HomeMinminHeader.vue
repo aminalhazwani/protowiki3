@@ -4,7 +4,7 @@
  * search field always showing under it (Minerva keeps search behind an icon).
  * The field is the real typeahead search, right there in the page.
  */
-import { markRaw } from 'vue'
+import { markRaw, ref } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
 import Search from '@/components/Search.vue'
@@ -12,10 +12,16 @@ import ChromeHeader from '@/components/chrome/ChromeHeader.vue'
 import MinervaUserMenu from '@/components/chrome/MinervaUserMenu.vue'
 import type { HeaderItem } from '@/components/header/headerItems'
 
+import { useHomeMinminSearch } from './useHomeMinminSearch'
+
 defineProps<{ brandTo: RouteLocationRaw }>()
 
 /** Just the account menu: search moves under the bar, notifications go. */
 const RIGHT: HeaderItem[] = [{ type: 'component', component: markRaw(MinervaUserMenu) }]
+
+// The tab bar's Search tab focuses this field instead of opening Minerva's overlay.
+const searchField = ref<HTMLElement | null>(null)
+useHomeMinminSearch().register(searchField)
 </script>
 
 <template>
@@ -25,7 +31,7 @@ const RIGHT: HeaderItem[] = [{ type: 'component', component: markRaw(MinervaUser
         <slot name="menu" />
       </template>
     </ChromeHeader>
-    <div class="home-minmin-header__search">
+    <div ref="searchField" class="home-minmin-header__search">
       <Search placeholder="Search" />
     </div>
   </div>

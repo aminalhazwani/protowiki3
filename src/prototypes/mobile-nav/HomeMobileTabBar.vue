@@ -4,7 +4,8 @@
  * then the tabs set in "Prototype settings" → Mobile tab bar. The same bar on
  * every page; it slides away while the reader scrolls down and back on scroll up.
  *
- * Destinations: Special:Search opens Minerva's search, Special:Random a random
+ * Destinations: Special:Search opens Minerva's search (on Minmin, focuses the
+ * search field under its header), Special:Random a random
  * article, Special:Nearby and Special:ReadingLists the prototype's own, other
  * special pages leave the prototype (after asking), and any other title opens
  * in the prototype.
@@ -23,6 +24,7 @@ import { fetchRandomTitle } from './data/fetchRandomTitle'
 import { HOME_PATH, homeArticleLocation, normalizeTitle, titleFromRouteParam } from './routes'
 import { useHideOnScroll } from './useHideOnScroll'
 import { useHomeLeavePrototype } from './useHomeLeavePrototype'
+import { useHomeMinminSearch } from './useHomeMinminSearch'
 import { useHomeSkin } from './useHomeSkin'
 import { tabBarInset, useHomeTabBar } from './useHomeTabBar'
 
@@ -50,6 +52,7 @@ const { slots } = useHomeTabBar()
 const { requestLeave } = useHomeLeavePrototype()
 const { hidden, show } = useHideOnScroll()
 const { isMinmin } = useHomeSkin()
+const minminSearch = useHomeMinminSearch()
 
 const searchOpen = ref(false)
 
@@ -125,7 +128,7 @@ async function onClick(item: TabItem): Promise<void> {
   const destination = normalizeTitle(item.destination)
   const special = destination.match(/^Special:(.+)$/i)?.[1].toLowerCase()
   if (special === 'search') {
-    searchOpen.value = true
+    if (!(isMinmin.value && minminSearch.focus())) searchOpen.value = true
   } else if (special && IN_PROTOTYPE_SPECIAL_PAGES.has(special)) {
     if (!item.selected) void router.push(homeArticleLocation(destination))
   } else if (special === 'random' || special === 'randompage') {
