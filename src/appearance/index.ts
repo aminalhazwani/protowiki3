@@ -4,7 +4,8 @@
  * - `config-store` — reactive settings (`protowikiConfig`)
  * - `app-platform` — `data-app-platform` on `<html>`
  * - `url-query` — query-string helpers and navigation preservation
- * - `url-sync` — bidirectional sync between settings and `?theme=` / `?skin=` / `?os=`
+ * - `url-sync` — bidirectional sync between settings and `?theme=` / `?skin=` / `?os=` /
+ *   `?user=` / `?realUser=`
  * - `boot` — entry points for `main.ts`
  *
  * Theme / skin rendering lives in `@/theme`; persistence schema in `@/config`.
@@ -29,7 +30,9 @@ export {
 
 export {
   onAppPlatformSettingChanged,
+  onRealUsernameSettingChanged,
   onThemeSettingChanged,
+  onUserSettingChanged,
   onWebSkinSettingChanged,
   setupAppearanceUrlSync,
   syncAppearanceFromBootUrl,

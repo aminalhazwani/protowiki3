@@ -78,10 +78,19 @@ menus, contextual actions on a row, etc.
     { value: 'edit', label: 'Edit', icon: cdxIconEdit },
     { value: 'delete', label: 'Delete', icon: cdxIconTrash },
   ]"
+  @load-more="loadMoreItems"
 >
   <CdxIcon :icon="cdxIconEllipsis" />
 </CdxMenuButton>
 ```
+
+Emits `update:selected`, and `load-more` when the user scrolls toward the
+bottom of the menu — use it to append items for infinite scrolling.
+
+Menu items with a `url` render as links whose clickable area spans the
+full item width; `urlNewTab: true` sets `target="_blank"` only (no `rel`
+is added — set it yourself if you need one). Item `supportingText` renders
+at the small font size.
 
 ## CdxPopover
 
@@ -89,10 +98,28 @@ Generic positioned overlay (not a menu). Use for rich popovers, hover
 cards, etc. — anything beyond a flat list of options.
 
 ```vue
-<CdxPopover v-model:open="open" :anchor="anchorRef">
+<CdxPopover
+  v-model:open="open"
+  :anchor="anchorRef"
+  use-bottom-sheet="responsive"
+  :hide-arrow="false"
+>
   <slot />
 </CdxPopover>
 ```
+
+| Prop             | Values                                                     | Default   |
+| ---------------- | ---------------------------------------------------------- | --------- |
+| `useBottomSheet` | `'never'` / `'responsive'` / `'always'`                    | `'never'` |
+| `hideArrow`      | hide the pointer arrow (popover sits closer to the anchor) | `false`   |
+| `hideBackdrop`   | hide the bottom-sheet scrim                                | `false`   |
+
+`'responsive'` shows a bottom sheet on mobile (≤639px) and a regular
+popover on larger screens. `'always'` uses the bottom sheet on all
+viewports. The bottom sheet variant has no arrow.
+Boolean `useBottomSheet` values are deprecated (`true` = `'responsive'`).
+On tablet and wider viewports the `'always'` bottom sheet is centred with
+a max width, side borders and rounded corners.
 
 ## Pattern — confirm before destructive
 

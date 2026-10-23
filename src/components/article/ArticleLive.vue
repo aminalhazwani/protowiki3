@@ -10,6 +10,10 @@ interface ArticleLiveCommonProps {
   skin?: Skin
   theme?: Theme
   languagesCount?: number
+  persistCache?: boolean
+  mainPage?: boolean
+  mainPageGreeting?: string
+  saved?: boolean
 }
 
 /** Fixed article: `article` set; the random-only props are forbidden. */
@@ -101,6 +105,19 @@ interface Props {
   theme?: Theme
   /** Forwarded **`ArticleWrapper`** → **`ArticleHeader`** (**`languagesCount` languages**). */
   languagesCount?: number
+  /**
+   * PROTOWIKI+ (Home) Opt out of the persistent cache.
+   * Keep the fetched body in localStorage across visits (default **`true`**).
+   * Set **`false`** for pages that change daily, like **`Main_Page`**, so every
+   * page load shows the live version.
+   */
+  persistCache?: boolean
+  /** PROTOWIKI+ (Home) Render the production Main Page header (see **`ArticleHeader`** **`mainPage`**). */
+  mainPage?: boolean
+  /** PROTOWIKI+ (nov-release) Logged-in Main Page heading on mobile (see **`ArticleHeader`** **`mainPageGreeting`**). */
+  mainPageGreeting?: string
+  /** PROTOWIKI+ (Home) Forwarded to **`ArticleHeader`** — fills the bookmark. */
+  saved?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -116,11 +133,16 @@ const props = withDefaults(defineProps<Props>(), {
   skin: undefined,
   theme: undefined,
   languagesCount: undefined,
+  persistCache: true,
+  mainPage: false,
+  saved: false,
 })
 
 const emit = defineEmits<{
   /** Parser root, once the body is in the DOM — for `<Teleport>` and in-article overlays. */
   parserReady: [root: HTMLElement]
+  /** PROTOWIKI+ (Home) The header's bookmark (save) button was clicked. */
+  saveClick: []
 }>()
 
 const liveHtml = ref<string | null>(null)
@@ -146,7 +168,7 @@ async function fetchArticle(title: string, host: string, lang: string, signal: A
   view.value = null
 
   const [body, articleView] = await Promise.all([
-    fetchArticleBody(title, host, { signal }),
+    fetchArticleBody(title, host, { signal, persist: props.persistCache }),
     // The lead block is the only consumer — web chrome takes its title from the body.
     props.app ? fetchArticleView(title, { signal, lang }) : Promise.resolve(null),
   ])
@@ -239,6 +261,10 @@ watch(liveHtml, async (html) => {
     :app="props.app"
     :description="view?.description"
     :lead-image-url="view?.thumbnailUrl ?? undefined"
+    :main-page="props.mainPage"
+    :main-page-greeting="props.mainPageGreeting"
+    :saved="props.saved"
+    @save-click="emit('saveClick')"
   >
     <CdxProgressBar v-if="loading" inline aria-label="Loading article" />
 

@@ -71,6 +71,8 @@ trailing **Inside ProtoWiki** section.
 | [`protowiki-theme`](.agents/skills/protowiki-theme/SKILL.md)                       | Light / dark theming; per-component theme overrides                      |
 | [`protowiki-deploy`](.agents/skills/protowiki-deploy/SKILL.md)                     | GitHub Pages deploy, PR previews, base path, fork setup, SPA 404         |
 | [`protowiki-update-codex`](.agents/skills/protowiki-update-codex/SKILL.md)         | Upgrading Codex: bump packages, diff upstream docs, sync skills + tokens |
+| [`protowiki-codex-patching`](.agents/skills/protowiki-codex-patching/SKILL.md)     | Unmerged Codex changes: one committed patch, stock/patched switching, side-by-side deploys, CSS that follows Codex |
+| [`protowiki-home`](.agents/skills/protowiki-home/SKILL.md)                         | The Home prototype (`/home`): module registry, loaders, state layers, onboarding, test links |
 
 ### Codex (design system)
 
@@ -112,7 +114,15 @@ mirrors [FakeMediaWiki `wiki-signals`](https://github.com/TodePond/FakeMediaWiki
   exists. No registration step.
 - Plain CSS. No preprocessor. Per-component styles in scoped blocks.
   Skin/theme overrides via `[data-skin]` / `[data-theme]` selectors.
-- Codex first. If a Codex component / token / icon exists, use it.
+- Codex first. If a Codex component / token / icon exists, use it — and
+  override only the delta, so prototypes follow Codex patches and upgrades
+  (see [`protowiki-codex-patching`](.agents/skills/protowiki-codex-patching/SKILL.md)).
+- **Tag every override with a searchable flag** so it can become an upstream PR later:
+  `CODEX+ <component>: <what Codex lacks>` where prototype code works around Codex
+  (custom CSS on Codex internals, a missing component or prop), and
+  `PROTOWIKI+ (<prototype>) <what>` where code works around, or changes, a shared
+  ProtoWiki component / composable / config. One short comment per site. Find them
+  with `git grep -nE 'CODEX\+|PROTOWIKI\+'`.
 - Data fetching uses native `fetch` with `AbortController` for debouncing.
 - Prototype gallery **title** and **description** must not be AI-generated;
   agents ask the author or omit — see

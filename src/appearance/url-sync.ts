@@ -11,9 +11,11 @@ import {
 } from './url-query'
 import {
   isConfigAppPlatform,
+  isConfigUser,
   isConfigWebSkin,
   type ConfigAppPlatform,
   type ConfigTheme,
+  type ConfigUser,
   type ConfigWebSkin,
 } from '@/config'
 import { applyThemePreference, applyWebSkinPreference } from '@/theme'
@@ -176,6 +178,43 @@ function syncAppOsOnRoute(to: RouteLocationNormalized): void {
   }
 }
 
+// --- Mock user (`?user=` + `?realUser=`) — optional params -----------------
+// PROTOWIKI+ (Home) New: test links can pin the Mock user preset.
+// `?user=` takes the **Mock user settings** preset ids: `logged-out`, `new`,
+// `experienced`, `real`. `?realUser=` is the username for the `real` preset.
+
+function setUserFromUrlParam(user: ConfigUser): void {
+  if (syncingFromUrl || protowikiConfig.value.user === user) return
+  withSyncFromUrl(() => {
+    protowikiConfig.value = { ...protowikiConfig.value, user }
+  })
+}
+
+function setRealUsernameFromUrlParam(realUsername: string): void {
+  if (syncingFromUrl || protowikiConfig.value.realUsername === realUsername) return
+  withSyncFromUrl(() => {
+    protowikiConfig.value = { ...protowikiConfig.value, realUsername }
+  })
+}
+
+export function onUserSettingChanged(user: ConfigUser): void {
+  if (syncingFromUrl || !queryParamIsPresent('user')) return
+  syncUrlQueryParam('user', user)
+}
+
+export function onRealUsernameSettingChanged(realUsername: string): void {
+  if (syncingFromUrl || !queryParamIsPresent('realUser')) return
+  syncUrlQueryParam('realUser', realUsername)
+}
+
+function syncUserFromUrlOnRoute(to: RouteLocationNormalized): void {
+  const urlUser = typeof to.query.user === 'string' ? to.query.user : null
+  if (isConfigUser(urlUser)) setUserFromUrlParam(urlUser)
+
+  const urlRealUser = typeof to.query.realUser === 'string' ? to.query.realUser.trim() : ''
+  if (urlRealUser) setRealUsernameFromUrlParam(urlRealUser)
+}
+
 // --- Boot + router wiring ---------------------------------------------------
 
 function syncOptionalParamFromBoot(
@@ -203,6 +242,13 @@ export function syncAppearanceFromBootUrl(): void {
   syncOptionalParamFromBoot('os', isConfigAppPlatform, (value) => {
     setAppPlatformFromUrl(value as ConfigAppPlatform)
   })
+
+  syncOptionalParamFromBoot('user', isConfigUser, (value) => {
+    setUserFromUrlParam(value as ConfigUser)
+  })
+
+  const realUser = readQueryParam('realUser')?.trim()
+  if (realUser) setRealUsernameFromUrlParam(realUser)
 }
 
 /** Keep appearance URL params and settings aligned after each navigation. */
@@ -213,5 +259,6 @@ export function setupAppearanceUrlSync(instance: Router): void {
     syncThemeFromUrlOnRoute(to)
     syncWebSkinFromUrlOnRoute(to)
     syncAppOsOnRoute(to)
+    syncUserFromUrlOnRoute(to)
   })
 }

@@ -25,7 +25,9 @@ the snapshot).
 - Color: `--color-…`, `--background-color-…`, `--border-color-…`,
   `--box-shadow-color-…`, `--filter-…`.
 - Spacing: `--spacing-…`.
-- Sizing: `--size-…`, `--max-width-…`, `--min-size-…`.
+- Sizing: `--size-…` (fixed steps, e.g. `--size-300` 3rem, `--size-400`
+  4rem, `--size-600` 6rem, `--size-800` 8rem), `--max-width-…`,
+  `--min-size-…`.
 - Typography: `--font-family-…`, `--font-size-…`, `--font-weight-…`,
   `--line-height-…`, `--letter-spacing-…`.
 - Border: `--border-width-…`, `--border-style-…`, `--border-radius-…`.
