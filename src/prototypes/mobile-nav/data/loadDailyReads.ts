@@ -14,8 +14,8 @@ const SEED_COUNT = 5
 /** Three pages of four, so "Show more" has something to reveal. */
 const CARD_COUNT = 12
 const MORELIKE_CONCURRENCY = 2
-/** Random Vital articles for a reader with no seeds and no survey answer. */
-export const BLANK_READS_COUNT = 3
+/** Random Vital articles for a reader with no seeds. */
+const RANDOM_READS_COUNT = 3
 
 function pickRandom<T>(items: readonly T[], count: number): T[] {
   const pool = [...items]
@@ -32,7 +32,7 @@ function pickRandom<T>(items: readonly T[], count: number): T[] {
  * reader's pages.
  */
 async function loadRandomReads(signal: AbortSignal): Promise<HomeCardData[]> {
-  const titles = pickRandom(await getVitalTitles('en'), BLANK_READS_COUNT)
+  const titles = pickRandom(await getVitalTitles('en'), RANDOM_READS_COUNT)
   const pages = await fetchPageCards(titles, signal)
   return pages
     .filter((page) => page !== null)
@@ -49,15 +49,14 @@ async function loadRandomReads(signal: AbortSignal): Promise<HomeCardData[]> {
 /**
  * Articles like the reader's own pages ("Related to …"). Up to five random seeds,
  * one `morelike` call each, interleaved round-robin so the first row mixes seeds;
- * duplicates and the seeds themselves are dropped. A reader with no seeds and no
- * survey answer gets random reads instead. Cached per day and seed set, so the
- * Home doesn't reshuffle on every visit.
+ * duplicates and the seeds themselves are dropped. A reader with no seeds gets
+ * random reads instead. Cached per day and seed set, so the Home doesn't
+ * reshuffle on every visit.
  */
 export async function loadDailyReads(signal: AbortSignal): Promise<HomeCardData[]> {
-  const { seeds, blank } = useHomeSeeds()
+  const { seeds } = useHomeSeeds()
   const allSeeds = seeds.value
   if (!allSeeds.length) {
-    if (!blank.value) return []
     // Random reads stay for the day too, so the cards don't change each visit.
     const cacheKey = `${utcDayKey()}|random`
     const cached = readDayCache<HomeCardData[]>(CACHE_SLOT, cacheKey)

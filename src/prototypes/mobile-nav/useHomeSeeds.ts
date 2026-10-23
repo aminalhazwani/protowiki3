@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { useConfig } from '@/composables/useConfig'
 
 import { normalizeTitle } from './routes'
-import { useHomeOnboarding } from './useHomeOnboarding'
 import { useHomePersonalization } from './useHomePersonalization'
 import { useHomeRealUserPages } from './useHomeRealUserPages'
 
@@ -38,12 +37,5 @@ export function useHomeSeeds() {
 
   const personal = computed(() => seeds.value.length > 0 || pending.value)
 
-  /**
-   * Nothing to go on: not personal, and no survey answer (a new account that
-   * skipped both). Daily reads and Suggested edits then show a few random picks each.
-   */
-  const { survey } = useHomeOnboarding()
-  const blank = computed(() => !personal.value && survey.value === null)
-
-  return { seeds, personal, blank }
+  return { seeds, personal }
 }

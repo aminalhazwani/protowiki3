@@ -10,16 +10,16 @@ const config = ref<HomeConfig | null>(null)
 
 /**
  * A module's "Get articles that match your interests" notice: shown while the
- * reader has given the Home nothing to go on (random cards), until dismissed
- * there.
+ * reader has no pages to grow from (the module's cards are random), until
+ * dismissed there.
  */
 export function useHomeInterestsNotice(id: HomeModuleId) {
   config.value ??= loadHomeConfig()
 
-  const { blank } = useHomeSeeds()
+  const { personal } = useHomeSeeds()
 
   const shown = computed(
-    () => blank.value && !config.value?.interestsNoticeDismissed.includes(id),
+    () => !personal.value && !config.value?.interestsNoticeDismissed.includes(id),
   )
 
   function dismiss(): void {

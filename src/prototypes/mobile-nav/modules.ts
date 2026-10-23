@@ -26,11 +26,7 @@ import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
 import { loadReviewChanges, RANDOM_CHANGE_COUNT } from './data/loadReviewChanges'
 import { loadSaved } from './data/loadSaved'
-import {
-  BLANK_SUGGESTION_COUNT,
-  loadSuggestedEdits,
-  RANDOM_SUGGESTION_COUNT,
-} from './data/loadSuggestedEdits'
+import { loadSuggestedEdits, RANDOM_SUGGESTION_COUNT } from './data/loadSuggestedEdits'
 import { loadTrending } from './data/loadTrending'
 import type { HomeCardData } from './data/types'
 import HomeImpact from './HomeImpact.vue'
@@ -104,7 +100,7 @@ export interface HomeModuleSpec {
   menu?: HomeModuleMenuSpec
   /**
    * A dismissible "Get articles that match your interests" notice above the
-   * cards, while the reader has given the Home nothing to go on (`useHomeSeeds().blank`).
+   * cards, while the reader has no pages to grow from (`useHomeSeeds().personal`).
    */
   interestsNotice?: boolean
   /** Glyph beside each card's supporting text. */
@@ -166,8 +162,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     load: loadTrending,
   },
   {
-    // Hidden until the reader has a page to grow from — unless they skipped both
-    // interests and the survey, when it shows three random Vital articles.
+    // Related to the reader's pages; three random Vital articles until they have any.
     id: 'daily-reads',
     title: 'Daily reads',
     variant: 'article',
@@ -186,13 +181,8 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     id: 'suggested-edits',
     title: 'Suggested edits',
     variant: 'article',
-    // Personal suggestions fill the grid; a stranger gets a single random one (home2),
-    // or a few when they skipped both interests and the survey.
-    slots: () => {
-      const { personal, blank } = useHomeSeeds()
-      if (personal.value) return 3
-      return blank.value ? BLANK_SUGGESTION_COUNT : RANDOM_SUGGESTION_COUNT
-    },
+    // Personal suggestions, or three random ones for a stranger.
+    slots: () => (useHomeSeeds().personal.value ? 3 : RANDOM_SUGGESTION_COUNT),
     pageSize: 3,
     moreLabel: 'Show more',
     menu: {

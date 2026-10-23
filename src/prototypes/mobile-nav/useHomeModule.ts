@@ -138,15 +138,13 @@ export function useHomeModule(spec: HomeModuleSpec) {
      * While onboarding is open, its interests step changes Personalization
      * chip by chip; reloading on each would queue the Home's requests ahead of
      * the step's own suggestions. Hold the reload until the wizard closes.
-     * The survey answer counts too: with no seeds, it decides between random
-     * picks and the stranger's fallback (`useHomeSeeds().blank`).
      */
     const { version } = useHomePersonalization()
     const { seeds } = useHomeSeeds()
-    const { step, survey } = useHomeOnboarding()
+    const { step } = useHomeOnboarding()
     let stale = false
     // The reader's pages too: another Mock user, a list edited, or a real user's edits arriving.
-    watch([version, () => seeds.value.join('\n'), survey], () => {
+    watch([version, () => seeds.value.join('\n')], () => {
       if (pending.value) return
       if (step.value) stale = true
       else void load({ inPlace: true })

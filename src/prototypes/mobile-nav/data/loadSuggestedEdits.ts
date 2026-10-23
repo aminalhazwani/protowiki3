@@ -14,11 +14,9 @@ import { readDayCache, utcDayKey, writeDayCache } from './homeCache'
 import type { HomeCardData } from './types'
 
 const CACHE_SLOT = 'suggested-edits'
-/** Three pages of four when personalised; a single card for a stranger (home2). */
+/** Three pages of four when personalised; three random ones for a stranger. */
 export const PERSONAL_SUGGESTION_COUNT = 12
-export const RANDOM_SUGGESTION_COUNT = 1
-/** A reader with no seeds and no survey answer gets a few random ones instead. */
-export const BLANK_SUGGESTION_COUNT = 3
+export const RANDOM_SUGGESTION_COUNT = 3
 const RELATED_SEED_COUNT = 5
 const RELATED_PER_SEED = 4
 const LINK_RECOMMENDATION_SEEDS = 3
@@ -85,13 +83,9 @@ async function personalTasks(seeds: string[], signal: AbortSignal): Promise<Task
 
 /** Articles with something to improve, each labelled with its task ("Find a reference"…). */
 export async function loadSuggestedEdits(signal: AbortSignal): Promise<HomeCardData[]> {
-  const { seeds, blank } = useHomeSeeds()
+  const { seeds } = useHomeSeeds()
   const personal = seeds.value.length > 0
-  const limit = personal
-    ? PERSONAL_SUGGESTION_COUNT
-    : blank.value
-      ? BLANK_SUGGESTION_COUNT
-      : RANDOM_SUGGESTION_COUNT
+  const limit = personal ? PERSONAL_SUGGESTION_COUNT : RANDOM_SUGGESTION_COUNT
 
   // Random suggestions stay for the day too, so the cards don't change each visit.
   const cacheKey = `${utcDayKey()}|${personal ? seeds.value.map(normalizeTitle).sort().join('|') : `random:${limit}`}`

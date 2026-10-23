@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * "Get articles that match your interests", over a module's random cards while
- * the reader has given the Home nothing to go on. Dismissed per module.
+ * the reader has no pages to grow from. Dismissed per module.
  * "Select interests" does nothing yet: picking interests is out of the prototype's scope here.
  */
 import { CdxButton, CdxMessage } from '@wikimedia/codex'
