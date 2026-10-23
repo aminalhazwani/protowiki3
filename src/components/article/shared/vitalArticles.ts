@@ -85,6 +85,8 @@ async function fetchVitalTitles(lang: string, level: number): Promise<string[]> 
   baseUrl.searchParams.set('action', 'query')
   baseUrl.searchParams.set('generator', 'links')
   baseUrl.searchParams.set('titles', pageTitle)
+  // The list pages have moved before (`Level/2` → `Level 2`); follow redirects.
+  baseUrl.searchParams.set('redirects', '1')
   baseUrl.searchParams.set('gplnamespace', '0')
   baseUrl.searchParams.set('gpllimit', 'max')
   baseUrl.searchParams.set('format', 'json')

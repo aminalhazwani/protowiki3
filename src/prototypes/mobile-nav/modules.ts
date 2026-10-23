@@ -26,7 +26,11 @@ import { loadDidYouKnow } from './data/loadDidYouKnow'
 import { loadFeaturedArticle } from './data/loadFeaturedArticle'
 import { loadReviewChanges, RANDOM_CHANGE_COUNT } from './data/loadReviewChanges'
 import { loadSaved } from './data/loadSaved'
-import { loadSuggestedEdits, RANDOM_SUGGESTION_COUNT } from './data/loadSuggestedEdits'
+import {
+  BLANK_SUGGESTION_COUNT,
+  loadSuggestedEdits,
+  RANDOM_SUGGESTION_COUNT,
+} from './data/loadSuggestedEdits'
 import { loadTrending } from './data/loadTrending'
 import type { HomeCardData } from './data/types'
 import HomeImpact from './HomeImpact.vue'
@@ -98,6 +102,11 @@ export interface HomeModuleSpec {
   filters?: readonly HomeModuleFilter[]
   /** Its heading's "…" menu. */
   menu?: HomeModuleMenuSpec
+  /**
+   * A dismissible "Get articles that match your interests" notice above the
+   * cards, while the reader has given the Home nothing to go on (`useHomeSeeds().blank`).
+   */
+  interestsNotice?: boolean
   /** Glyph beside each card's supporting text. */
   supportingIcon?: Icon
   /** Supporting text (and its icon) in progressive blue: it names a task to do. */
@@ -157,7 +166,8 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     load: loadTrending,
   },
   {
-    // Hidden until the reader has saved, edited or watched a page to grow from.
+    // Hidden until the reader has a page to grow from — unless they skipped both
+    // interests and the survey, when it shows three random Vital articles.
     id: 'daily-reads',
     title: 'Daily reads',
     variant: 'article',
@@ -170,13 +180,19 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     supportingIcon: cdxIconLink,
     load: loadDailyReads,
     personalized: true,
+    interestsNotice: true,
   },
   {
     id: 'suggested-edits',
     title: 'Suggested edits',
     variant: 'article',
-    // Personal suggestions fill the grid; a stranger gets a single random one (home2).
-    slots: () => (useHomeSeeds().personal.value ? 3 : RANDOM_SUGGESTION_COUNT),
+    // Personal suggestions fill the grid; a stranger gets a single random one (home2),
+    // or a few when they skipped both interests and the survey.
+    slots: () => {
+      const { personal, blank } = useHomeSeeds()
+      if (personal.value) return 3
+      return blank.value ? BLANK_SUGGESTION_COUNT : RANDOM_SUGGESTION_COUNT
+    },
     pageSize: 3,
     moreLabel: 'Show more',
     menu: {
@@ -190,6 +206,7 @@ export const HOME_MODULES: readonly HomeAnyModuleSpec[] = [
     supportingProgressive: true,
     load: loadSuggestedEdits,
     personalized: true,
+    interestsNotice: true,
   },
   {
     // The Homepage template's Impact module, under the Home's own heading.

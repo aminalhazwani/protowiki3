@@ -35,6 +35,8 @@ export interface HomeConfig {
   mentorAssigned: boolean | null
   /** The "We've assigned you…" notice was dismissed. */
   mentorNoticeDismissed: boolean
+  /** Modules whose "Get articles that match your interests" notice was dismissed. */
+  interestsNoticeDismissed: string[]
   /**
    * The reader's Home layout (module order + the ones switched on); `null`
    * follows the default. Ids are checked against the registry when it's read
@@ -80,6 +82,7 @@ export const DEFAULT_HOME_CONFIG: HomeConfig = {
   savedAt: {},
   mentorAssigned: null,
   mentorNoticeDismissed: false,
+  interestsNoticeDismissed: [],
   layout: null,
   interests: [],
   sources: { interests: true, saved: true, watchlist: true, contributions: true },
@@ -150,6 +153,7 @@ export function normalizeHomeConfig(input: unknown): HomeConfig {
     savedAt: normalizeSavedAt(record.savedAt),
     mentorAssigned: typeof record.mentorAssigned === 'boolean' ? record.mentorAssigned : null,
     mentorNoticeDismissed: record.mentorNoticeDismissed === true,
+    interestsNoticeDismissed: normalizeIdList(record.interestsNoticeDismissed) ?? [],
     layout: normalizeLayout(record.layout),
     interests: normalizeInterests(record.interests),
     sources: normalizeSources(record.sources),

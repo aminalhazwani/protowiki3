@@ -17,6 +17,7 @@ import { useSkin } from '@/composables/useSkin'
 import HomeCard from './HomeCard.vue'
 import HomeModuleMenu from './HomeModuleMenu.vue'
 import HomeFilterChips from './HomeFilterChips.vue'
+import HomeInterestsNotice from './HomeInterestsNotice.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
 import { hasModulePage, type HomeModuleSpec } from './modules'
 import { homeModuleLocation } from './routes'
@@ -114,6 +115,8 @@ if (props.standalone) {
     <p v-else-if="isEmpty" class="home-section__empty">Nothing here right now.</p>
 
     <template v-else>
+      <HomeInterestsNotice v-if="spec.interestsNotice && !standalone" :module-id="spec.id" />
+
       <HomeFilterChips
         v-if="filters.length"
         :class="{ 'home-section__filters--page': standalone }"
