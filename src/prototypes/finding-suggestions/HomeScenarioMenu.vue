@@ -11,28 +11,27 @@ import { cdxIconMenu } from '@wikimedia/codex-icons'
 import { preservedQueryFromLocationQuery } from '@/appearance/url-query'
 
 import { HOME_PATH } from './homeRoutes'
-import { useFindingSuggestions } from './useFindingSuggestions'
+import { isScenario, SCENARIOS, useFindingSuggestions } from './useFindingSuggestions'
 
 const MENU_ITEMS = [
   {
     label: 'Scenarios',
-    items: [{ value: 'account-setup', label: 'From account setup' }],
+    items: Object.entries(SCENARIOS).map(([value, { label }]) => ({ value, label })),
   },
 ]
 
 const route = useRoute()
 const router = useRouter()
-const { startFromAccountSetup } = useFindingSuggestions()
+const { start } = useFindingSuggestions()
 const selected = ref<MenuItemValue | null>(null)
 
 watch(selected, (value) => {
   if (value === null) return
   selected.value = null
-  if (value === 'account-setup') {
-    startFromAccountSetup()
-    if (route.path !== HOME_PATH) {
-      void router.push({ path: HOME_PATH, query: preservedQueryFromLocationQuery(route.query) })
-    }
+  if (!isScenario(value)) return
+  start(value)
+  if (route.path !== HOME_PATH) {
+    void router.push({ path: HOME_PATH, query: preservedQueryFromLocationQuery(route.query) })
   }
 })
 </script>

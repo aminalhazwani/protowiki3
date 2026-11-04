@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useConfig } from '@/composables/useConfig'
 
 import { DEFAULT_EDIT_TYPES, HARDER_EDIT_TYPES, type EditTypeId } from './editTypeOptions'
+import { SUGGESTED_EDITS_MENU } from './homeModuleMenus'
 import { titleKey } from './useHomeSeeds'
 
 export type FindingDialog = 'interests' | 'edit-types'
@@ -12,61 +13,96 @@ export const MAX_INTERESTS = 10
 /** The scripted count once suggestions are found (the mockup's). */
 export const FOUND_COUNT = 23
 
+/**
+ * The prototype's scenarios, each with the types of edits that find
+ * suggestions in it (the scripted rule; see `findsSuggestions`).
+ */
+export const SCENARIOS = {
+  /** 1: right after account creation, on account setup's last step. */
+  'account-setup': {
+    label: 'From Account Setup',
+    findingTypes: HARDER_EDIT_TYPES,
+  },
+  /** 2: a Home with suggested edits, until "Add links" is switched off. */
+  home: {
+    label: 'From the Home',
+    findingTypes: new Set<EditTypeId>([...HARDER_EDIT_TYPES, 'links']),
+  },
+} satisfies Record<string, { label: string; findingTypes: ReadonlySet<EditTypeId> }>
+
+export type Scenario = keyof typeof SCENARIOS
+
+export function isScenario(value: unknown): value is Scenario {
+  return typeof value === 'string' && value in SCENARIOS
+}
+
+/** Scenario 2's reader already follows one interest. */
+const HOME_INTERESTS = ['Impressionism']
+
 // Module-level: the Home, its module page and the dialogs share one scenario.
 // In memory only, so a reload starts the scenario over.
-const started = ref(false)
+const scenario = ref<Scenario | null>(null)
 const setupOpen = ref(false)
 const interests = ref<string[]>([])
 const editTypes = ref<EditTypeId[]>([...DEFAULT_EDIT_TYPES])
-/** The interests picked in account setup: with only these, nothing is found. */
-const setupInterests = ref<Set<string>>(new Set())
+/** The interests the scenario starts from (setup's picks, or the Home's): alone, they find nothing. */
+const startingInterests = ref<Set<string>>(new Set())
 const dialog = ref<FindingDialog | null>(null)
 /** Which "anytime from this menu" popover points at the Suggested edits menu. */
 const popover = ref<FindingDialog | null>(null)
 
 /**
- * The scripted rule (the mockup's): the starting easy types and the interests
- * from account setup find nothing; a medium or hard type, or an interest added
- * after setup, finds suggestions. While setup is open, every interest is a
- * setup interest, so the Home behind it stays empty.
+ * The scripted rule (the mockups'): a scenario's finding types, or an
+ * interest added after it starts, find suggestions — in scenario 1 a medium
+ * or hard type, in scenario 2 also "Add links". While setup is open, every
+ * interest is a setup interest, so the Home behind it stays empty.
  */
 export function findsSuggestions(types: readonly EditTypeId[], titles: readonly string[]): boolean {
+  const findingTypes = SCENARIOS[scenario.value ?? 'account-setup'].findingTypes
   return (
-    types.some((id) => HARDER_EDIT_TYPES.has(id)) ||
-    (!setupOpen.value && titles.some((title) => !setupInterests.value.has(titleKey(title))))
+    types.some((id) => findingTypes.has(id)) ||
+    (!setupOpen.value && titles.some((title) => !startingInterests.value.has(titleKey(title))))
   )
 }
 
 /**
- * The "Finding suggested edits" scenario: account setup's interests step, then
- * a Home whose Suggested edits stay empty until the reader's interests or types
- * of edits find some.
+ * The "Finding suggested edits" scenarios: a Home whose Suggested edits come
+ * and go with the reader's interests and types of edits.
  */
 export function useFindingSuggestions() {
   const { user } = useConfig()
 
   const hasSuggestions = computed(() => findsSuggestions(editTypes.value, interests.value))
 
-  /** Scenario 1: a new account, right after account creation, on setup's last step. */
-  function startFromAccountSetup(): void {
+  /** Suggested edits' "…" menu, with how many of each are selected (the mockup's). */
+  const suggestedEditsMenu = computed(() => ({
+    ...SUGGESTED_EDITS_MENU,
+    items: SUGGESTED_EDITS_MENU.items.map((item) => ({
+      ...item,
+      description: `${item.value === 'interests' ? interests.value.length : editTypes.value.length} selected`,
+    })),
+  }))
+
+  /** Start a scenario over, as a new account. */
+  function start(next: Scenario): void {
     user.value = 'new'
-    interests.value = []
+    scenario.value = next
+    interests.value = next === 'home' ? [...HOME_INTERESTS] : []
     editTypes.value = [...DEFAULT_EDIT_TYPES]
-    setupInterests.value = new Set()
+    startingInterests.value = new Set(interests.value.map(titleKey))
     dialog.value = null
     popover.value = null
-    setupOpen.value = true
-    started.value = true
+    setupOpen.value = next === 'account-setup'
   }
 
-  /** The first visit starts scenario 1. */
-  function ensureStarted(): void {
-    if (!started.value) startFromAccountSetup()
+  /** The first visit starts `initial` (`?scenario=`), or scenario 1. */
+  function ensureStarted(initial?: unknown): void {
+    if (!scenario.value) start(isScenario(initial) ? initial : 'account-setup')
   }
 
   /** "Go to your Home": whatever was picked, the Home starts out empty. */
   function finishSetup(): void {
-    setupInterests.value = new Set(interests.value.map(titleKey))
+    startingInterests.value = new Set(interests.value.map(titleKey))
     setupOpen.value = false
   }
 
@@ -104,7 +140,8 @@ export function useFindingSuggestions() {
     dialog,
     popover,
     hasSuggestions,
-    startFromAccountSetup,
+    suggestedEditsMenu,
+    start,
     ensureStarted,
     finishSetup,
     setInterests,

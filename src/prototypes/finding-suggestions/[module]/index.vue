@@ -57,8 +57,8 @@ const MODULE_PAGES: Record<string, ModulePage> = {
 const route = useRoute()
 const router = useRouter()
 const { user } = useConfig()
-const { onMenuSelect, ensureStarted } = useFindingSuggestions()
-ensureStarted()
+const { suggestedEditsMenu, onMenuSelect, ensureStarted } = useFindingSuggestions()
+ensureStarted(route.query.scenario)
 
 const moduleId = computed(() => {
   const param = (route.params as { module?: string | string[] }).module
@@ -91,7 +91,10 @@ watch(moduleId, () => window.scrollTo(0, 0), { immediate: true })
     <template v-if="page" #header>
       <HomeSubpageHeader :title="page.title">
         <template v-if="page.menu" #actions>
-          <HomeModuleMenu :menu="page.menu" @select="onMenuSelect" />
+          <HomeModuleMenu
+            :menu="moduleId === 'suggested-edits' ? suggestedEditsMenu : page.menu"
+            @select="onMenuSelect"
+          />
         </template>
       </HomeSubpageHeader>
     </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { CdxPopover } from '@wikimedia/codex'
 import { cdxIconHome } from '@wikimedia/codex-icons'
 
@@ -17,7 +18,7 @@ import HomeReviewChanges from './HomeReviewChanges.vue'
 import HomeScenarioMenu from './HomeScenarioMenu.vue'
 import HomeSectionFrame from './HomeSectionFrame.vue'
 import HomeSuggestedEdits from './HomeSuggestedEdits.vue'
-import { REVIEW_CHANGES_MENU, SUGGESTED_EDITS_MENU } from './homeModuleMenus'
+import { REVIEW_CHANGES_MENU } from './homeModuleMenus'
 import { MENTOR_CONTENT } from './mentorContent'
 import { useFindingSuggestions } from './useFindingSuggestions'
 import { useHomeMentor } from './useHomeMentor'
@@ -34,15 +35,15 @@ definePage({
 
 const { pageTitle, user } = useConfig()
 
-const { popover, onMenuSelect, ensureStarted } = useFindingSuggestions()
-ensureStarted()
+const { popover, suggestedEditsMenu, onMenuSelect, ensureStarted } = useFindingSuggestions()
+ensureStarted(useRoute().query.scenario)
 
 /** After Done finds suggestions: where that dialog lives, pointing at the module's "…" menu. */
 const POPOVER_TEXT = {
   'edit-types': 'Select types of edits anytime from this menu.',
   interests: 'Select interests anytime from this menu.',
 }
-const suggestedEditsMenu = ref<InstanceType<typeof HomeModuleMenu> | null>(null)
+const suggestedEditsMenuButton = ref<InstanceType<typeof HomeModuleMenu> | null>(null)
 const popoverOpen = computed({
   get: () => popover.value !== null,
   set: (value: boolean) => {
@@ -93,8 +94,8 @@ function onMentorMenuSelect(value: string | number): void {
           <HomeSectionFrame id="suggested-edits" title="Suggested edits">
             <template #actions>
               <HomeModuleMenu
-                ref="suggestedEditsMenu"
-                :menu="SUGGESTED_EDITS_MENU"
+                ref="suggestedEditsMenuButton"
+                :menu="suggestedEditsMenu"
                 @select="onMenuSelect"
               />
             </template>
@@ -136,7 +137,7 @@ function onMentorMenuSelect(value: string | number): void {
 
     <CdxPopover
       v-model:open="popoverOpen"
-      :anchor="suggestedEditsMenu"
+      :anchor="suggestedEditsMenuButton"
       placement="left-start"
       :primary-action="{ label: 'Got it', actionType: 'progressive' }"
       @primary="popoverOpen = false"
