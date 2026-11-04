@@ -5,10 +5,11 @@
  * reader with none gets random suggestions. On the Home it shows three cards
  * and a "Show more"; as a `feed` (its own page) every suggestion, as divider rows.
  * Until the reader's interests or types of edits find some (`useFindingSuggestions`),
- * it says none were found, with a way to change each.
+ * it says none were found, with a way to change each — or, in scenario 3, shows
+ * random suggestions under a message saying so.
  */
 import { computed, ref, watch } from 'vue'
-import { CdxButton } from '@wikimedia/codex'
+import { CdxButton, CdxMessage } from '@wikimedia/codex'
 import { cdxIconLightbulb } from '@wikimedia/codex-icons'
 
 import { VISUAL_EDITOR_TEMPLATE_PATH } from '@/composables/webTemplatePaths'
@@ -29,15 +30,21 @@ const props = defineProps<{
 const PAGE_SIZE = 3
 
 const { seeds } = useHomeSeeds()
-const { hasSuggestions, dialog } = useFindingSuggestions()
+const { hasSuggestions, showsRandom, setupOpen, noMatchDismissed, dialog } =
+  useFindingSuggestions()
 
-const seedsKey = () => seeds.value.join('\n')
+/** No pages to grow from gets random suggestions (`loadSuggestedEdits`). */
+const loadSeeds = computed(() => (showsRandom.value ? [] : seeds.value))
+const seedsKey = () => loadSeeds.value.join('\n')
 const {
   items: edits,
   loading,
   error,
   reload,
-} = useModuleLoad(seedsKey, (signal) => loadSuggestedEdits(seeds.value, signal))
+} = useModuleLoad(seedsKey, (signal) => loadSuggestedEdits(loadSeeds.value, signal))
+
+/* Behind account setup, the random cards show alone; the message waits for the Home. */
+const showNoMatch = computed(() => showsRandom.value && !setupOpen.value && !noMatchDismissed.value)
 
 const shown = ref(PAGE_SIZE)
 // New pages to grow from start back at the first cards.
@@ -61,7 +68,7 @@ function collapse(): void {
 
 <template>
   <div ref="root" class="home-suggested-edits">
-    <div v-if="!hasSuggestions" class="home-suggested-edits__none">
+    <div v-if="!hasSuggestions && !showsRandom" class="home-suggested-edits__none">
       <p class="home-suggested-edits__none-title">No suggested edits found.</p>
       <p>
         Try selecting other
@@ -82,6 +89,22 @@ function collapse(): void {
     </p>
 
     <template v-else>
+      <CdxMessage
+        v-if="showNoMatch"
+        class="home-suggested-edits__no-match"
+        allow-user-dismiss
+        @user-dismissed="noMatchDismissed = true"
+      >
+        <p>
+          <strong>No suggested edits match your selections.</strong>
+          Change them, or start with other suggestions.
+        </p>
+        <div class="home-suggested-edits__no-match-actions">
+          <CdxButton @click="dialog = 'interests'">Select interests</CdxButton>
+          <CdxButton @click="dialog = 'edit-types'">Select types of edits</CdxButton>
+        </div>
+      </CdxMessage>
+
       <HomeArticleCards
         :cards="visible"
         :to="VISUAL_EDITOR_TEMPLATE_PATH"
@@ -118,6 +141,22 @@ function collapse(): void {
 
 .home-suggested-edits__error p {
   margin: 0;
+}
+
+.home-suggested-edits__no-match {
+  margin-bottom: var(--spacing-50);
+}
+
+.home-suggested-edits__no-match p {
+  margin: 0;
+}
+
+.home-suggested-edits__no-match-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--spacing-50);
+  margin-top: var(--spacing-50);
 }
 
 .home-suggested-edits__none p {

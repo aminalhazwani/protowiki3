@@ -16,20 +16,36 @@ export const FOUND_COUNT = 23
 
 /**
  * The prototype's scenarios, each with the types of edits that find
- * suggestions in it (the scripted rule; see `findsSuggestions`).
+ * suggestions in it (the scripted rule; see `findsSuggestions`), whether it
+ * opens on account setup, and whether a Home without them shows random
+ * suggestions (with a message) instead of saying none were found.
  */
 export const SCENARIOS = {
   /** 1: right after account creation, on account setup's last step. */
   'account-setup': {
     label: 'From Account Setup',
     findingTypes: HARDER_EDIT_TYPES,
+    setup: true,
+    randomSuggestions: false,
   },
   /** 2: a Home with suggested edits, until "Add links" is switched off. */
   home: {
     label: 'From the Home',
     findingTypes: new Set<EditTypeId>([...HARDER_EDIT_TYPES, 'links']),
+    setup: false,
+    randomSuggestions: false,
   },
-} satisfies Record<string, { label: string; findingTypes: ReadonlySet<EditTypeId> }>
+  /** 3: as 1, but the Home falls back to random suggestions. */
+  'account-setup-random': {
+    label: 'From Account Setup, with random suggestions',
+    findingTypes: HARDER_EDIT_TYPES,
+    setup: true,
+    randomSuggestions: true,
+  },
+} satisfies Record<
+  string,
+  { label: string; findingTypes: ReadonlySet<EditTypeId>; setup: boolean; randomSuggestions: boolean }
+>
 
 export type Scenario = keyof typeof SCENARIOS
 
@@ -51,6 +67,8 @@ const startingInterests = ref<Set<string>>(new Set())
 const dialog = ref<FindingDialog | null>(null)
 /** Which "anytime from this menu" popover points at the Suggested edits menu. */
 const popover = ref<FindingDialog | null>(null)
+/** Scenario 3's "No suggested edits match your selections" message, closed with its ✕. */
+const noMatchDismissed = ref(false)
 
 /**
  * The scripted rule (the mockups'): a scenario's finding types, or an
@@ -74,6 +92,10 @@ export function useFindingSuggestions() {
   const { user } = useConfig()
 
   const hasSuggestions = computed(() => findsSuggestions(editTypes.value, interests.value))
+  /** No suggestions, in a scenario that shows random ones instead (scenario 3). */
+  const showsRandom = computed(
+    () => !hasSuggestions.value && SCENARIOS[scenario.value ?? 'account-setup'].randomSuggestions,
+  )
 
   /** Suggested edits' "…" menu, with how many of each are selected (the mockup's). */
   const suggestedEditsMenu = computed(() => ({
@@ -93,7 +115,8 @@ export function useFindingSuggestions() {
     startingInterests.value = new Set(interests.value.map(titleKey))
     dialog.value = null
     popover.value = null
-    setupOpen.value = next === 'account-setup'
+    noMatchDismissed.value = false
+    setupOpen.value = SCENARIOS[next].setup
   }
 
   /** The first visit starts `initial` (`?scenario=`), or scenario 1. */
@@ -124,6 +147,8 @@ export function useFindingSuggestions() {
     if (next.interests) setInterests(next.interests)
     if (next.editTypes) editTypes.value = [...next.editTypes]
     popover.value = teach && wasEmpty && hasSuggestions.value ? from : null
+    // Still no match after a change: the message comes back.
+    noMatchDismissed.value = false
   }
 
   /** A module's "…" pick: Interests and Types of edits open their dialogs. */
@@ -141,7 +166,9 @@ export function useFindingSuggestions() {
     editTypes,
     dialog,
     popover,
+    noMatchDismissed,
     hasSuggestions,
+    showsRandom,
     suggestedEditsMenu,
     start,
     ensureStarted,
