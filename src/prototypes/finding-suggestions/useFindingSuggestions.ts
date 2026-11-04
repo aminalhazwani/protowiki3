@@ -65,6 +65,12 @@ const editTypes = ref<EditTypeId[]>([...DEFAULT_EDIT_TYPES])
 /** The interests the scenario starts from (setup's picks, or the Home's): alone, they find nothing. */
 const startingInterests = ref<Set<string>>(new Set())
 const dialog = ref<FindingDialog | null>(null)
+/**
+ * The open dialog came from the Home's "none found" placeholder or scenario 3's
+ * message, rather than the "…" menu. Kept when a footer link moves on to the
+ * other dialog.
+ */
+const fromPrompt = ref(false)
 /** Which "anytime from this menu" popover points at the Suggested edits menu. */
 const popover = ref<FindingDialog | null>(null)
 /** Scenario 3's "No suggested edits match your selections" message, closed with its ✕. */
@@ -114,6 +120,7 @@ export function useFindingSuggestions() {
     editTypes.value = [...DEFAULT_EDIT_TYPES]
     startingInterests.value = new Set(interests.value.map(titleKey))
     dialog.value = null
+    fromPrompt.value = false
     popover.value = null
     noMatchDismissed.value = false
     setupOpen.value = SCENARIOS[next].setup
@@ -136,7 +143,8 @@ export function useFindingSuggestions() {
 
   /**
    * A dialog's Done. From an empty Home to one with suggestions, the popover
-   * shows where that dialog lives.
+   * shows where that dialog lives — when the reader came from the placeholder
+   * or the message, so doesn't know the menu yet.
    */
   function apply(
     from: FindingDialog,
@@ -146,17 +154,25 @@ export function useFindingSuggestions() {
     const wasEmpty = !hasSuggestions.value
     if (next.interests) setInterests(next.interests)
     if (next.editTypes) editTypes.value = [...next.editTypes]
-    popover.value = teach && wasEmpty && hasSuggestions.value ? from : null
+    popover.value = teach && fromPrompt.value && wasEmpty && hasSuggestions.value ? from : null
     // Still no match after a change: the message comes back.
     noMatchDismissed.value = false
   }
 
+  function openDialog(next: FindingDialog, { prompt }: { prompt: boolean }): void {
+    dialog.value = next
+    fromPrompt.value = prompt
+    popover.value = null
+  }
+
+  /** The placeholder's links and the message's buttons. */
+  function openFromPrompt(next: FindingDialog): void {
+    openDialog(next, { prompt: true })
+  }
+
   /** A module's "…" pick: Interests and Types of edits open their dialogs. */
   function onMenuSelect(value: string | number): void {
-    if (value === 'interests') dialog.value = 'interests'
-    else if (value === 'edit-types') dialog.value = 'edit-types'
-    else return
-    popover.value = null
+    if (value === 'interests' || value === 'edit-types') openDialog(value, { prompt: false })
   }
 
   return {
@@ -176,6 +192,7 @@ export function useFindingSuggestions() {
     setInterests,
     apply,
     onMenuSelect,
+    openFromPrompt,
   }
 }
 

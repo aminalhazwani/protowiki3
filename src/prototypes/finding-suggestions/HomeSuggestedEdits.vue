@@ -30,7 +30,7 @@ const props = defineProps<{
 const PAGE_SIZE = 3
 
 const { seeds } = useHomeSeeds()
-const { hasSuggestions, showsRandom, setupOpen, noMatchDismissed, dialog } =
+const { hasSuggestions, showsRandom, setupOpen, noMatchDismissed, openFromPrompt } =
   useFindingSuggestions()
 
 /** No pages to grow from gets random suggestions (`loadSuggestedEdits`). */
@@ -72,9 +72,9 @@ function collapse(): void {
       <p class="home-suggested-edits__none-title">No suggested edits found.</p>
       <p>
         Try selecting other
-        <a href="#" @click.prevent="dialog = 'interests'">interests</a>
+        <a href="#" @click.prevent="openFromPrompt('interests')">interests</a>
         and
-        <a href="#" @click.prevent="dialog = 'edit-types'">types of edits</a>,
+        <a href="#" @click.prevent="openFromPrompt('edit-types')">types of edits</a>,
         or check back later.
       </p>
     </div>
@@ -100,8 +100,8 @@ function collapse(): void {
           Change them, or start with other suggestions.
         </p>
         <div class="home-suggested-edits__no-match-actions">
-          <CdxButton @click="dialog = 'interests'">Select interests</CdxButton>
-          <CdxButton @click="dialog = 'edit-types'">Select types of edits</CdxButton>
+          <CdxButton @click="openFromPrompt('interests')">Select interests</CdxButton>
+          <CdxButton @click="openFromPrompt('edit-types')">Select types of edits</CdxButton>
         </div>
       </CdxMessage>
 
