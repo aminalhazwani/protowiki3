@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { CdxPopover } from '@wikimedia/codex'
 import { cdxIconHome } from '@wikimedia/codex-icons'
 
@@ -20,7 +19,7 @@ import HomeSectionFrame from './HomeSectionFrame.vue'
 import HomeSuggestedEdits from './HomeSuggestedEdits.vue'
 import { REVIEW_CHANGES_MENU } from './homeModuleMenus'
 import { MENTOR_CONTENT } from './mentorContent'
-import { useFindingSuggestions } from './useFindingSuggestions'
+import { useFindingSuggestions, useScenarioUrl } from './useFindingSuggestions'
 import { useHomeMentor } from './useHomeMentor'
 
 definePage({
@@ -35,8 +34,8 @@ definePage({
 
 const { pageTitle, user } = useConfig()
 
-const { popover, suggestedEditsMenu, onMenuSelect, ensureStarted } = useFindingSuggestions()
-ensureStarted(useRoute().query.scenario)
+const { popover, suggestedEditsMenu, onMenuSelect } = useFindingSuggestions()
+useScenarioUrl()
 
 /** After Done finds suggestions: where that dialog lives, pointing at the module's "…" menu. */
 const POPOVER_TEXT = {

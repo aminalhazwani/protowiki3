@@ -1,4 +1,5 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { useConfig } from '@/composables/useConfig'
 
@@ -134,6 +135,7 @@ export function useFindingSuggestions() {
   }
 
   return {
+    scenario,
     setupOpen,
     interests,
     editTypes,
@@ -148,4 +150,27 @@ export function useFindingSuggestions() {
     apply,
     onMenuSelect,
   }
+}
+
+/**
+ * A page's half of the `?scenario=` link: the first visit starts the linked
+ * scenario (or scenario 1), and the URL then follows whichever is running —
+ * from the ☰ menu, or after in-prototype links drop it — so the address bar
+ * is always a direct link to it.
+ */
+export function useScenarioUrl(): void {
+  const route = useRoute()
+  const router = useRouter()
+  const { ensureStarted } = useFindingSuggestions()
+
+  ensureStarted(route.query.scenario)
+
+  watch(
+    [scenario, () => route.query.scenario],
+    ([current, linked]) => {
+      if (!current || linked === current) return
+      void router.replace({ query: { ...route.query, scenario: current } })
+    },
+    { immediate: true },
+  )
 }

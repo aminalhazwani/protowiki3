@@ -23,7 +23,7 @@ import HomeSubpageHeader from '../HomeSubpageHeader.vue'
 import HomeSuggestedEdits from '../HomeSuggestedEdits.vue'
 import { REVIEW_CHANGES_MENU, SUGGESTED_EDITS_MENU } from '../homeModuleMenus'
 import { HOME_PATH } from '../homeRoutes'
-import { useFindingSuggestions } from '../useFindingSuggestions'
+import { useFindingSuggestions, useScenarioUrl } from '../useFindingSuggestions'
 
 interface ModulePage {
   title: string
@@ -57,8 +57,8 @@ const MODULE_PAGES: Record<string, ModulePage> = {
 const route = useRoute()
 const router = useRouter()
 const { user } = useConfig()
-const { suggestedEditsMenu, onMenuSelect, ensureStarted } = useFindingSuggestions()
-ensureStarted(route.query.scenario)
+const { suggestedEditsMenu, onMenuSelect } = useFindingSuggestions()
+useScenarioUrl()
 
 const moduleId = computed(() => {
   const param = (route.params as { module?: string | string[] }).module
