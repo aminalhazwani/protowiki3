@@ -2,8 +2,11 @@ import { onBeforeUnmount, ref, watch, type Ref } from 'vue'
 
 export type FindingStatus = 'none' | 'finding' | 'found'
 
-/** How long "Finding suggested edits…" shows after each change. */
-const FINDING_MS = 2000
+/** One loop of the "Finding…" dots (`HomeFindingStatus`): none, ".", "..", "...". */
+const DOTS_LOOP_MS = 1600
+
+/** How long "Finding suggested edits…" shows after each change: the dots loop twice. */
+const FINDING_MS = 2 * DOTS_LOOP_MS
 
 /**
  * A dialog's footer status. It opens on the reader's current result; each

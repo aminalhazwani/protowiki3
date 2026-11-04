@@ -110,7 +110,8 @@ const emit = defineEmits<{ link: [] }>()
 
 /*
  * "Finding…": the dots count up, none, ".", "..", "...", and start over —
- * 400ms a step, stepped, no fade.
+ * 400ms a step, stepped, no fade. Twice round, then the result
+ * (`DOTS_LOOP_MS` in `useFindingStatus`).
  */
 .home-finding-status__dots > span {
   animation: 1600ms step-end infinite;
