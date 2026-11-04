@@ -9,7 +9,7 @@ import type { FindingStatus } from './useFindingStatus'
 
 defineProps<{
   status: FindingStatus
-  /** The other dialog, as a link in "Try selecting more interests and types of edits". */
+  /** The other dialog, as a link in "Try selecting other interests and types of edits". */
   link: 'interests' | 'types of edits'
 }>()
 
@@ -23,12 +23,12 @@ const emit = defineEmits<{ link: [] }>()
         <template v-if="status === 'none'">
           <strong>No suggested edits found.</strong>
           <br />
-          Try selecting more
+          Try selecting other
           <template v-if="link === 'interests'">
-            <a href="#" @click.prevent="emit('link')">interests</a> and types of edits
+            <a href="#" @click.prevent="emit('link')">interests</a> and types of edits,
           </template>
           <template v-else>
-            interests and <a href="#" @click.prevent="emit('link')">types of edits</a>
+            interests and <a href="#" @click.prevent="emit('link')">types of edits</a>,
           </template>
           or check back later.
         </template>

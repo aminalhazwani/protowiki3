@@ -64,10 +64,10 @@ function collapse(): void {
     <div v-if="!hasSuggestions" class="home-suggested-edits__none">
       <p class="home-suggested-edits__none-title">No suggested edits found.</p>
       <p>
-        Try selecting more
+        Try selecting other
         <a href="#" @click.prevent="dialog = 'interests'">interests</a>
         and
-        <a href="#" @click.prevent="dialog = 'edit-types'">types of edits</a>
+        <a href="#" @click.prevent="dialog = 'edit-types'">types of edits</a>,
         or check back later.
       </p>
     </div>
