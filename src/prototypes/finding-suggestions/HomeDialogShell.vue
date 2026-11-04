@@ -19,9 +19,11 @@ interface Props {
    * doesn't resize as content loads and a screen can push content to the bottom.
    */
   tall?: boolean
+  /** Blur the page behind, as well as dim it (account setup only). */
+  blurBackdrop?: boolean
 }
 
-withDefaults(defineProps<Props>(), { subtitle: undefined, tall: false })
+withDefaults(defineProps<Props>(), { subtitle: undefined, tall: false, blurBackdrop: false })
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -61,6 +63,7 @@ onBeforeUnmount(() => observer?.disconnect())
     :class="{
       'home-dialog-shell--full-height': isMobile,
       'home-dialog-shell--tall': tall,
+      'home-dialog-shell--blur-backdrop': blurBackdrop,
       'cdx-dialog--dividers': overflowing,
     }"
     :title="title"
@@ -96,8 +99,8 @@ onBeforeUnmount(() => observer?.disconnect())
 
 <!-- CdxDialog teleports out of this component, so these rules can't be scoped. -->
 <style>
-/* CODEX+ CdxDialog: no backdrop blur. The page behind blurs, as well as dims. */
-.cdx-dialog-backdrop:has(> .home-dialog-shell) {
+/* CODEX+ CdxDialog: no backdrop blur. With `blur-backdrop`, the page behind blurs, as well as dims. */
+.cdx-dialog-backdrop:has(> .home-dialog-shell--blur-backdrop) {
   backdrop-filter: blur(8px);
 }
 

@@ -28,7 +28,7 @@ const open = computed({
 </script>
 
 <template>
-  <HomeDialogShell v-model:open="open" title="Personalize your Home" tall>
+  <HomeDialogShell v-model:open="open" title="Personalize your Home" tall blur-backdrop>
     <template #header>
       <div class="home-account-setup__header">
         <!-- Steps 1 and 2 aren't part of this scenario, so going back stays put. -->
