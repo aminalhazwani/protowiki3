@@ -96,7 +96,7 @@ function collapse(): void {
         @user-dismissed="noMatchDismissed = true"
       >
         <p>
-          <strong>No suggested edits match your selections.</strong>
+          <strong>No suggested edits match your selections right now.</strong>
           Change them, or start with other suggestions.
         </p>
         <div class="home-suggested-edits__no-match-actions">
