@@ -2,6 +2,7 @@ import type { Router } from 'vue-router'
 
 import { initAppPlatform } from './app-platform'
 import { protowikiConfig } from './config-store'
+import { wireRoutePins } from './route-pins'
 import { preserveAppearanceQueryOnNavigation, registerAppearanceRouter } from './url-query'
 import { setupAppearanceUrlSync, syncAppearanceFromBootUrl } from './url-sync'
 import { initTheming } from '@/theme'
@@ -16,6 +17,7 @@ export function bootAppearance(): void {
 /** Wire appearance URL ↔ settings sync onto the app router. */
 export function wireAppearanceRouter(router: Router): void {
   registerAppearanceRouter(router)
+  wireRoutePins(router)
   preserveAppearanceQueryOnNavigation(router)
   setupAppearanceUrlSync(router)
 }

@@ -18,7 +18,7 @@ const props = withDefaults(
   { showAppPlatform: true },
 )
 
-const { theme, appPlatform, webSkin } = useConfig()
+const { theme, appPlatform, webSkin, isWebSkinPinned } = useConfig()
 </script>
 
 <template>
@@ -45,6 +45,9 @@ const { theme, appPlatform, webSkin } = useConfig()
 
       <CdxField :is-fieldset="true">
         <template #label>Web skin</template>
+        <template v-if="isWebSkinPinned" #description>
+          Set by this prototype. Changes here last until you leave it.
+        </template>
         <CdxRadio
           v-for="item in CONFIG_WEB_SKIN_MENU_ITEMS"
           :key="item.value"
