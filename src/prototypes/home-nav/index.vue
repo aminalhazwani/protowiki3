@@ -12,15 +12,10 @@ definePage({
 import { computed } from 'vue'
 
 import ArticleLive from '@/components/article/ArticleLive.vue'
-import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useWikiPageTitleQuery } from '@/composables/useWikiPageTitleQuery'
-import {
-  SAVED_PAGES_TEMPLATE_PATH,
-  VISUAL_EDITOR_TEMPLATE_PATH,
-} from '@/composables/webTemplatePaths'
 
-/** This prototype's own route, so in-article wiki links stay here. */
-const HOME_NAV_PATH = '/home-nav'
+import NavChrome from './NavChrome.vue'
+import { HOME_NAV_PATH } from './navVariants'
 
 const DEFAULT_ARTICLE = 'Bruno Munari'
 
@@ -35,13 +30,13 @@ function onTitleResolved(title: string) {
 </script>
 
 <template>
-  <ChromeWrapper :saved-pages-route="SAVED_PAGES_TEMPLATE_PATH">
+  <NavChrome>
     <ArticleLive
-      :edit-route="VISUAL_EDITOR_TEMPLATE_PATH"
+      edit-route=""
+      saved-pages-route=""
       :wiki-link-route="HOME_NAV_PATH"
-      :saved-pages-route="SAVED_PAGES_TEMPLATE_PATH"
       :article="article"
       @title-resolved="onTitleResolved"
     />
-  </ChromeWrapper>
+  </NavChrome>
 </template>
