@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { CdxIcon } from '@wikimedia/codex'
 import {
   cdxIconDie,
@@ -9,7 +9,6 @@ import {
   cdxIconNewspaper,
   cdxIconSettings,
   cdxIconUserAvatar,
-  type Icon,
 } from '@wikimedia/codex-icons'
 
 import { preservedQueryFromLocationQuery } from '@/appearance/url-query'
@@ -21,22 +20,24 @@ const ARTICLE_TEMPLATE_PATH = '/template-article'
 
 import { accountActions } from './accountActions'
 import MinervaMainMenuDrawer from './MinervaMainMenuDrawer.vue'
+import type { MinervaMainMenuRow } from './minervaMainMenu'
 
-interface MenuRow {
-  id: string
-  label: string
-  icon?: Icon
-  to?: RouteLocationRaw
-  action?: () => void | Promise<void>
-}
+type MenuRow = MinervaMainMenuRow
 
 interface Props {
   /** When false, in-prototype rows stay inert mocks. */
   prototypingSettings?: boolean
+  /**
+   * Replace the menu's rows: one white block per group, top to bottom. Rows
+   * with neither `to` nor `action` are inert (the menu just closes). Omit for
+   * production's rows (Main Page · Random · Nearby, account, Settings).
+   */
+  groups?: MenuRow[][]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   prototypingSettings: true,
+  groups: undefined,
 })
 
 const route = useRoute()
@@ -60,7 +61,7 @@ async function openRandomArticle(): Promise<void> {
   })
 }
 
-const groups = computed((): MenuRow[][] => {
+const defaultGroups = computed((): MenuRow[][] => {
   const navigation: MenuRow[] = [
     {
       id: 'main-page',
@@ -105,6 +106,8 @@ const groups = computed((): MenuRow[][] => {
   return result
 })
 
+const groups = computed((): MenuRow[][] => props.groups ?? defaultGroups.value)
+
 function rowHref(row: MenuRow): string | undefined {
   if (row.to) return router.resolve(row.to).href
   return undefined
@@ -119,7 +122,7 @@ function onRowClick(event: MouseEvent, row: MenuRow): void {
   event.preventDefault()
   close()
   if (row.action) void row.action()
-  else if (row.to && props.prototypingSettings) void router.push(row.to)
+  else if (row.to && (props.prototypingSettings || props.groups)) void router.push(row.to)
 }
 </script>
 
@@ -302,6 +305,46 @@ function onRowClick(event: MouseEvent, row: MenuRow): void {
   flex-shrink: 0;
   padding-bottom: 0;
   border-top: 1px solid var(--border-color-muted);
+}
+
+/*
+ * `#prototype-footer` rows are the page's own markup, so the row rules above
+ * (scoped to this component) reach them through :deep — same classes.
+ */
+.minerva-chrome-main-menu__prototype :deep(.minerva-chrome-main-menu__anchor) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.75em 0.875em;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.minerva-chrome-main-menu__prototype :deep(.minerva-chrome-main-menu__icon) {
+  flex-shrink: 0;
+  color: var(--color-subtle);
+}
+
+.minerva-chrome-main-menu__prototype :deep(.minerva-chrome-main-menu__label) {
+  overflow: hidden;
+  color: var(--color-subtle);
+  font-size: 0.875rem;
+  font-weight: bold;
+  line-height: var(--size-icon-medium, 20px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .minerva-chrome-main-menu__prototype :deep(.minerva-chrome-main-menu__anchor:hover) {
+    box-shadow: inset 4px 0 0 0 var(--box-shadow-color-progressive--focus);
+  }
 }
 
 .minerva-chrome-main-menu__prototype :deep(.minerva-chrome-main-menu__item) {

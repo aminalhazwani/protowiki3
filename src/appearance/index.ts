@@ -5,6 +5,7 @@
  * - `app-platform` — `data-app-platform` on `<html>`
  * - `url-query` — query-string helpers and navigation preservation
  * - `url-sync` — bidirectional sync between settings and `?theme=` / `?skin=` / `?os=`
+ * - `route-pins` — per-prototype skin / user pins (`meta.skin`, `meta.user`)
  * - `boot` — entry points for `main.ts`
  *
  * Theme / skin rendering lives in `@/theme`; persistence schema in `@/config`.
@@ -36,5 +37,7 @@ export {
   type UrlSkinParam,
   type UrlThemeParam,
 } from './url-sync'
+
+export { pinnedUser, pinnedWebSkin } from './route-pins'
 
 export { bootAppearance, wireAppearanceRouter } from './boot'

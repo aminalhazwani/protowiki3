@@ -26,6 +26,8 @@ interface Props {
    * affordances, skin pinned to **`'mobile'`**. Pair it with **`AppChromeWrapper`**.
    */
   app?: boolean
+  /** Mobile skin: sections start collapsed, as on mobile Wikipedia. Forwarded to **`ArticleRenderer`**. */
+  collapseSections?: boolean
   /** Short description under the title — **`app`** only. */
   description?: string
   /** Lead image — **`app`** only. */
@@ -35,6 +37,8 @@ interface Props {
   /** Open edit mode once hand-authored body HTML is captured (**`editable`** only). */
   startInEditMode?: boolean
   savedPagesRoute?: string
+  /** Forwarded to **`ArticleHeader`** — Share button after Edit (Minerva, logged in). */
+  share?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -46,11 +50,13 @@ const props = withDefaults(defineProps<Props>(), {
   theme: undefined,
   languagesCount: undefined,
   app: false,
+  collapseSections: false,
   description: undefined,
   leadImageUrl: undefined,
   editable: false,
   startInEditMode: false,
   savedPagesRoute: undefined,
+  share: false,
 })
 
 const editing = defineModel<boolean>('editing', { default: false })
@@ -147,6 +153,7 @@ watch([editCount, editCountReady], () => {
       :lead-image-url="props.leadImageUrl"
       :active-view="editing ? 'edit' : 'read'"
       :saved-pages-route="props.savedPagesRoute"
+      :share="props.share"
       @edit-click="onEditClick()"
       @read-click="onReadClick()"
     >
@@ -158,6 +165,7 @@ watch([editCount, editCountReady], () => {
         :skin="props.skin"
         :theme="props.theme"
         :app="props.app"
+        :collapse-sections="props.collapseSections"
       >
         <slot />
       </ArticleRenderer>
@@ -191,6 +199,7 @@ watch([editCount, editCountReady], () => {
     :description="props.description"
     :lead-image-url="props.leadImageUrl"
     :saved-pages-route="props.savedPagesRoute"
+    :share="props.share"
   >
     <ArticleRenderer
       :lang="props.lang"
@@ -198,6 +207,7 @@ watch([editCount, editCountReady], () => {
       :skin="props.skin"
       :theme="props.theme"
       :app="props.app"
+      :collapse-sections="props.collapseSections"
     >
       <slot />
     </ArticleRenderer>

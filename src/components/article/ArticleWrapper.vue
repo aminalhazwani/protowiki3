@@ -34,6 +34,8 @@ interface Props {
   activeView?: 'read' | 'edit'
   /** Forwarded to **`ArticleHeader`** — save toast link target. */
   savedPagesRoute?: string
+  /** Forwarded to **`ArticleHeader`** — Share button after Edit (Minerva, logged in). */
+  share?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -49,6 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
   leadImageUrl: undefined,
   activeView: 'read',
   savedPagesRoute: undefined,
+  share: false,
 })
 
 const emit = defineEmits<{
@@ -114,6 +117,7 @@ const chromeHeaderLabel = computed(() => leadTitle.value || 'Article')
       @edit-click="emit('editClick')"
       :main-page="isMainPage"
       :saved-pages-route="props.savedPagesRoute"
+      :share="props.share"
     />
 
     <slot />

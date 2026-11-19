@@ -48,6 +48,7 @@ const props = defineProps<{
 
 const {
   user,
+  isUserPinned,
   realUsername,
   lang,
   currentUserPageLists,
@@ -277,6 +278,9 @@ async function onRefreshRealEditedPages(): Promise<void> {
     <form class="user-settings-panel__fields" autocomplete="off" @submit.prevent>
       <CdxField>
         <template #label>Preset</template>
+        <template v-if="isUserPinned" #description>
+          Set by this prototype. Changes here last until you leave it.
+        </template>
         <div class="settings-panel__row">
           <CdxSelect
             v-model:selected="user"

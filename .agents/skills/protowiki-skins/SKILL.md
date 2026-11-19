@@ -24,6 +24,9 @@ all — their platform axis is iOS vs Android on `<html data-app-platform>`. See
 At boot, `src/theme.ts` decides the global skin in this order:
 
 1. `?skin=desktop` or `?skin=mobile` URL param, if either is present.
+   On a prototype that pins its skin (`meta.skin`, see
+   [Pinning](#pinning-skin-and-user-per-prototype)), the pin applies instead,
+   and `?skin=` only switches it for the visit.
 2. The stored **Web skin** preference (`config.webSkin`: `auto` / `desktop` /
    `mobile`), set in the gallery's Appearance settings.
 3. Otherwise (`auto`), viewport: `window.innerWidth >= 640` → `desktop`, else `mobile`.
@@ -37,6 +40,44 @@ media-query listener so the global skin updates live as the viewport crosses
 
 `?skin=` URL param wins permanently for that session (no live subscription
 when the URL forces a value).
+
+## Pinning skin and user per prototype
+
+Web skin and Mock user are **global** settings saved in the visitor's
+browser, so by default a prototype shows whatever the visitor last picked
+anywhere in ProtoWiki. A prototype designed for one skin / one kind of user
+should **pin** them in `definePage` meta:
+
+```ts
+definePage({
+  meta: {
+    skin: 'mobile', // 'desktop' | 'mobile' | 'auto'
+    user: 'new',    // 'logged-out' | 'new' | 'experienced' | 'real'
+  },
+})
+```
+
+How a pin behaves (`src/appearance/route-pins.ts`):
+
+- The prototype **always opens** with the pinned value, whatever the visitor
+  saved in Settings.
+- The visitor's saved settings are **never written**. Other prototypes, and
+  the gallery, still use them.
+- On the pinned prototype, changing that setting (Settings, or `?skin=`)
+  switches it **in memory only**, so authors can still compare. The pin comes
+  back on reload or when re-entering the prototype; moving around inside the
+  same prototype (same first path segment, e.g. `?title=` changes or nested
+  routes) keeps the switch. Settings shows "Set by this prototype" on a
+  pinned field.
+- `useConfig()` returns the effective value (`user`, `webSkin`) and exposes
+  `isUserPinned` / `isWebSkinPinned`; `useSkin()` / `data-skin` follow the pin.
+- Pins are per route: a nested route needs its own `skin` / `user` meta, and
+  links out to another prototype (e.g. `/template-visual-editor`) fall back
+  to the visitor's saved settings there.
+
+Prefer a pin over `<ChromeWrapper skin="mobile">` when the whole prototype is
+meant for one skin: the prop only re-skins its subtree, while the pin sets
+the global `data-skin` too.
 
 ## How CSS skins work
 

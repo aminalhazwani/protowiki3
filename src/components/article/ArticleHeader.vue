@@ -16,6 +16,7 @@ import {
   cdxIconDownload,
   cdxIconEdit,
   cdxIconEllipsis,
+  cdxIconShare,
   cdxIconHistory,
   cdxIconLanguage,
   cdxIconSearch,
@@ -62,6 +63,11 @@ interface Props {
   mainPage?: boolean
   /** When set, save toast links to the web saved-pages template. */
   savedPagesRoute?: string
+  /**
+   * Minerva, logged in: a Share button after Edit. Off by default (production's
+   * toolbar has none); emits **`shareClick`**.
+   */
+  share?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -70,6 +76,7 @@ const props = withDefaults(defineProps<Props>(), {
   activeView: 'read',
   mainPage: false,
   savedPagesRoute: undefined,
+  share: false,
 })
 
 const route = useRoute()
@@ -108,6 +115,7 @@ const emit = defineEmits<{
   bookmarkClick: []
   downloadClick: []
   moreClick: []
+  shareClick: []
   languageSelect: [link: ArticleLanguageLink]
   languageSettingsClick: []
 }>()
@@ -329,6 +337,15 @@ function onLanguagePick(row: ArticleLanguageLink) {
           @click="$emit('editClick')"
         >
           <CdxIcon :icon="cdxIconEdit" />
+        </button>
+        <button
+          v-if="props.share"
+          type="button"
+          class="article-header__icon-tool"
+          aria-label="Share"
+          @click="$emit('shareClick')"
+        >
+          <CdxIcon :icon="cdxIconShare" />
         </button>
         <button
           type="button"
@@ -703,15 +720,16 @@ function onLanguagePick(row: ArticleLanguageLink) {
   border-bottom: none;
 }
 
-/* Minerva title typography — matches `SpecialPageWrapper` mobile `__title`. */
+/* Minerva article title: the serif heading face at regular weight, as in production.
+   Size is Minerva's 1.7em (27.2px) with a 1.25 line height (34px); no Codex
+   token matches, so the values are literal, like the greeting above. */
 .article-header[data-skin='mobile']
   .article-header__title:not(.article-header__title--greeting):not(.article-header__title--hidden) {
   padding-bottom: 0;
-  font-family:
-    var(--font-family-system-sans, system-ui, sans-serif), var(--font-family-base, sans-serif);
-  font-size: var(--font-size-xx-large);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-xx-large);
+  font-family: var(--font-family-heading-main, 'Linux Libertine', Georgia, Times, serif);
+  font-size: 1.7rem;
+  font-weight: var(--font-weight-normal);
+  line-height: 1.25;
   color: var(--color-base);
 }
 
@@ -721,6 +739,10 @@ function onLanguagePick(row: ArticleLanguageLink) {
   border-top: none;
   border-bottom: none;
   padding-top: var(--spacing-35, 6px);
+  /* Minerva's page tabs use the system font, like the title above — not
+     `--font-family-base`, which is Vector's plain `sans-serif`. */
+  font-family:
+    var(--font-family-system-sans, system-ui, sans-serif), var(--font-family-base, sans-serif);
 }
 
 .article-header[data-skin='mobile'] .article-header__tabs {
@@ -731,9 +753,11 @@ function onLanguagePick(row: ArticleLanguageLink) {
   border-bottom: 1px solid var(--border-color-subtle);
 }
 
+/* Minerva sets every page tab bold (Article and Talk alike); the underline marks the active one. */
 .article-header[data-skin='mobile'] .article-header__tab {
   margin-bottom: -1px;
   color: var(--color-subtle);
+  font-weight: var(--font-weight-bold);
 }
 
 .article-header[data-skin='mobile'] .article-header__tab:hover {
@@ -743,7 +767,6 @@ function onLanguagePick(row: ArticleLanguageLink) {
 
 .article-header[data-skin='mobile'] .article-header__tab--active {
   color: var(--color-subtle);
-  font-weight: var(--font-weight-bold);
 }
 
 .article-header[data-skin='mobile'] .article-header__tab--active::after {

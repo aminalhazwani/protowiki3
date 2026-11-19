@@ -138,6 +138,10 @@ Gallery cards are driven by flat `definePage` meta on each top-level
 - **`hidden`** — omit from gallery while keeping the route live
 - **`spotlight`** — when any prototype is spotlighted, the gallery shows only
   spotlighted entries (DAW-style solo)
+- **`skin`** / **`user`** — pin the web skin (`'mobile'`, …) and Mock user
+  (`'new'`, …) the prototype opens with, whatever the visitor saved in Settings
+  (never overwritten). See
+  [`protowiki-skins` → Pinning](../protowiki-skins/SKILL.md#pinning-skin-and-user-per-prototype)
 
 Full field reference, layout rules, and examples:
 [`references/gallery-meta.md`](references/gallery-meta.md).
