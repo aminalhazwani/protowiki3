@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * "Tab bar" variant: Home · Saved · Search, fixed to the bottom of every page.
- * Home is selected on the Home; Saved is inert; Search opens Minerva's search.
+ * Home and Saved open their pages (and show as selected there); Search opens
+ * Minerva's search.
  * Styles from `home-renovation`'s `HomeMobileTabBar`.
  */
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconBookmarkList, cdxIconHome, cdxIconSearch, type Icon } from '@wikimedia/codex-icons'
@@ -12,7 +13,7 @@ import { cdxIconBookmarkList, cdxIconHome, cdxIconSearch, type Icon } from '@wik
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay.vue'
 import { useConfig } from '@/composables/useConfig'
 
-import { HOME_NAV_HOME_PATH } from './navVariants'
+import { HOME_NAV_HOME_PATH, HOME_NAV_SAVED_PATH } from './navVariants'
 
 interface TabItem {
   id: 'home' | 'saved' | 'search'
@@ -31,15 +32,23 @@ const router = useRouter()
 const { lang } = useConfig()
 
 const searchOpen = ref(false)
-const onHome = computed(() => route.path === HOME_NAV_HOME_PATH)
+/** Tabs that are pages, and where they lead. */
+const TAB_PATHS: Partial<Record<TabItem['id'], string>> = {
+  home: HOME_NAV_HOME_PATH,
+  saved: HOME_NAV_SAVED_PATH,
+}
 
 function isSelected(item: TabItem): boolean {
-  return item.id === 'home' && onHome.value
+  return route.path === TAB_PATHS[item.id]
 }
 
 function onClick(item: TabItem): void {
-  if (item.id === 'home' && !onHome.value) void router.push(HOME_NAV_HOME_PATH)
-  if (item.id === 'search') searchOpen.value = true
+  if (item.id === 'search') {
+    searchOpen.value = true
+    return
+  }
+  const path = TAB_PATHS[item.id]
+  if (path && route.path !== path) void router.push(path)
 }
 </script>
 

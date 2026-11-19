@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Minerva's user menu, signed in: the account's name (the way to the Home in
- * every variant), then its pages. Only the name goes anywhere; the other rows
- * are inert. Ported from `home-renovation`'s `MinervaUserMenu`.
+ * every variant), then its pages. Only the name and Saved pages go anywhere;
+ * the other rows are inert. Ported from `home-renovation`'s `MinervaUserMenu`.
  */
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -19,7 +19,7 @@ import {
   cdxIconWatchlist,
 } from '@wikimedia/codex-icons'
 
-import { HOME_NAV_HOME_PATH, HOME_NAV_USERNAME } from './navVariants'
+import { HOME_NAV_HOME_PATH, HOME_NAV_SAVED_PATH, HOME_NAV_USERNAME } from './navVariants'
 
 const router = useRouter()
 
@@ -43,6 +43,7 @@ watch(selection, (value) => {
   if (value === null) return
   selection.value = null
   if (value === 'user-page') void router.push(HOME_NAV_HOME_PATH)
+  if (value === 'saved') void router.push(HOME_NAV_SAVED_PATH)
 })
 
 /* Rows are `<li>`s: arrow keys, Enter and Escape reach them through the focused trigger. */
@@ -119,6 +120,11 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
 .nav-user-menu :deep(.nav-user-menu__menu .cdx-menu-item--enabled),
 .nav-user-menu :deep(.nav-user-menu__menu .cdx-menu-item--enabled .cdx-menu-item__content) {
   color: var(--color-subtle, #54595d);
+}
+
+/* CODEX+ CdxMenuItem: no bold option. Minerva's user menu labels are bold. */
+.nav-user-menu :deep(.nav-user-menu__menu .cdx-menu-item__text__label) {
+  font-weight: var(--font-weight-bold);
 }
 
 .nav-user-menu :deep(.nav-user-menu__menu .cdx-menu-item__icon.cdx-icon) {

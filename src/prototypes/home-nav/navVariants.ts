@@ -6,6 +6,7 @@ import { mergedLocationQuery } from '@/appearance/url-query'
 /** This prototype's routes. */
 export const HOME_NAV_PATH = '/home-nav'
 export const HOME_NAV_HOME_PATH = '/home-nav/home'
+export const HOME_NAV_SAVED_PATH = '/home-nav/saved'
 
 /** The account the prototype is signed in as (user menu, Home greeting, footer). */
 export const HOME_NAV_USERNAME = 'Newcomer123'
