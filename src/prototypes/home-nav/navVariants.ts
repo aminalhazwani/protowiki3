@@ -16,7 +16,7 @@ export const HOME_NAV_USERNAME = 'Newcomer123'
  */
 export const NAV_VARIANTS = [
   { id: 'production', label: 'Production' },
-  { id: 'tab-bar', label: 'Tab bar' },
+  { id: 'tab-bar', label: 'Home in tab bar' },
   { id: 'menu', label: 'Home in menu' },
   { id: 'header', label: 'Home in header' },
 ] as const
