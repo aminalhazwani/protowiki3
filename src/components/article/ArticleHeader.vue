@@ -720,14 +720,16 @@ function onLanguagePick(row: ArticleLanguageLink) {
   border-bottom: none;
 }
 
-/* Minerva article title: the serif heading face at regular weight, as in production. */
+/* Minerva article title: the serif heading face at regular weight, as in production.
+   Size is Minerva's 1.7em (27.2px) with a 1.25 line height (34px); no Codex
+   token matches, so the values are literal, like the greeting above. */
 .article-header[data-skin='mobile']
   .article-header__title:not(.article-header__title--greeting):not(.article-header__title--hidden) {
   padding-bottom: 0;
   font-family: var(--font-family-heading-main, 'Linux Libertine', Georgia, Times, serif);
-  font-size: var(--font-size-xx-large);
+  font-size: 1.7rem;
   font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-xx-large);
+  line-height: 1.25;
   color: var(--color-base);
 }
 
