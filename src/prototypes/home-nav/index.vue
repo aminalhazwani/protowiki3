@@ -36,6 +36,7 @@ function onTitleResolved(title: string) {
       saved-pages-route=""
       :wiki-link-route="HOME_NAV_PATH"
       :article="article"
+      collapse-sections
       @title-resolved="onTitleResolved"
     />
   </NavChrome>

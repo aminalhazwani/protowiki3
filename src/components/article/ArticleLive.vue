@@ -112,6 +112,8 @@ interface Props {
    * once the title resolves.
    */
   app?: boolean
+  /** Mobile skin: sections start collapsed, as on mobile Wikipedia. Forwarded to **`ArticleRenderer`**. */
+  collapseSections?: boolean
   /**
    * Random-mode pool — only meaningful when **`article`** is omitted.
    * **`'random'`** (default) draws a live random page; **`'vital'`** draws a Wikipedia Vital article.
@@ -147,6 +149,7 @@ const props = withDefaults(defineProps<Props>(), {
   header: undefined,
   host: undefined,
   app: false,
+  collapseSections: false,
   source: undefined,
   langs: undefined,
   vitalLevel: undefined,
@@ -482,6 +485,7 @@ function onEditNavigate() {
       :skin="props.skin"
       :theme="props.theme"
       :app="props.app"
+      :collapse-sections="props.collapseSections"
     >
       <template v-if="$slots.default"><slot /></template>
       <!-- eslint-disable-next-line vue/no-v-html -->

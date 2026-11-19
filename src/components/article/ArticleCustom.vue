@@ -26,6 +26,8 @@ interface Props {
    * affordances, skin pinned to **`'mobile'`**. Pair it with **`AppChromeWrapper`**.
    */
   app?: boolean
+  /** Mobile skin: sections start collapsed, as on mobile Wikipedia. Forwarded to **`ArticleRenderer`**. */
+  collapseSections?: boolean
   /** Short description under the title — **`app`** only. */
   description?: string
   /** Lead image — **`app`** only. */
@@ -46,6 +48,7 @@ const props = withDefaults(defineProps<Props>(), {
   theme: undefined,
   languagesCount: undefined,
   app: false,
+  collapseSections: false,
   description: undefined,
   leadImageUrl: undefined,
   editable: false,
@@ -158,6 +161,7 @@ watch([editCount, editCountReady], () => {
         :skin="props.skin"
         :theme="props.theme"
         :app="props.app"
+        :collapse-sections="props.collapseSections"
       >
         <slot />
       </ArticleRenderer>
@@ -198,6 +202,7 @@ watch([editCount, editCountReady], () => {
       :skin="props.skin"
       :theme="props.theme"
       :app="props.app"
+      :collapse-sections="props.collapseSections"
     >
       <slot />
     </ArticleRenderer>
