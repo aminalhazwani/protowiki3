@@ -37,6 +37,7 @@ function onTitleResolved(title: string) {
       :wiki-link-route="HOME_NAV_PATH"
       :article="article"
       collapse-sections
+      share
       @title-resolved="onTitleResolved"
     />
   </NavChrome>

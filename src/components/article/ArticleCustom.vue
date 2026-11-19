@@ -37,6 +37,8 @@ interface Props {
   /** Open edit mode once hand-authored body HTML is captured (**`editable`** only). */
   startInEditMode?: boolean
   savedPagesRoute?: string
+  /** Forwarded to **`ArticleHeader`** — Share button after Edit (Minerva, logged in). */
+  share?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -54,6 +56,7 @@ const props = withDefaults(defineProps<Props>(), {
   editable: false,
   startInEditMode: false,
   savedPagesRoute: undefined,
+  share: false,
 })
 
 const editing = defineModel<boolean>('editing', { default: false })
@@ -150,6 +153,7 @@ watch([editCount, editCountReady], () => {
       :lead-image-url="props.leadImageUrl"
       :active-view="editing ? 'edit' : 'read'"
       :saved-pages-route="props.savedPagesRoute"
+      :share="props.share"
       @edit-click="onEditClick()"
       @read-click="onReadClick()"
     >
@@ -195,6 +199,7 @@ watch([editCount, editCountReady], () => {
     :description="props.description"
     :lead-image-url="props.leadImageUrl"
     :saved-pages-route="props.savedPagesRoute"
+    :share="props.share"
   >
     <ArticleRenderer
       :lang="props.lang"

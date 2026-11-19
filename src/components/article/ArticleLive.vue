@@ -140,6 +140,8 @@ interface Props {
   readRoute?: string
   wikiLinkRoute?: string
   savedPagesRoute?: string
+  /** Forwarded to **`ArticleHeader`** — Share button after Edit (Minerva, logged in). */
+  share?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -163,6 +165,7 @@ const props = withDefaults(defineProps<Props>(), {
   readRoute: undefined,
   wikiLinkRoute: undefined,
   savedPagesRoute: undefined,
+  share: false,
 })
 
 const editing = defineModel<boolean>('editing', { default: false })
@@ -435,6 +438,7 @@ function onEditNavigate() {
       :lead-image-url="view?.thumbnailUrl ?? undefined"
       :active-view="headerActiveView"
       :saved-pages-route="props.savedPagesRoute"
+      :share="props.share"
       @edit-click="onEditClick()"
       @read-click="onReadClick()"
     >
@@ -471,6 +475,7 @@ function onEditNavigate() {
     :description="view?.description"
     :lead-image-url="view?.thumbnailUrl ?? undefined"
     :saved-pages-route="props.savedPagesRoute"
+    :share="props.share"
     @edit-click="onEditNavigate()"
   >
     <CdxProgressBar v-if="loading" inline aria-label="Loading article" />
