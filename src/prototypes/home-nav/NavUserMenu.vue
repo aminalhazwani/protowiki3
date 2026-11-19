@@ -2,9 +2,10 @@
 /**
  * Minerva's user menu, signed in: the account's name (the way to the Home in
  * every variant), then its pages. Only the name and Saved pages go anywhere;
- * the other rows are inert. Ported from `home-renovation`'s `MinervaUserMenu`.
+ * the other rows are inert. "Home in tab bar" drops Saved pages, which the tab
+ * bar already offers. Ported from `home-renovation`'s `MinervaUserMenu`.
  */
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { CdxButton, CdxIcon, CdxMenu } from '@wikimedia/codex'
 import type { MenuItemData, MenuItemValue } from '@wikimedia/codex'
@@ -19,7 +20,12 @@ import {
   cdxIconWatchlist,
 } from '@wikimedia/codex-icons'
 
-import { HOME_NAV_HOME_PATH, HOME_NAV_SAVED_PATH, HOME_NAV_USERNAME } from './navVariants'
+import {
+  HOME_NAV_HOME_PATH,
+  HOME_NAV_SAVED_PATH,
+  HOME_NAV_USERNAME,
+  useNavVariant,
+} from './navVariants'
 
 const router = useRouter()
 
@@ -28,7 +34,9 @@ const menu = ref<InstanceType<typeof CdxMenu> | null>(null)
 const trigger = ref<InstanceType<typeof CdxButton> | null>(null)
 const selection = ref<MenuItemValue | null>(null)
 
-const menuItems: MenuItemData[] = [
+const { variant } = useNavVariant()
+
+const ALL_ITEMS: MenuItemData[] = [
   { value: 'user-page', label: HOME_NAV_USERNAME, icon: cdxIconUserAvatar },
   { value: 'talk', label: 'Talk', icon: cdxIconUserTalk },
   { value: 'sandbox', label: 'Sandbox', icon: cdxIconSandbox },
@@ -37,6 +45,11 @@ const menuItems: MenuItemData[] = [
   { value: 'contributions', label: 'Contributions', icon: cdxIconUserContributions },
   { value: 'log-out', label: 'Logout', icon: cdxIconLogOut },
 ]
+
+/* With the tab bar, Saved is one of its tabs, so the menu leaves it out. */
+const menuItems = computed(() =>
+  variant.value === 'tab-bar' ? ALL_ITEMS.filter((item) => item.value !== 'saved') : ALL_ITEMS,
+)
 
 // A pick closes the menu (Codex); clear it so no row keeps the selected treatment.
 watch(selection, (value) => {
