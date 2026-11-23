@@ -11,6 +11,7 @@ import { CdxButton, CdxIcon, CdxMenu } from '@wikimedia/codex'
 import type { MenuItemData, MenuItemValue } from '@wikimedia/codex'
 import {
   cdxIconBookmarkList,
+  cdxIconExpand,
   cdxIconLogOut,
   cdxIconSandbox,
   cdxIconUserAvatar,
@@ -95,6 +96,8 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
       @keydown="onKeydown"
     >
       <CdxIcon :icon="cdxIconUserAvatarOutline" size="medium" />
+      <!-- The caret production Minerva (and the Figma) shows after the avatar. -->
+      <CdxIcon class="nav-user-menu__caret" :icon="cdxIconExpand" size="small" />
     </CdxButton>
     <CdxMenu
       ref="menu"
@@ -112,6 +115,28 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
 .nav-user-menu {
   position: relative;
   display: inline-flex;
+}
+
+/*
+ * PROTOWIKI+ (home-nav) MinervaChromeHeader: the bar pins its buttons to a 40px
+ * square, which would squeeze avatar + caret. This one sizes to both, with the
+ * same side padding as its neighbours: (40px button − 20px icon) / 2 = 10px
+ * from edge to icon, less Codex's 1px (transparent) border. Doubled class to
+ * outrank the bar's rule.
+ */
+.nav-user-menu > .cdx-button.cdx-button {
+  gap: var(--spacing-25, 4px);
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  padding-inline: calc(
+    (var(--size-icon-large, 40px) - var(--size-icon-medium, 20px)) / 2 -
+      var(--border-width-base, 1px)
+  );
+}
+
+.nav-user-menu > .cdx-button .cdx-icon {
+  flex-shrink: 0;
 }
 
 /* CODEX+ CdxMenu: no placement option — hang it under the avatar, flush with its end edge. */
