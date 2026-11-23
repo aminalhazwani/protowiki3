@@ -29,6 +29,11 @@ interface Props {
    * **`'mobile'`**, since app chrome provides no **`data-skin`** to inherit.
    */
   app?: boolean
+  /**
+   * Mobile skin: every collapsible section starts closed, as on mobile
+   * Wikipedia (Minerva). Off by default, so sections start open.
+   */
+  collapseSections?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -37,6 +42,7 @@ const props = withDefaults(defineProps<Props>(), {
   skin: undefined,
   theme: undefined,
   app: false,
+  collapseSections: false,
 })
 
 const inheritedSkin = inject(PROTOWIKI_CHROME_SKIN)
@@ -112,7 +118,7 @@ function markEndMatterStart(root: HTMLElement, names: string[]) {
   }
 }
 
-function enhanceMobileSectionHeadings(root: HTMLElement, app: boolean) {
+function enhanceMobileSectionHeadings(root: HTMLElement, app: boolean, collapseAll: boolean) {
   root.querySelectorAll<HTMLHeadingElement>('section > h2').forEach((h2) => {
     if (h2.closest('.toc')) return
     if (h2.classList.contains('protowiki-mobile-h2--ready')) return
@@ -123,7 +129,7 @@ function enhanceMobileSectionHeadings(root: HTMLElement, app: boolean) {
     const canCollapse = !app || sectionHeadingMatches(h2, APP_END_MATTER)
     // In an app article only the end matter collapses, and closed is its
     // resting state.
-    const startCollapsed = canCollapse && app
+    const startCollapsed = canCollapse && (app || collapseAll)
 
     const titleText = h2.textContent?.trim() ?? ''
     h2.textContent = ''
@@ -243,7 +249,7 @@ async function applyMobileEnhancements() {
   const root = mwParserOutputRef.value
   if (!root) return
   if (props.app) markEndMatterStart(root, APP_END_MATTER)
-  enhanceMobileSectionHeadings(root, props.app)
+  enhanceMobileSectionHeadings(root, props.app, props.collapseSections)
   enhanceMobileLeadInfoboxOrder(root)
   // After the reorder — it matches `:scope > table.infobox`, which the wrapper
   // would put out of reach.

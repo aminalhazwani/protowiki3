@@ -112,6 +112,8 @@ interface Props {
    * once the title resolves.
    */
   app?: boolean
+  /** Mobile skin: sections start collapsed, as on mobile Wikipedia. Forwarded to **`ArticleRenderer`**. */
+  collapseSections?: boolean
   /**
    * Random-mode pool — only meaningful when **`article`** is omitted.
    * **`'random'`** (default) draws a live random page; **`'vital'`** draws a Wikipedia Vital article.
@@ -138,6 +140,8 @@ interface Props {
   readRoute?: string
   wikiLinkRoute?: string
   savedPagesRoute?: string
+  /** Forwarded to **`ArticleHeader`** — Share button after Edit (Minerva, logged in). */
+  share?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -147,6 +151,7 @@ const props = withDefaults(defineProps<Props>(), {
   header: undefined,
   host: undefined,
   app: false,
+  collapseSections: false,
   source: undefined,
   langs: undefined,
   vitalLevel: undefined,
@@ -160,6 +165,7 @@ const props = withDefaults(defineProps<Props>(), {
   readRoute: undefined,
   wikiLinkRoute: undefined,
   savedPagesRoute: undefined,
+  share: false,
 })
 
 const editing = defineModel<boolean>('editing', { default: false })
@@ -432,6 +438,7 @@ function onEditNavigate() {
       :lead-image-url="view?.thumbnailUrl ?? undefined"
       :active-view="headerActiveView"
       :saved-pages-route="props.savedPagesRoute"
+      :share="props.share"
       @edit-click="onEditClick()"
       @read-click="onReadClick()"
     >
@@ -468,6 +475,7 @@ function onEditNavigate() {
     :description="view?.description"
     :lead-image-url="view?.thumbnailUrl ?? undefined"
     :saved-pages-route="props.savedPagesRoute"
+    :share="props.share"
     @edit-click="onEditNavigate()"
   >
     <CdxProgressBar v-if="loading" inline aria-label="Loading article" />
@@ -482,6 +490,7 @@ function onEditNavigate() {
       :skin="props.skin"
       :theme="props.theme"
       :app="props.app"
+      :collapse-sections="props.collapseSections"
     >
       <template v-if="$slots.default"><slot /></template>
       <!-- eslint-disable-next-line vue/no-v-html -->

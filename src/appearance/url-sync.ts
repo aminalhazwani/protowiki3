@@ -1,7 +1,9 @@
+import { watch } from 'vue'
 import type { RouteLocationNormalized, Router } from 'vue-router'
 
 import { applyAppPlatformPreference } from './app-platform'
 import { protowikiConfig } from './config-store'
+import { pinnedWebSkin } from './route-pins'
 import {
   isAppPrototypeRoute,
   isSyncingToUrl,
@@ -120,6 +122,12 @@ function syncWebSkinFromUrlOnRoute(to: RouteLocationNormalized): void {
   const urlSkin = typeof to.query.skin === 'string' ? to.query.skin : null
   if (!isUrlSkinParam(urlSkin)) return
 
+  // A prototype that pins its skin takes `?skin=` as an unsaved switch.
+  if (to.meta.skin) {
+    pinnedWebSkin.value = urlSkin
+    return
+  }
+
   if (protowikiConfig.value.webSkin !== urlSkin) {
     setWebSkinFromUrlParam(urlSkin)
   }
@@ -207,6 +215,12 @@ export function syncAppearanceFromBootUrl(): void {
 
 /** Keep appearance URL params and settings aligned after each navigation. */
 export function setupAppearanceUrlSync(instance: Router): void {
+  // Pinned skin switched in Settings: keep an existing `?skin=` in step.
+  watch(pinnedWebSkin, (value) => {
+    if (value === null || isSyncingToUrl() || !queryParamIsPresent('skin')) return
+    syncUrlQueryParam('skin', value)
+  })
+
   instance.afterEach((to) => {
     if (syncingFromUrl || isSyncingToUrl()) return
 

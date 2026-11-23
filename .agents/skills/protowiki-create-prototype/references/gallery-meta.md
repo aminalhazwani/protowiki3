@@ -55,6 +55,8 @@ See also [`protowiki-create-prototype` → Gallery copy](../SKILL.md#gallery-cop
 | `order` | prototype | number (default: alphabetical) | Sort within block; lower first |
 | `hidden` | prototype | boolean (default `false`) | Omit from gallery; route still works |
 | `spotlight` | prototype | boolean (default `false`) | When any prototype is spotlighted, gallery shows only spotlighted entries |
+| `skin` | prototype | `desktop` \| `mobile` \| `auto` (optional) | Pin the web skin: the prototype opens with it whatever the visitor saved; their saved settings are never changed. See [`protowiki-skins` → Pinning](../../protowiki-skins/SKILL.md#pinning-skin-and-user-per-prototype) |
+| `user` | prototype | `logged-out` \| `new` \| `experienced` \| `real` (optional) | Pin the Mock user preset, same rules as `skin` |
 | `hidePrimary` | index only | boolean | Hide the prototype block |
 | `hideSecondary` | index only | boolean | Hide the template+example block |
 

@@ -29,6 +29,7 @@ import {
   onWebSkinSettingChanged,
   protowikiConfig,
 } from '@/appearance'
+import { pinnedUser, pinnedWebSkin } from '@/appearance/route-pins'
 
 const config = protowikiConfig
 
@@ -67,6 +68,10 @@ export function useConfig(): {
   appPlatform: Ref<ConfigAppPlatform>
   webSkin: Ref<ConfigWebSkin>
   user: Ref<ConfigUser>
+  /** True while the current prototype pins the web skin (`meta.skin`). */
+  isWebSkinPinned: ComputedRef<boolean>
+  /** True while the current prototype pins the mock user (`meta.user`). */
+  isUserPinned: ComputedRef<boolean>
   realUsername: Ref<string>
   lang: Ref<string>
   realLang: ComputedRef<string>
@@ -98,19 +103,32 @@ export function useConfig(): {
     },
   })
 
+  // A prototype's pin (`meta.skin` / `meta.user`, see `@/appearance/route-pins`)
+  // wins over the saved setting; changing it there stays in memory, unsaved.
   const webSkin = computed({
-    get: () => config.value.webSkin,
+    get: () => pinnedWebSkin.value ?? config.value.webSkin,
     set: (value: ConfigWebSkin) => {
+      if (pinnedWebSkin.value !== null) {
+        pinnedWebSkin.value = value
+        return
+      }
       config.value = { ...config.value, webSkin: value }
     },
   })
 
   const user = computed({
-    get: () => config.value.user,
+    get: () => pinnedUser.value ?? config.value.user,
     set: (value: ConfigUser) => {
+      if (pinnedUser.value !== null) {
+        pinnedUser.value = value
+        return
+      }
       config.value = { ...config.value, user: value }
     },
   })
+
+  const isWebSkinPinned = computed(() => pinnedWebSkin.value !== null)
+  const isUserPinned = computed(() => pinnedUser.value !== null)
 
   const realUsername = computed({
     get: () => config.value.realUsername,
@@ -139,11 +157,11 @@ export function useConfig(): {
   const realLang = computed(() => langForUser('real', config.value.userPageLists))
 
   const displayName = computed(() =>
-    configUserDisplayName(config.value.user, config.value.realUsername),
+    configUserDisplayName(user.value, config.value.realUsername),
   )
 
   const pageTitle = computed(() =>
-    configUserPageTitle(config.value.user, config.value.realUsername),
+    configUserPageTitle(user.value, config.value.realUsername),
   )
 
   const currentUserPageLists = computed(() => config.value.userPageLists[user.value])
@@ -241,6 +259,8 @@ export function useConfig(): {
     appPlatform,
     webSkin,
     user,
+    isWebSkinPinned,
+    isUserPinned,
     realUsername,
     lang,
     realLang,

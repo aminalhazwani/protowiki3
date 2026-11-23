@@ -1,9 +1,10 @@
-import { ref, type ComputedRef, type InjectionKey, type Ref } from 'vue'
+import { ref, watch, type ComputedRef, type InjectionKey, type Ref } from 'vue'
 
 import lightTokensRaw from '@wikimedia/codex-design-tokens/theme-wikimedia-ui.css?raw'
 import darkTokensRaw from '@wikimedia/codex-design-tokens/theme-wikimedia-ui-mode-dark.css?raw'
 
 import { protowikiConfig } from '@/appearance'
+import { pinnedWebSkin } from '@/appearance/route-pins'
 import { getCodexPatchChangeId } from '@/codex-build'
 import type { ConfigTheme, ConfigWebSkin } from '@/config'
 
@@ -146,7 +147,7 @@ function setupViewportListener(): void {
 
   viewportMql = window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH}px)`)
   onViewportChange = (event: MediaQueryListEvent) => {
-    if (webSkinPreference !== 'auto') return
+    if (effectiveWebSkinPreference() !== 'auto') return
     const next: Skin = event.matches ? 'desktop' : 'mobile'
     if (next !== globalSkin.value) {
       applyGlobalSkin(next)
@@ -160,16 +161,23 @@ function resolveEffectiveSkin(preference: ConfigWebSkin): Skin {
   return resolveSkinFromViewport()
 }
 
+/** A prototype's pinned skin (`meta.skin`) wins over the saved preference. */
+function effectiveWebSkinPreference(): ConfigWebSkin {
+  return pinnedWebSkin.value ?? webSkinPreference
+}
+
 /**
  * Apply stored web skin preference (auto / desktop / mobile) to the global
  * `data-skin`. URL `?skin=` is kept in sync via `@/appearance/url-sync`.
+ * A prototype's pinned skin (`@/appearance/route-pins`) takes precedence.
  */
 export function applyWebSkinPreference(webSkin: ConfigWebSkin): void {
   webSkinPreference = webSkin
 
-  applyGlobalSkin(resolveEffectiveSkin(webSkin))
+  const effective = effectiveWebSkinPreference()
+  applyGlobalSkin(resolveEffectiveSkin(effective))
 
-  if (webSkin === 'auto') {
+  if (effective === 'auto') {
     setupViewportListener()
   } else {
     teardownViewportListener()
@@ -247,4 +255,6 @@ export function initTheming(): void {
   const config = protowikiConfig.value
   applyWebSkinPreference(config.webSkin)
   applyThemePreference(config.theme)
+
+  watch(pinnedWebSkin, () => applyWebSkinPreference(webSkinPreference))
 }
