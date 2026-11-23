@@ -5,6 +5,8 @@
  * Home selected). Home and Saved open their pages (and show as selected
  * there); Search opens Minerva's search. It slides away while the reader
  * scrolls down and back as soon as they scroll up (`./useHideOnScroll`).
+ * At the end of the page it sits in its own slot under the footer and
+ * scrolls in with it, as if it were the page's last block.
  *
  * Icons are `--color-icon-notice`, the selected one `--color-base`. Selected
  * tabs fill in: Home with the design's full house, Saved with Codex's
@@ -13,7 +15,7 @@
  * shift. The full house is a Figma SVG (`./assets`), painted in the current
  * colour through a CSS mask, since Codex has none.
  */
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import {
@@ -67,6 +69,56 @@ watch(
   () => (hidden.value = false),
 )
 
+/*
+ * The in-flow slot under the footer. While it's on screen and the bar has slid
+ * away, the bar follows it instead (`--docked`): still the fixed bar, offset
+ * down by however much of the slot is below the screen, so reaching the end of
+ * the page scrolls it in with the footer rather than sliding it up. Scrolling
+ * up from there reveals it at once — the offset (a few px at most) eases back
+ * to 0 with the slide-in curve — so it never dips with the page first.
+ */
+const slot = ref<HTMLElement | null>(null)
+/** px the docked bar sits below its resting place; `null` when not docked. */
+const dockOffset = ref<number | null>(null)
+
+let lastY = 0
+let frame = 0
+
+function measure(): void {
+  frame = 0
+  const y = window.scrollY
+  const scrollingUp = y < lastY
+  lastY = y
+  // Scrolling up from the slot: show the bar where it is, no 16px dip first.
+  if (dockOffset.value !== null && scrollingUp) hidden.value = false
+
+  const el = slot.value
+  if (!el) return
+  const height = el.offsetHeight
+  const top = el.getBoundingClientRect().top
+  const below = top - (window.innerHeight - height)
+  dockOffset.value =
+    hidden.value && top < window.innerHeight ? Math.min(Math.max(below, 0), height) : null
+}
+
+function scheduleMeasure(): void {
+  if (!frame) frame = requestAnimationFrame(measure)
+}
+
+watch(hidden, scheduleMeasure, { flush: 'post' })
+
+onMounted(() => {
+  lastY = window.scrollY
+  window.addEventListener('scroll', scheduleMeasure, { passive: true })
+  window.addEventListener('resize', scheduleMeasure, { passive: true })
+  scheduleMeasure()
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', scheduleMeasure)
+  window.removeEventListener('resize', scheduleMeasure)
+  if (frame) cancelAnimationFrame(frame)
+})
+
 /** Tabs that are pages, and where they lead. */
 const TAB_PATHS: Partial<Record<TabItem['id'], string>> = {
   home: HOME_NAV_HOME_PATH,
@@ -96,11 +148,15 @@ function onClick(item: TabItem): void {
 </script>
 
 <template>
-  <!-- In-flow spacer the bar's height, so the page's end is never covered. -->
-  <div class="nav-tab-bar">
+  <!-- In-flow slot the bar's height, under the footer: the page's end is never covered, and the bar docks here at the end. -->
+  <div ref="slot" class="nav-tab-bar">
     <nav
       class="nav-tab-bar__bar"
-      :class="{ 'nav-tab-bar__bar--hidden': hidden }"
+      :class="{
+        'nav-tab-bar__bar--hidden': hidden && dockOffset === null,
+        'nav-tab-bar__bar--docked': dockOffset !== null,
+      }"
+      :style="dockOffset !== null ? { transform: `translateY(${dockOffset}px)` } : undefined"
       aria-label="Tab bar"
     >
       <CdxButton
@@ -137,6 +193,7 @@ function onClick(item: TabItem): void {
 <style scoped>
 .nav-tab-bar {
   --nav-tab-bar-height: 56px;
+  position: relative;
   flex-shrink: 0;
   height: var(--nav-tab-bar-height);
 }
@@ -171,6 +228,11 @@ function onClick(item: TabItem): void {
 .nav-tab-bar__bar--hidden {
   visibility: hidden;
   transform: translateY(100%);
+}
+
+/* At the end of the page: over its slot under the footer, following the scroll exactly — placed, not animated. */
+.nav-tab-bar__bar--docked {
+  transition: none;
 }
 
 /* Reduced motion: no travel, just a fade. */
