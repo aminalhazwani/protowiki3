@@ -45,8 +45,9 @@ export function useNavVariant() {
 
   function setVariant(next: NavVariant): void {
     if (next === variant.value) return
+    // Spelled out even for production: with no `?nav=`, `keepNavParam` would
+    // carry the previous variant over and the switch would never happen.
     const query = mergedLocationQuery(route.query, { nav: next })
-    if (next === DEFAULT_VARIANT) delete query.nav
     void router.replace({ path: route.path, query, hash: route.hash })
   }
 
