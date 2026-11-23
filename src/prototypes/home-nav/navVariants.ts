@@ -58,7 +58,7 @@ const installed = new WeakSet<Router>()
 /**
  * Keep `?nav=` while moving around the prototype: links that build their own
  * query (Home, the user menu, search) would otherwise drop it and fall back
- * to production.
+ * to production. Also opens each new page at the top.
  */
 export function keepNavParam(router: Router): void {
   if (installed.has(router)) return
@@ -68,6 +68,15 @@ export function keepNavParam(router: Router): void {
     if (!isHomeNavPath(to.path) || !isHomeNavPath(from.path)) return true
     if (to.query.nav !== undefined || !isNavVariant(from.query.nav)) return true
     return { path: to.path, query: { ...to.query, nav: from.query.nav }, hash: to.hash }
+  })
+
+  // PROTOWIKI+ (home-nav) Router: no `scrollBehavior`, so a new page would open
+  // at the old one's scroll position. Start each page (or article) at the top;
+  // variant switches and in-page anchors keep their place.
+  router.afterEach((to, from, failure) => {
+    if (failure || !isHomeNavPath(to.path)) return
+    if (to.path === from.path && to.query.title === from.query.title) return
+    window.scrollTo(0, 0)
   })
 }
 

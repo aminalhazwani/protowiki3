@@ -261,9 +261,15 @@ function onClick(item: TabItem): void {
   border-radius: 0;
 }
 
-/* CODEX+ Button: no background on hover — the icon darkens instead (below). */
-.nav-tab-bar__item.cdx-button:enabled:hover {
+/* CODEX+ Button: no background on hover or press — the icon darkens instead (below). */
+.nav-tab-bar__item.cdx-button:enabled:hover,
+.nav-tab-bar__item.cdx-button:enabled:active {
   background-color: transparent;
+}
+
+/* Press looks like hover, on touch screens too. */
+.nav-tab-bar__item.cdx-button:enabled:active .nav-tab-bar__icon {
+  color: var(--color-base, #202122);
 }
 
 /* CODEX+ Button: quiet buttons colour their icon; the bar's icons are notice grey, base when selected. */
